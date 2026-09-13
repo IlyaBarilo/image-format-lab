@@ -18,6 +18,7 @@ import { createBatchDialog } from './ui/batch-dialog.mjs';
 import { createBatchPreview } from './ui/batch-preview.mjs';
 import { createBatchRun } from './ui/batch-run.mjs';
 import { createDownloads } from './ui/downloads.mjs';
+import { createFormatSettings } from './ui/format-settings.mjs';
 import { createControls } from './ui/controls.mjs';
 import { createComparison } from './ui/comparison.mjs';
 import { createSource } from './ui/source.mjs';
@@ -88,6 +89,7 @@ export function createApplication() {
     "updateFileList",
     "updateLayout"
   ])));
+  Object.assign(actions, createFormatSettings());
   Object.assign(actions, createTheme());
   Object.assign(actions, createPreferences(context, dependencies([
     "captureComparison", "applyComparison", "captureAnalysisLayoutPreferences", "applyAnalysisLayoutPreferences",
@@ -117,6 +119,7 @@ export function createApplication() {
     "normalizeBatchSettings"
   ])));
   Object.assign(actions, createBatchDialog(context, dependencies([
+    "openTiffSettings",
     "batchDialogError",
     "batchFilesLabel",
     "clearBatchPreview",
@@ -173,6 +176,7 @@ export function createApplication() {
     "triggerDownload"
   ])));
   Object.assign(actions, createControls(context, dependencies([
+    "openTiffSettings",
     "updateAnalysis",
     "clamp",
     "codecLabel",

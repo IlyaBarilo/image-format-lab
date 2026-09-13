@@ -1,3 +1,4 @@
+import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { BATCH_STORAGE_KEY, FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -40,6 +41,7 @@ export function createBatchSettings({app}, deps) {
     const unavailable = deps.formatUnavailableReason(config.format);
     if (unavailable) throw new Error(unavailable);
     const def = FORMAT_DEFS[config.format];
+    if (config.format === "tiff") normalizeTiffOptions(config);
     if (config.delivery !== undefined && !["files", "zip"].includes(config.delivery)) throw new Error("Выберите способ получения результата.");
     if (config.targetKB) {
       if (!def.lossy || !Number.isInteger(Number(config.targetKB)) || Number(config.targetKB)<1 || Number(config.targetKB)>1000000) throw new Error("Бюджет должен быть целым числом от 1 до 1000000 КБ для формата с качеством.");
@@ -62,6 +64,7 @@ export function createBatchSettings({app}, deps) {
     const size = config.resizeWidth || config.resizeHeight
       ? `не более ${config.resizeWidth || "∞"}×${config.resizeHeight || "∞"} px` : "исходные размеры";
     const details = def.lossy ? `, качество ${config.quality}`
+      : config.format === "tiff" ? `, ${normalizeTiffOptions(config).tiffCompression === "none" ? "без сжатия" : normalizeTiffOptions(config).tiffCompression.toUpperCase() + (normalizeTiffOptions(config).tiffCompression === "deflate" ? " " + normalizeTiffOptions(config).tiffLevel : "") + (normalizeTiffOptions(config).tiffPredictor ? ", предиктор" : ", без предиктора")}`
       : config.format === "gif" || config.format === "gifenc" ? `, цветов ${config.gifColors}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };
     const matte = def.alpha === "none" ? `; заливка ${matteNames[config.matte]}` : "";

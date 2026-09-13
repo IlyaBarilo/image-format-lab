@@ -36,7 +36,7 @@ export function createEncode({}, deps) {
     if (format === "pngUpng") return deps.withEncodedMeta(await deps.encodePngUpng(outputSource), outputSource);
     if (['heic', 'avif', 'webpLossless', 'jxl', 'jxlLossless', 'tiff'].includes(format)) {
       const codec = await deps.loadOptionalCodec(format === 'tiff' ? 'utif' : ['heic', 'avif'].includes(format) ? 'heic' : 'modern');
-      const blob = await codec.encode(outputSource.imageData, config.quality, format);
+      const blob = format==='tiff' ? await codec.encode(outputSource.imageData, config) : await codec.encode(outputSource.imageData, config.quality, format);
       return deps.withEncodedMeta({ blob, previewImageData: null, panoramaPreserved: false }, outputSource);
     }
     if (format === 'ico') {

@@ -94,8 +94,8 @@
     {
       "file": "components.json",
       "url": "Project component registry with licenses and source references",
-      "bytes": 16245,
-      "sha256": "7ad664ddc0f3ddcc216d8af715808235fcaff76358b9daf489855ca68f46eff1"
+      "bytes": 18580,
+      "sha256": "ce1385ed466dd39dedcdfeeba7bdf7c2db158a255fcc584bd65ce81fdaf187e0"
     },
     {
       "file": "sources/gifenc-1.0.3/src/color.js",
@@ -792,6 +792,102 @@
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
       "bytes": 3825751,
       "sha256": "70937529796a61c0fca9ac01e5dde50d7ebb594416722ffbebeaff1753adde4d"
+    },
+    {
+      "file": "sources/raster/bmp-bridge.c",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 2971,
+      "sha256": "d5e52968952d04508fee7f87a9f519a38c2609e37518a5b15c58b3c01fa35ea6"
+    },
+    {
+      "file": "sources/raster/tiff-bridge.c",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 9276,
+      "sha256": "82c8983fd0a40764aa04c5d938a348f5660631c4813e5686fe0ce49d1d63ae56"
+    },
+    {
+      "file": "sources/raster/build.py",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 7496,
+      "sha256": "cd7dfd26486aae9a26d01b7682c4deef53863f8bd95a03889d094f16b4f9600b"
+    },
+    {
+      "file": "sources/raster/sources.lock.json",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 1703,
+      "sha256": "7ec02ae34321094b4b41edb408d6d95225215c13f9561d0fae15efb4dc9c4e3f"
+    },
+    {
+      "file": "sources/raster/PROJECT-LICENSE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 1068,
+      "sha256": "cb10a1a27c838e2bde451cc12cd7c51a8d650a724b4897a55fecd403c219e432"
+    },
+    {
+      "file": "sources/raster/README.md",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 3835,
+      "sha256": "212c3de75f3a3ed4a219854d1da2895522b588dc2d4d4f60625ebbe00c894f28"
+    },
+    {
+      "file": "sources/raster/upstream/libnsbmp-0.1.7-sources.tar.gz",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 11619,
+      "sha256": "798447c0f75a1e6830283526aea5ed3fb0b9494fe2322341ec95bec920ce6014"
+    },
+    {
+      "file": "sources/raster/upstream/libtiff-4.7.2-sources.tar.gz",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 387865,
+      "sha256": "01b5c5e2ded2a0f9e118b0baf050b2f916357bc23036e6a3e71f3280c825f858"
+    },
+    {
+      "file": "sources/raster/upstream/zlib-1.3.2-sources.tar.gz",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 362051,
+      "sha256": "b49128f042d88fd8e6572b974e7df88ba52bec4704fdde0e681da8524939e019"
+    },
+    {
+      "file": "libnsbmp-LICENSE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 1095,
+      "sha256": "bec1a28e7f95e0b2acc624bf9e6d8556451f454ea6a213f8c1bc0fe792c61ead"
+    },
+    {
+      "file": "libtiff-LICENSE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 2416,
+      "sha256": "0e27c2382d7b8147972bbb746e04059a1152c8d0fda9d03ef1399d1a433c4ade"
+    },
+    {
+      "file": "zlib-LICENSE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 1002,
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+    },
+    {
+      "file": "RASTER-NOTICE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 1744,
+      "sha256": "84f36127a3f506f38c02f03e59d961f61f08fbbd5bd774c2e34754ab3eece025"
+    },
+    {
+      "file": "RASTER-RUNTIME-NOTICE",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 60099,
+      "sha256": "3d8f7ec48d3dbdb2474062a87139e5de5039f28a2f2eab0906dacad56da922c9"
+    },
+    {
+      "file": "bmp-decoder.js",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 26505,
+      "sha256": "2bffd9030fd62d76b4728bb66848dca0d6be554052f5e99cb34927e701a18c72"
+    },
+    {
+      "file": "tiff-codec.js",
+      "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
+      "bytes": 615888,
+      "sha256": "3d8f498bf52d309a4ab8fcdcf52190253a0d580d29175545404ea296cf2a3edd"
     },
     {
       "file": "gifenc-1.0.3.browser.js",

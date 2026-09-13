@@ -143,7 +143,7 @@ export function createComparison({app, els}, deps) {
   }
   
   function downloadVariant(variant) {
-    if (!deps.isVariantReady(variant)) { deps.showStatus("Пересчитайте результат перед скачиванием."); return; }
+    if (!deps.isVariantReady(variant)) { deps.showStatus("Дождитесь пересчёта результата перед скачиванием."); return; }
     const format = variant.resultConfig.format;
     const def = FORMAT_DEFS[format];
     const sourceName = variant.resultSource.name;

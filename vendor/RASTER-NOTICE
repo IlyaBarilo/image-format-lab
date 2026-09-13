@@ -1,0 +1,31 @@
+BMP/TIFF integration
+
+libnsbmp 0.1.7: MIT. Full copyright and permission text: libnsbmp-LICENSE.
+libtiff 4.7.2: TIFF license. Full text: libtiff-LICENSE; additional original
+linked-source copyright headers: RASTER-RUNTIME-NOTICE.
+The tif_hash_set helper by Even Rouault retains its MIT permission text in
+RASTER-RUNTIME-NOTICE.
+zlib 1.3.2: Zlib license. Full text: zlib-LICENSE.
+
+The libraries are built from the pinned unmodified source subsets in
+sources/raster/upstream. Original download URLs and SHA-256 checksums are
+recorded in sources/raster/sources.lock.json. The source selection excludes
+tests, sample images and command-line tools; it does not alter the libraries.
+The application adapters and build script are Copyright (c) 2026 Ilya Barilo,
+MIT; see sources/raster/PROJECT-LICENSE.
+The build script corrects three libnsbmp header-length checks for ICO DIBs,
+which do not contain a BMP file header. The original source archive remains
+unchanged. The MIT adapter expands sub-byte channel values to full-range RGBA8.
+
+Generated JavaScript and WebAssembly use Emscripten 6.0.9 / emmalloc and the
+C runtime. Preserve Emscripten-LICENSE, Emscripten-AUTHORS, musl-COPYRIGHT,
+compiler-rt-LICENSE, compiler-rt-CREDITS, llvm-libc-LICENSE and the exact
+linked-source headers collected in RASTER-RUNTIME-NOTICE.
+
+JPEG-in-TIFF compatibility uses UTIF and libjpeg-turbo. Their notices remain
+in UTIF-JPEG-NOTICE, JPEG-NOTICE and JPEG-RUNTIME-NOTICE.
+This software is based in part on the work of the Independent JPEG Group.
+
+Personal and commercial use are permitted under the respective terms.
+Do not use upstream authors' names to advertise the product without the
+permission required by their licenses. The libraries are not relicensed MIT.

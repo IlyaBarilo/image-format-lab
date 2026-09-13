@@ -88,6 +88,14 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
         const instance = await mod.exports({ print() {}, printErr() {} });
         if (key === 'heic') assert.ok(instance._viewer_heic_can_encode() && instance._viewer_avif_can_encode());
         workers.push(instance);
+        if (key === 'utif') for (const extra of ['bmp-decoder.js', 'tiff-codec.js']) {
+          const text = reader.embeddedCodecSource('vendor/' + extra);
+          assert.equal(text, fs.readFileSync(path.join(root, 'vendor', extra), 'utf8'));
+          const extraModule = new Module(path.join(root, 'vendor', extra), module);
+          extraModule.filename = path.join(root, 'vendor', extra); extraModule.paths = module.paths;
+          extraModule._compile(text, extraModule.filename);
+          workers.push(await extraModule.exports({ print() {}, printErr() {} }));
+        }
         return { decode() {}, encode() {} };
       };
     }
@@ -111,10 +119,10 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
     assert.equal(els.retryCodecs.hidden, true);
     assert.equal(Object.keys(app.codecs).length, 5);
     assert.equal(workerLoads, 3);
-    assert.equal(inflateCalls, 3);
+    assert.equal(inflateCalls, 5);
     for (const name of Object.values(workerEntries)) reader.embeddedCodecSource('vendor/' + name);
     await actions.loadAdditionalCodecs();
-    assert.equal(inflateCalls, 3, 'Decoded text is reused for later worker creation');
+    assert.equal(inflateCalls, 5, 'Decoded text is reused for later worker creation');
     assert.equal(reader.embeddedCodecsNeedInflater(), false);
     assert.equal(reads, 1);
     assert.deepEqual(failures, []);
@@ -126,5 +134,5 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
     URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;
     workers.length = 0;
   }
-  console.log('PASS real startup controller on mock DOM: coalesced bootstrap, delayed load, error/retry, three real WASM initializations, decode-once cache, revoked Blob URLs, no network');
+  console.log('PASS real startup controller on mock DOM: coalesced bootstrap, delayed load, error/retry, five real WASM initializations, decode-once cache, revoked Blob URLs, no network');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -121,7 +121,6 @@ export function createBootstrap({app, els}, deps) {
       deps.drawAll();
     });
   
-    els.applyAll.addEventListener("click", () => deps.renderVisibleVariants());
   
     els.resetView.addEventListener("click", () => {
       deps.resetView();

@@ -34,6 +34,7 @@ MIT/Zlib, MPL, LGPL, IJG/BSD и другие лицензии библиотек
 Сопровождающие уведомления по группам компонентов:
 
 - [gifenc-NOTICE](vendor/gifenc-NOTICE) — gifenc, PnnQuant, gif.js и gif-codec.
+- [RASTER-NOTICE](vendor/RASTER-NOTICE) и [RASTER-RUNTIME-NOTICE](vendor/RASTER-RUNTIME-NOTICE) — BMP/TIFF, zlib и runtime.
 - [UTIF-JPEG-NOTICE](vendor/UTIF-JPEG-NOTICE) — адаптация TIFF-части UTIF.
 - [JPEG-NOTICE](vendor/JPEG-NOTICE) и [JPEG-RUNTIME-NOTICE](vendor/JPEG-RUNTIME-NOTICE) — libjpeg-turbo и используемый runtime.
 - [HEIC-NOTICE](vendor/HEIC-NOTICE) и [HEIC-RUNTIME-NOTICE](vendor/HEIC-RUNTIME-NOTICE) — libheif, libde265, Kvazaar и runtime.
@@ -105,7 +106,8 @@ libheif и libde265 сохраняют LGPL-3.0-or-later:
 Другие исходники и описания адаптаций доступны в репозитории:
 [UTIF](vendor/sources/utif/README.md),
 [JPEG](vendor/sources/jpeg/README.md),
-[WebP/JPEG XL](vendor/sources/modern/README.md).
+[WebP/JPEG XL](vendor/sources/modern/README.md),
+[BMP/TIFF](vendor/sources/raster/README.md).
 Порядок пересборки и сопровождения — в документе
 [«Для разработчика»](docs/DEVELOPMENT.md#пересборка-библиотек).
 Подготовка адресов и файлов выпуска — в [инструкции публикации](docs/PUBLISHING.md).

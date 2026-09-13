@@ -231,7 +231,7 @@ async function dimensions(page, bytes) {
     await page.setViewportSize({width:1440,height:1000});
     await page.locator('#layout4').click();
     await page.locator('.cell').nth(1).locator('.format-select').selectOption('jpeg');
-    await page.locator('#autoApply').uncheck();
+    assert.equal(await page.locator('#autoApply, #applyAll, .cell button[title="Пересчитать этот вариант"]').count(),0);
     await page.locator('#backgroundSelect').selectOption('black');
     if(await page.locator('html').getAttribute('data-theme')!=='dark')await page.locator('#themeToggle').click();
     if(await page.locator('#toggleFiles').getAttribute('aria-expanded')==='true')await page.locator('#toggleFiles').click();
@@ -242,11 +242,11 @@ async function dimensions(page, bytes) {
     await page.locator('#analysisCollapse').click();
     await page.waitForFunction(()=>{
       const value=JSON.parse(localStorage.getItem('image-format-viewer.preferences.v1'));
-      return value?.comparison.layout===4&&value.filesVisible===false&&value.panels.collapsed&&value.analysis.type==='profile'&&value.analysis.displays.histogram==='delta';
+      return value?.comparison.autoApply===true&&value?.comparison.layout===4&&value.filesVisible===false&&value.panels.collapsed&&value.analysis.type==='profile'&&value.analysis.displays.histogram==='delta';
     });
     await page.reload();
     assert.equal(await page.locator('#layout4').getAttribute('aria-pressed'),'true');
-    assert.equal(await page.locator('#backgroundSelect').inputValue(),'black');assert.equal(await page.locator('#autoApply').isChecked(),false);
+    assert.equal(await page.locator('#backgroundSelect').inputValue(),'black');
     assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');assert.equal(await page.locator('#toggleFiles').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('#analysisBody').isVisible(),false);
     await page.locator('button[data-analysis-size="balance"]').click();
@@ -259,7 +259,7 @@ async function dimensions(page, bytes) {
     const profiles=await page.evaluate(()=>localStorage.getItem('image-format-viewer.comparison-profiles.v1'));
     await page.locator('#resetPreferences').click();
     assert.equal(await page.locator('#fileList .file-row').count(),1);assert.equal(await page.locator('#layout2').getAttribute('aria-pressed'),'true');
-    assert.equal(await page.locator('#autoApply').isChecked(),true);assert.equal(await page.locator('#backgroundSelect').inputValue(),'checker');
+    assert.equal(await page.locator('#backgroundSelect').inputValue(),'checker');
     assert.equal(await page.locator('button[data-analysis-size="compact"]').getAttribute('aria-pressed'),'true');
     assert.equal(await page.locator('#analysisType').inputValue(),'histogram');assert.equal(await page.locator('#analysisDisplayOverlay').isChecked(),true);
     assert.equal(await page.locator('#analysisScope').inputValue(),'full');

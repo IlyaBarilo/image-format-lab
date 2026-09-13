@@ -113,8 +113,6 @@ export function collectElements() {
   layout2: document.getElementById("layout2"),
   layout4: document.getElementById("layout4"),
   backgroundSelect: document.getElementById("backgroundSelect"),
-  autoApply: document.getElementById("autoApply"),
-  applyAll: document.getElementById("applyAll"),
   resetView: document.getElementById("resetView"),
   fitView: document.getElementById("fitView"),
   status: document.getElementById("status")

@@ -94,3 +94,11 @@ npm --prefix scripts test
 [support/generate-tiff-fixtures.py](support/generate-tiff-fixtures.py), HEIC —
 [support/generate-heic-fixtures.py](support/generate-heic-fixtures.py).
 Условия тестовых материалов указаны в [ASSETS.md](../ASSETS.md).
+
+`raster-codecs.cjs` проверяет встроенные BMP/TIFF WASM без браузера на
+собственных синтетических данных: палитры/RLE/маски, точную прозрачность,
+сжатие TIFF, BigTIFF, порядок байтов, раздельные каналы, 16-bit и ориентацию,
+а также прежние JPEG-in-TIFF примеры. `raster-settings.cjs` проверяет
+настройки сравнения, профили и независимый черновик пакета.
+`raster-worker.cjs` запускает настоящий Worker-поток Node с кодом обработчика
+приложения и проверяет обмен буферами, ошибки и резервное чтение JPEG-in-TIFF.

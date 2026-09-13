@@ -106,11 +106,11 @@ async function plots(page, kind) {
       await page.locator('#sampleImage').click();await ready(page);
       await page.locator('button[data-analysis-size="compact"]').click();await page.locator('#analysisType').selectOption('waveform');await plots(page,'waveform');
       const old=await page.locator('.analysis-chart').first().getAttribute('aria-label');
-      await page.locator('#autoApply').uncheck();await page.locator('.cell .format-select').first().selectOption('jpeg');
+      await page.evaluate(() => holdComparisonRendering());await page.locator('.cell .format-select').first().selectOption('jpeg');
       assert.equal(await page.locator('.analysis-chart').first().isVisible(),false);
-      await page.locator('#applyAll').click();await ready(page);await plots(page,'waveform');
+      await page.evaluate(() => resumeComparisonRendering());await ready(page);await plots(page,'waveform');
       assert.notEqual(await page.locator('.analysis-chart').first().getAttribute('aria-label'),old);
-      await page.locator('#autoApply').check();await page.locator('.cell .quality').first().fill('1');await ready(page);await plots(page,'waveform');
+      await page.locator('.cell .quality').first().fill('1');await ready(page);await plots(page,'waveform');
       assert.ok((await page.locator('.analysis-chart').first().getAttribute('aria-label')).includes('качество 1.'));
       await page.locator('#layout4').click();await ready(page);await plots(page,'waveform');
       assert.equal(await page.locator('.analysis-card:visible').count(),4);

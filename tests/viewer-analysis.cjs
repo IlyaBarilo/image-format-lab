@@ -126,15 +126,15 @@ async function plots(page) {
     await check('graphs follow each cell, including the first; errors, quality, palette and layouts update automatically', async page => {
       await page.locator('#sampleImage').click(); await ready(page);
       await page.locator('button[data-analysis-size="compact"]').click(); await plots(page);
-      await page.locator('#autoApply').uncheck();
+      await page.evaluate(() => holdComparisonRendering());
       await page.locator('.cell .format-select').nth(1).selectOption('png');
       assert.equal(await page.locator('.analysis-chart').nth(1).isVisible(), false);
-      assert.ok((await page.locator('.analysis-info').nth(1).textContent()).includes('Применить'));
-      await page.locator('#applyAll').click(); await ready(page); await plots(page);
+      assert.ok((await page.locator('.analysis-info').nth(1).textContent()).includes('Ожидание пересчёта'));
+      await page.evaluate(() => resumeComparisonRendering()); await ready(page); await plots(page);
       // The first graph must stop showing the source once cell 1 becomes JPEG.
       await page.locator('#analysisChannel').selectOption('alpha');
       const sourceAlpha = await page.locator('.analysis-chart').first().getAttribute('aria-label');
-      await page.locator('#autoApply').check();
+      
       await page.locator('.cell .format-select').nth(0).selectOption('jpeg');
       await ready(page); await plots(page);
       assert.notEqual(await page.locator('.analysis-chart').first().getAttribute('aria-label'), sourceAlpha);
@@ -152,9 +152,9 @@ async function plots(page) {
       assert.equal(await page.locator('.analysis-values').nth(0).getAttribute('title'), await page.locator('.analysis-values').nth(1).getAttribute('title'));
       await page.evaluate(() => { const v=app.variants[1]; v.error='Проверочная ошибка'; updateMetrics(v); });
       assert.equal(await page.locator('.analysis-chart').nth(1).isVisible(), false);
-      await page.locator('#applyAll').click(); await ready(page); await plots(page);
+      await page.evaluate(() => markDirty(app.variants[1])); await ready(page); await plots(page);
       await page.locator('.cell .format-select').nth(1).selectOption('ico');
-      await page.locator('#applyAll').click(); await ready(page); await plots(page);
+      await ready(page); await plots(page);
       assert.ok((await page.locator('#analysisStatus').textContent()).includes('Размеры различаются'));
       assert.equal(await page.locator('.analysis-chart').evaluateAll(cs => cs[0].dataset.yMax === cs[1].dataset.yMax), true);
       await page.locator('#layout4').click(); await ready(page);

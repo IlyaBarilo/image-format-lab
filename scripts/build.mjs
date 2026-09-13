@@ -10,7 +10,7 @@ import { releaseVersion, verifyReleaseCheckout } from './build-version.mjs';
 import sourceZipTools from './source-zip.cjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { modernSourceNames, codecNames, licenseNames, sourceNames, heicSourceNames, jpegSourceNames, binaryNames } = vendorFiles;
+const { rasterSourceNames, modernSourceNames, codecNames, licenseNames, sourceNames, heicSourceNames, jpegSourceNames, binaryNames } = vendorFiles;
 const noticeNames = ['LICENSE', 'NOTICE.md', 'ASSETS.md', 'docs/licenses/esbuild-LICENSE', 'docs/licenses/acorn-LICENSE'];
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 // Git stores project text as LF. Keep the generated HTML independent of the
@@ -32,12 +32,12 @@ function codecs(config, release, compressCodecs) {
   if (manifest.version !== 1 || !Array.isArray(manifest.files)) throw new Error('Invalid vendor manifest');
   const scripts = {}, licenses = {};
   let components;
-  for (const name of [...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...modernSourceNames, ...binaryNames, 'components.json']) {
+  for (const name of [...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames, 'components.json']) {
     const matches = manifest.files.filter(item => item.file === name);
     if (matches.length !== 1) throw new Error('Missing or duplicated vendor entry: ' + name);
     const bytes = fs.readFileSync(path.join(root, 'vendor', name));
     if (bytes.length !== matches[0].bytes || sha256(bytes) !== matches[0].sha256) throw new Error('Vendor integrity check failed: ' + name);
-    if (codecNames.includes(name)) scripts['vendor/' + name] = compressCodecs && ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js'].includes(name)
+    if (codecNames.includes(name)) scripts['vendor/' + name] = compressCodecs && ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js', 'bmp-decoder.js', 'tiff-codec.js'].includes(name)
       ? { encoding: 'gzip-base64', bytes: bytes.length, data: portableGzip(bytes).toString('base64') }
       : bytes.toString('utf8');
     else if (licenseNames.includes(name)) licenses[name] = bytes.toString('utf8');
@@ -115,7 +115,7 @@ export async function buildViewer({ test = false, debug = false, release = false
   if (/<\/script/i.test(app.outputFiles[0].text)) throw new Error('Unexpected closing script tag in bundle');
   html = replaceOnce(html, '<!-- VIEWER_SCRIPT -->', '<script>\n' + app.outputFiles[0].text + '</script>');
   html = html.replace(/<!doctype html>/i, match => match + '\n<!-- Generated from src/ by npm --prefix scripts run build. Edit the sources; this file is rebuilt. -->');
-  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...modernSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
+  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
 }
 
 function writeOutput(html, destination) {

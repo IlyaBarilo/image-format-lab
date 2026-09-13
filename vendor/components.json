@@ -26,7 +26,7 @@
       "id": "pako",
       "name": "pako / zlib",
       "version": "2.1.0",
-      "scope": "Сжатие PNG и TIFF Deflate",
+      "scope": "Сжатие PNG, распаковка встроенных кодеков и резервное чтение TIFF Deflate",
       "license": "MIT AND Zlib",
       "licenseFiles": [
         "pako-LICENSE",
@@ -63,7 +63,7 @@
       "id": "utif",
       "name": "UTIF.js · адаптированная TIFF-часть",
       "version": "3.1.0 / viewer-1",
-      "scope": "Открытие TIFF",
+      "scope": "Совместимость TIFF, включая JPEG-in-TIFF",
       "license": "MIT",
       "licenseFiles": [
         "UTIF-LICENSE",
@@ -187,13 +187,14 @@
       "id": "emscripten",
       "name": "Emscripten / emmalloc",
       "version": "6.0.9",
-      "scope": "Связующий JS и память HEIC/JPEG",
+      "scope": "Связующий JS и память HEIC/JPEG / BMP / TIFF",
       "license": "MIT OR NCSA",
       "licenseFiles": [
         "Emscripten-LICENSE",
         "Emscripten-AUTHORS",
         "HEIC-RUNTIME-NOTICE",
-        "JPEG-RUNTIME-NOTICE"
+        "JPEG-RUNTIME-NOTICE",
+        "RASTER-RUNTIME-NOTICE"
       ],
       "status": "documented",
       "notes": "Лицензионные тексты из точной SDK-сборки; заголовок лицензии сохранён в сгенерированном JS.",
@@ -208,12 +209,13 @@
       "id": "musl",
       "name": "musl",
       "version": "из Emscripten 6.0.9",
-      "scope": "C runtime HEIC/JPEG",
+      "scope": "C runtime HEIC/JPEG / BMP / TIFF",
       "license": "MIT и отдельные разрешительные условия",
       "licenseFiles": [
         "musl-COPYRIGHT",
         "HEIC-RUNTIME-NOTICE",
-        "JPEG-RUNTIME-NOTICE"
+        "JPEG-RUNTIME-NOTICE",
+        "RASTER-RUNTIME-NOTICE"
       ],
       "status": "documented",
       "notes": "Сохранены COPYRIGHT и дополнительные уведомления математических функций, найденных в карте линковки.",
@@ -406,6 +408,66 @@
         {
           "label": "Закреплённый upstream",
           "url": "https://skia.googlesource.com/skcms/+archive/96d9171c94b937a1b5f0293de7309ac16311b722.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "libnsbmp",
+      "name": "libnsbmp",
+      "version": "0.1.7",
+      "scope": "Открытие BMP и BMP-изображений в ICO",
+      "license": "MIT",
+      "licenseFiles": [
+        "libnsbmp-LICENSE",
+        "RASTER-NOTICE",
+        "RASTER-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Исходники точной версии, MIT-адаптеры и сборщик — vendor/sources/raster/. Применяются собственные условия библиотеки.",
+      "sources": [
+        {
+          "label": "Проект библиотеки",
+          "url": "https://www.netsurf-browser.org/projects/libnsbmp/"
+        }
+      ]
+    },
+    {
+      "id": "libtiff",
+      "name": "libtiff",
+      "version": "4.7.2",
+      "scope": "Чтение TIFF / BigTIFF и сохранение TIFF RGBA8",
+      "license": "TIFF AND MIT",
+      "licenseFiles": [
+        "libtiff-LICENSE",
+        "RASTER-NOTICE",
+        "RASTER-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Исходники точной версии, MIT-адаптеры и сборщик — vendor/sources/raster/. Применяются собственные условия библиотеки.",
+      "sources": [
+        {
+          "label": "Проект библиотеки",
+          "url": "https://libtiff.gitlab.io/libtiff/"
+        }
+      ]
+    },
+    {
+      "id": "zlib",
+      "name": "zlib",
+      "version": "1.3.2",
+      "scope": "Deflate в нативной сборке libtiff",
+      "license": "Zlib",
+      "licenseFiles": [
+        "zlib-LICENSE",
+        "RASTER-NOTICE",
+        "RASTER-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Исходники точной версии, MIT-адаптеры и сборщик — vendor/sources/raster/. Применяются собственные условия библиотеки.",
+      "sources": [
+        {
+          "label": "Проект библиотеки",
+          "url": "https://zlib.net/"
         }
       ]
     }

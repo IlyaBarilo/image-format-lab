@@ -106,7 +106,6 @@ async function snapshot(page) {
 
     await check('switch keeps comparison settings and downloads the selected source and result', async page => {
       await page.locator('#fileInput').setInputFiles(files); await ready(page, 'first.png');
-      await page.locator('#autoApply').uncheck();
       await page.locator('#layout4').click();
       await page.locator('#backgroundSelect').selectOption('red');
       await page.locator('#metadataPolicy').selectOption('none');
@@ -123,10 +122,10 @@ async function snapshot(page) {
         try { downloadVariant(app.variants[0]); downloadVariant(app.variants[1]); }
         finally { HTMLAnchorElement.prototype.click = original; }
         return { settings: JSON.stringify(app.variants.map(v => v.config)) === configSnapshot,
-          layout:app.layout, auto:els.autoApply.checked, background:app.background, metadata:els.metadataPolicy.value,
+          layout:app.layout, auto:captureComparison().autoApply, background:app.background, metadata:els.metadataPolicy.value,
           outputs:app.variants.map(v => [v.resultSource.name,v.imageData.width]), downloads };
       });
-      assert.deepEqual(result,{settings:true,layout:4,auto:false,background:'red',metadata:'none',
+      assert.deepEqual(result,{settings:true,layout:4,auto:true,background:'red',metadata:'none',
         outputs:Array(4).fill(['second.png',12]),downloads:['second.png','second-2.jpg']});
       await page.locator('#previousFile').click(); await ready(page,'first.png');
       assert.equal(await page.evaluate(() => JSON.stringify(app.variants.map(v => v.config)) === configSnapshot),true);

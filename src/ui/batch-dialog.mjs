@@ -1,3 +1,4 @@
+import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { FORMAT_DEFS } from "./../core/config.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -20,6 +21,11 @@ export function createBatchDialog({els, app}, deps) {
   function openBatchDialog() {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
+    app.batchTiffDraft = normalizeTiffOptions(config);
+    document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
+      app.batchTiffDraft = options;
+      deps.updateBatchDialog();
+    });
     deps.updateBatchDialogFormats(config.format);
     els.batchQuality.value = config.quality;
     els.batchQualityNumber.value = config.quality;
@@ -45,6 +51,7 @@ export function createBatchDialog({els, app}, deps) {
     const quality = Number(els.batchQualityNumber.value);
     const colors = Number(els.batchGifColors.value);
     return {
+      ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
       gifColors: format === "gif" || format === "gifenc" || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
@@ -75,6 +82,7 @@ export function createBatchDialog({els, app}, deps) {
     const config = deps.readBatchDialogConfig();
     const def = FORMAT_DEFS[config.format];
     const gif = config.format === "gif" || config.format === "gifenc";
+    document.getElementById("batchTiffField").hidden = config.format !== "tiff";
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;

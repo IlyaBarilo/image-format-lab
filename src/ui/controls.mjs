@@ -101,15 +101,20 @@ export function createControls({els, app}, deps) {
     matteWrap.append(matte);
     head.append(matteWrap);
   
-    const apply = document.createElement("button");
-    apply.className = "icon-btn";
-    apply.type = "button";
-    apply.title = "Пересчитать этот вариант";
-    apply.setAttribute("aria-label", apply.title);
-    apply.innerHTML = `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-apply"/></svg>`;
-    head.append(apply);
-  
+    const tiffSettings = document.createElement("button");
+    tiffSettings.className = "text-btn";
+    tiffSettings.type = "button";
+    tiffSettings.textContent = "Настройки…";
+    tiffSettings.title = "Сжатие TIFF";
+    tiffSettings.setAttribute("aria-haspopup", "dialog");
+    tiffSettings.setAttribute("aria-controls", "tiffSettingsDialog");
+    tiffSettings.addEventListener("click", () => deps.openTiffSettings(variant.config, options => {
+      Object.assign(variant.config, options);
+      deps.markDirty(variant);
+    }));
+    head.append(tiffSettings);
     variant.controls = {
+      tiffSettings,
       select,
       qualityWrap,
       quality,
@@ -119,8 +124,7 @@ export function createControls({els, app}, deps) {
       ditherLabel,
       gifDither,
       matteWrap,
-      matte,
-      apply
+      matte
     };
   
     select.addEventListener("change", () => {
@@ -152,7 +156,6 @@ export function createControls({els, app}, deps) {
       deps.markDirty(variant);
     });
   
-    apply.addEventListener("click", () => deps.renderVariant(variant));
   }
   
   function updateFormatOptions() {
@@ -190,6 +193,7 @@ export function createControls({els, app}, deps) {
     const isGif = format === "gif" || format === "gifenc";
     const needsMatte = def.alpha === "none";
   
+    if (variant.controls.tiffSettings) variant.controls.tiffSettings.hidden = format !== "tiff";
     variant.controls.qualityWrap.style.display = isQuality ? "" : "none";
     variant.controls.gifWrap.style.display = isGif ? "" : "none";
     variant.controls.ditherLabel.style.display = format === "gif" ? "" : "none";
@@ -251,14 +255,14 @@ export function createControls({els, app}, deps) {
     variant.controls.download = download;
   }
   
-  function markDirty(variant) {
+  function markDirty(variant, { schedule = true } = {}) {
     clearTimeout(variant.debounce);
     variant.generation++;
     variant.processing = false;
     variant.dirty = true;
     variant.metrics = null;
     deps.updateMetrics(variant);
-    if (els.autoApply.checked && app.source && !variant.cell.classList.contains("hidden")) {
+    if (schedule && app.source && !variant.cell.classList.contains("hidden")) {
       variant.debounce = setTimeout(() => deps.renderVariant(variant), 320);
     }
   }
@@ -292,8 +296,8 @@ export function createControls({els, app}, deps) {
   }
   
   function updateFormatHelp() {
-    const rows=Object.entries(FORMAT_DEFS).filter(([key])=>key!=="original").map(([key,def])=>[def.label,key==="heic"?"Встроенные libheif / libde265":"Через браузер",deps.formatUnavailableReason(key)||("Доступно · "+deps.codecLabel(key))]);
-    rows.push(["TIFF","Встроенные UTIF / libjpeg-turbo, одна страница","Нет"]);
+    const read = {heic:"Встроенные libheif / libde265",avif:"Встроенный libheif / libaom",jxl:"Встроенный libjxl",jxlLossless:"Встроенный libjxl",bmp24:"Встроенный libnsbmp",bmp32:"Встроенный libnsbmp",tiff:"Встроенные libtiff / UTIF / libjpeg-turbo; первая страница",ico:"PNG — браузер; BMP — libnsbmp"};
+    const rows=Object.entries(FORMAT_DEFS).filter(([key])=>key!=="original").map(([key,def])=>[def.label,read[key]||"Через браузер",deps.formatUnavailableReason(key)||("Доступно · "+deps.codecLabel(key))]);
     document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");for(const text of row){const td=document.createElement("td");td.textContent=text;tr.append(td);}return tr;}));
   }
 

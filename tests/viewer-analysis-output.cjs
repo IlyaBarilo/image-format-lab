@@ -40,11 +40,11 @@ async function shot(page,name){if(folder){fs.mkdirSync(folder,{recursive:true});
       assert.equal(await page.evaluate(()=>outputCalls+outputEncodes),0);assert.deepEqual(await page.evaluate(()=>({comparison:captureComparison(),batch:app.exportConfig,storage:JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([key])=>key!=='image-format-viewer.preferences.v1')))})),state);
       assert.equal(await page.locator('#analysisScope').isVisible(),false);assert.equal(await page.locator('#analysisMatte').isVisible(),false);
       await page.locator('#layout4').click();await ready(page);await graph(page,'tradeoff',true);assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,4);
-      await page.locator('#autoApply').uncheck();await page.locator('.cell .quality').nth(1).fill('1');
+      await page.evaluate(() => holdComparisonRendering());await page.locator('.cell .quality').nth(1).fill('1');
       await page.waitForFunction(()=>JSON.parse(document.getElementById('analysisCombinedChart').dataset.points).every(p=>p.cell!==2));
       const report=JSON.parse((await download(page,'analysisJSON')).toString());assert.equal(report.items[1].measurement,null);assert.equal(report.items[1].data,null);
-      await page.locator('#applyAll').click();await ready(page);await graph(page,'tradeoff',true);assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,4);
-      await page.locator('.cell .format-select').nth(2).selectOption('ico');await page.locator('#applyAll').click();await ready(page);await graph(page,'tradeoff',true);
+      await page.evaluate(() => resumeComparisonRendering());await ready(page);await graph(page,'tradeoff',true);assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,4);
+      await page.locator('.cell .format-select').nth(2).selectOption('ico');await ready(page);await graph(page,'tradeoff',true);
       assert.ok((await page.locator('#analysisCombinedInfo').textContent()).includes('Размеры отличаются'));assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,3);
       await page.locator('#analysisMetric').selectOption('processingMs');assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,4);
       await page.locator('#clearFiles').click();assert.equal(await page.locator('#analysisPNG').isDisabled(),true);assert.equal(await page.locator('#analysisCombinedChart').isVisible(),false);
@@ -60,8 +60,8 @@ async function shot(page,name){if(folder){fs.mkdirSync(folder,{recursive:true});
       for(const kind of ['waveform','parade','vectorscope','profile','histogram']){await page.locator('#analysisType').selectOption(kind);await page.locator('#analysisDisplayOverlay').click();await graph(page,kind,true);assert.equal(await page.locator('#analysisCombinedLegend span').count(),2);}
       assert.equal(await page.evaluate(()=>outputEncodes),0);
       await page.locator('#analysisPair').selectOption('3,4');await page.locator('#layout2').click();await ready(page);await graph(page,'histogram',true);assert.equal(await page.locator('#analysisPair').inputValue(),'1,2');
-      await page.locator('#autoApply').uncheck();await page.locator('.cell .quality').nth(1).fill('7');assert.equal(await page.locator('#analysisCombinedChart').isVisible(),false);assert.equal(await page.locator('#analysisJSON').isDisabled(),true);
-      await page.locator('#applyAll').click();await ready(page);await graph(page,'histogram',true);
+      await page.evaluate(() => holdComparisonRendering());await page.locator('.cell .quality').nth(1).fill('7');assert.equal(await page.locator('#analysisCombinedChart').isVisible(),false);assert.equal(await page.locator('#analysisJSON').isDisabled(),true);
+      await page.evaluate(() => resumeComparisonRendering());await ready(page);await graph(page,'histogram',true);
       await page.locator('#analysisType').selectOption('difference');await graph(page,'difference');assert.equal(await page.locator('#analysisDisplayField').isVisible(),false);assert.equal(await page.locator('#analysisCombined').isVisible(),false);
     },{deviceScaleFactor:2});
     await check('JSON includes exact arrays, ROI/line/config and infinity; PNG signature/dimensions and screenshots',async page=>{

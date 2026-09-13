@@ -63,16 +63,16 @@ async function screenshot(page,name){if(folder){fs.mkdirSync(folder,{recursive:t
       },[...sample.data]);
       assert.deepEqual(data.bins,[...vector.bins]);assert.deepEqual(data.channels,computeLineProfile(sample).channels.map(c=>[...c.mean]));assert.deepEqual(data.bytes,[...original]);
     });
-    await check('current cells including first, Apply/quality, shared density and axes, mixed dimensions',async page=>{
+    await check('current cells including first, automatic quality, shared density and axes, mixed dimensions',async page=>{
       await start(page,'vectorscope');
       assert.equal(await page.locator('.analysis-chart:visible').evaluateAll(cs=>cs.every(c=>c.dataset.yMax==='0.5')&&new Set(cs.map(c=>c.dataset.densityMax)).size===1),true);
       const before=await page.locator('.analysis-chart').first().evaluate(c=>c.toDataURL());
       await page.locator('.cell .format-select').first().selectOption('jpeg');await ready(page);await plots(page,'vectorscope');
-      await page.locator('#autoApply').uncheck();await page.locator('.cell .quality').first().fill('1');assert.equal(await page.locator('.analysis-chart').first().isVisible(),false);
-      await page.locator('#applyAll').click();await ready(page);await plots(page,'vectorscope');
+      await page.evaluate(() => holdComparisonRendering());await page.locator('.cell .quality').first().fill('1');assert.equal(await page.locator('.analysis-chart').first().isVisible(),false);
+      await page.evaluate(() => resumeComparisonRendering());await ready(page);await plots(page,'vectorscope');
       assert.notEqual(await page.locator('.analysis-chart').first().evaluate(c=>c.toDataURL()),before);
       await page.locator('#layout4').click();await ready(page);await plots(page,'vectorscope');assert.equal(await page.locator('.analysis-chart:visible').count(),4);
-      await page.locator('.cell .format-select').nth(2).selectOption('ico');await page.locator('#applyAll').click();await ready(page);await plots(page,'vectorscope');
+      await page.locator('.cell .format-select').nth(2).selectOption('ico');await ready(page);await plots(page,'vectorscope');
       assert.ok((await page.locator('#analysisStatus').textContent()).includes('Размеры различаются'));
       assert.equal(await page.locator('.analysis-chart:visible').evaluateAll(cs=>new Set(cs.map(c=>c.dataset.densityMax)).size===1),true);
       await page.locator('#analysisType').selectOption('profile');await plots(page,'profile');

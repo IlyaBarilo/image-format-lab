@@ -74,10 +74,26 @@ async function download(page, button) {
       assert.ok(saved.bytes.length>10);
     }
     report.checks.push('all six selectors, appropriate quality visibility, current comparison preview and downloads');
+    await cell.locator('.format-select').selectOption('tiff');
+    await cell.locator('button[title="Сжатие TIFF"]').click();
+    await page.locator('#tiffCompression').selectOption('lzw');
+    await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='lzw'&&isVariantReady(app.variants[1]));
+    assert.equal(await page.locator('#tiffLevelField').isVisible(),false);
+    await page.locator('#tiffCompression').selectOption('deflate');
+    await page.locator('#tiffLevel').press('End');
+    await page.locator('#tiffPredictor').uncheck();
+    await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='deflate'&&app.variants[1].resultConfig?.tiffLevel===9&&app.variants[1].resultConfig?.tiffPredictor===false&&isVariantReady(app.variants[1]));
+    await page.locator('#tiffSettingsDialog button').click();
+    report.checks.push('TIFF dialog automatically updates comparison; compression-dependent controls, Deflate level and predictor reach actual output');
     await page.locator('#convertAll').click();
     await page.locator('#batchResizeMode').selectOption('limit');await page.locator('#batchDialogWidth').fill('37');
     for(const format of formats) {
       await page.locator('#batchFormat').selectOption(format);
+      if(format==='tiff') {
+        await page.locator('#batchTiffSettings').click();
+        await page.locator('#tiffCompression').selectOption('lzw');
+        await page.locator('#tiffSettingsDialog button').click();
+      }
       await page.waitForFunction(()=>isBatchPreviewReady()&&!app.batchPreview.busy);
       const dims=await page.evaluate(()=>[app.batchPreview.width,app.batchPreview.height]);
       assert.equal(dims[0],format==='ico'?256:37);

@@ -103,7 +103,7 @@ export function createAnalysis({ app }, deps) {
     if (app.sourceLoading) return { label, message: 'Исходник открывается…' };
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
-    if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Нажмите «Применить».' };
+    if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
     if(type.value === 'difference' && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
       return {label,message:`Карта требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;

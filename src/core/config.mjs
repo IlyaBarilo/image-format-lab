@@ -107,7 +107,7 @@ export const DEFAULT_VARIANTS = [
 
 export const BATCH_STORAGE_KEY = "image-format-viewer.batch-settings.v1";
 
-export const DEFAULT_EXPORT_CONFIG = { ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
+export const DEFAULT_EXPORT_CONFIG = { tiffCompression: "deflate", tiffLevel: 6, tiffPredictor: true, ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
 
 export const BACKGROUNDS = {
   red: "#ef4444",
@@ -151,8 +151,8 @@ export const OPTIONAL_CODECS = {
     ready: () => window.gifenc && window.gifenc.GIFEncoder && window.gifenc.quantize && window.gifenc.applyPalette ? window.gifenc : null
   },
   utif: {
-    label: "TIFF · UTIF / libjpeg-turbo",
-    version: "3.1.0 / 3.2.0",
+    label: "BMP / TIFF · libnsbmp / libtiff / UTIF",
+    version: "libnsbmp 0.1.7 / libtiff 4.7.2 / UTIF 3.1.0 / libjpeg-turbo 3.2.0",
     kind: "worker"
   },
   heic: {

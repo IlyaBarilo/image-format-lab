@@ -22,13 +22,17 @@ export function createDecode({}, deps) {
   
   async function decodeImageBlobOrOptional(file) {
     const kind = deps.fileKind(file);
+    if (kind === 'bmp') return (await deps.loadOptionalCodec('utif')).decodeBmp(file);
+    if (kind === 'tiff') return deps.decodeTiffFile(file);
     if (kind === 'jxl' || kind === 'avif') {
       const codec = await deps.loadOptionalCodec(kind === 'avif' ? 'heic' : 'modern');
       return codec.decode(file, kind);
     }
-    if (kind === 'ico' && file.size <= 256 * 1024 * 1024) {
+    if (kind === 'ico') {
+      if (!file.size || file.size > 256 * 1024 * 1024) throw new Error('ICO: пустой файл или размер более 256 МиБ');
       const png = largestIcoPng(await file.arrayBuffer());
       if (png) return deps.decodeImageBlob(new Blob([png], { type: 'image/png' }));
+      return (await deps.loadOptionalCodec('utif')).decodeBmp(file,true);
     }
     try {
       return await deps.decodeImageBlob(file);
@@ -44,6 +48,7 @@ export function createDecode({}, deps) {
   function fileKind(file) {
     const name = (file.name || "").toLowerCase();
     const type = (file.type || "").toLowerCase();
+    if (/\.bmp$/.test(name) || type === 'image/bmp' || type === 'image/x-ms-bmp') return 'bmp';
     if (/\.(tif|tiff)$/.test(name) || type === "image/tiff") return "tiff";
     if (/\.(heic|heif)$/.test(name) || type === "image/heic" || type === "image/heif") return "heic";
     for (const [extension, mime] of [['avif', 'image/avif'], ['jxl', 'image/jxl'], ['webp', 'image/webp'], ['ico', 'image/x-icon']]) {
@@ -53,7 +58,7 @@ export function createDecode({}, deps) {
   }
   
   async function decodeTiffFile(file) {
-    deps.showStatus("Открываю TIFF через UTIF / libjpeg-turbo…");
+    deps.showStatus("Открываю TIFF…");
     const codec = await deps.loadOptionalCodec("utif");
     return codec.decode(file);
   }

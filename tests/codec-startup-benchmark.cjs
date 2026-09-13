@@ -5,7 +5,7 @@ const { performance } = require('node:perf_hooks');
 const Module = require('node:module');
 const { decodeScript } = require('./support/codec-payload.cjs');
 const root = path.resolve(__dirname, '..');
-const names = ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js'];
+const names = ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js', 'bmp-decoder.js', 'tiff-codec.js'];
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
 (async () => {

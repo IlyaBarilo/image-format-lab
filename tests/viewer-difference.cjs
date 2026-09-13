@@ -84,13 +84,13 @@ async function edit(page,values){await page.locator('#analysisScope').selectOpti
       await page.locator('#analysisDifferenceChannel').selectOption('rgb');
       await page.locator('.cell .format-select').first().selectOption('jpeg');await ready(page);await plots(page);
       assert.ok(Number(await page.locator('.analysis-chart').first().getAttribute('data-mean'))>0);
-      await page.locator('#autoApply').uncheck();await page.locator('.cell .quality').first().fill('1');
+      await page.evaluate(() => holdComparisonRendering());await page.locator('.cell .quality').first().fill('1');
       assert.equal(await page.locator('.analysis-chart').first().isVisible(),false);
-      await page.locator('#applyAll').click();await ready(page);await plots(page);
+      await page.evaluate(() => resumeComparisonRendering());await ready(page);await plots(page);
       await page.locator('#layout4').click();await ready(page);await plots(page);
       assert.equal(await page.locator('.analysis-chart:visible').count(),4);
       assert.equal(await page.locator('.analysis-chart:visible').evaluateAll(cs=>cs.every(c=>c.dataset.gain==='64')),true);
-      await page.locator('.cell .format-select').nth(2).selectOption('ico');await page.locator('#applyAll').click();await ready(page);
+      await page.locator('.cell .format-select').nth(2).selectOption('ico');await ready(page);
       await page.waitForFunction(()=>document.querySelectorAll('.analysis-info')[2].textContent.includes('одинаковых размеров'));
       assert.equal(await page.locator('.analysis-chart').nth(2).isVisible(),false);
     },{deviceScaleFactor:2});

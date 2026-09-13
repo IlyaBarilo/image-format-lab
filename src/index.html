@@ -64,17 +64,6 @@
         </select>
       </div>
 
-      <div class="toolbar-group">
-        <label class="switch" title="Если выключено, изменения применяются только по кнопке">
-          <input id="autoApply" type="checkbox" checked>
-          Авто
-        </label>
-        <button class="text-btn" id="applyAll" type="button" title="Пересчитать все видимые варианты">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-apply"/></svg>
-          Применить
-        </button>
-      </div>
-
       <div class="toolbar-group" title="При перекодировании EXIF и прочие метаданные удаляются. Данные панорамы GPano можно сохранить только в JPEG. Исходный файл скачивается без изменений.">
         <label class="toolbar-label" for="metadataPolicy">Метаданные</label>
         <select class="select" id="metadataPolicy" aria-label="Метаданные при перекодировании">
@@ -84,7 +73,7 @@
       </div>
 
       <div class="toolbar-group">
-        <button class="text-btn" id="studyOpen" type="button" aria-haspopup="dialog">Эксперименты и отчёт…</button>
+        <button class="text-btn" id="studyOpen" type="button" aria-haspopup="dialog">Эксперименты</button>
         <button class="text-btn" id="licensesOpen" type="button" aria-haspopup="dialog" aria-controls="licensesDialog">Лицензии</button>
       </div>
       <div class="toolbar-preferences">
@@ -314,6 +303,7 @@
         <label class="batch-field" for="batchFormat">Выходной формат
           <select class="select" id="batchFormat" autofocus></select>
         </label>
+        <div class="batch-field" id="batchTiffField" hidden><span>Сжатие TIFF</span><button class="text-btn" id="batchTiffSettings" type="button" aria-haspopup="dialog" aria-controls="tiffSettingsDialog">Настройки…</button></div>
         <div class="batch-field" id="batchQualityField">
           <label for="batchQualityNumber">Качество кодирования</label>
           <div class="batch-quality-row">
@@ -413,8 +403,17 @@
     </form>
   </dialog>
 
+  <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
+    <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
+    <div class="batch-dialog-body">
+      <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option></select></label>
+      <label class="batch-field" id="tiffLevelField" for="tiffLevel">Уровень Deflate <output id="tiffLevelValue" for="tiffLevel">6</output><input id="tiffLevel" type="range" min="1" max="9" value="6"></label>
+      <label class="switch" id="tiffPredictorField"><input id="tiffPredictor" type="checkbox" checked>Предиктор по соседним пикселям</label>
+      <p class="batch-hint" id="tiffSettingsHint">Все режимы сохраняют RGBA8 без потерь. Уровень и предиктор влияют на размер и время обработки. Изменения учитываются автоматически; в пакете — в его текущих настройках.</p>
+    </div>
+  </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
-    <h2 id="studyTitle">Эксперименты и отчёт</h2>
+    <h2 id="studyTitle">Эксперименты</h2>
     <section>
       <label for="experimentSelect">Готовый эксперимент</label>
       <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Фото: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">GIF: палитра и дизеринг</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
@@ -425,7 +424,7 @@
       <div class="study-tools"><input id="profileName" type="text" maxlength="80" placeholder="Название набора"><button class="text-btn" id="profileSave" type="button">Сохранить набор</button></div>
       <div class="study-tools"><select class="select" id="profileSelect" aria-label="Сохранённые наборы"></select><button class="text-btn" id="profileApply" type="button">Применить</button><button class="text-btn" id="profileDelete" type="button">Удалить набор</button><button class="text-btn" id="profileReset" type="button">Начальные настройки</button></div>
       <div class="study-tools"><button class="text-btn" id="profileExport" type="button">Экспорт наборов JSON</button><label for="profileImport">Импорт JSON</label><input id="profileImport" type="file" accept=".json,application/json"></div>
-      <p class="batch-note">Сохраняются параметры четырёх ячеек, вид, фон, «Авто» и метаданные JPEG. Файлы и результаты не записываются. Импорт добавляет наборы; совпадения имён получают номер.</p>
+      <p class="batch-note">Сохраняются параметры четырёх ячеек, вид, фон и метаданные JPEG. Файлы и результаты не записываются. Импорт добавляет наборы; совпадения имён получают номер.</p>
     </section>
     <section>
       <h3>Отчёт текущего сравнения</h3>

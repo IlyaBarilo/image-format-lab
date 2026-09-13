@@ -60,9 +60,10 @@ async function sample(page){await page.locator('#sampleImage').click();await rea
    assert.equal(result.report.variants[0].metrics.psnrRGB,'Infinity');
    assert.ok(result.csv.includes('"\'=formula,""name.png"'));
    assert.ok(result.report.methodology.time.includes('кодировщика'));
-   await page.locator('#autoApply').uncheck();await page.evaluate(()=>{app.variants[1].config.quality=20;markDirty(app.variants[1]);});
+   await page.evaluate(() => holdComparisonRendering());await page.evaluate(()=>{app.variants[1].config.quality=20;markDirty(app.variants[1]);});
    assert.equal(await page.evaluate(()=>comparisonReport().variants[1].metrics),null);
    assert.equal(await page.evaluate(()=>comparisonReport().variants[1].config.quality),20);
+   await page.evaluate(() => resumeComparisonRendering());await ready(page);
   });
   await check('experiments and named settings persist separately from batch and reload safely',async(page,context)=>{
    await sample(page);const batch=await page.evaluate(()=>({...app.exportConfig}));

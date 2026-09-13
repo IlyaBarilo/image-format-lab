@@ -1,3 +1,4 @@
+import { normalizeTiffOptions } from './raster-codecs.mjs';
 import { BACKGROUNDS, DEFAULT_EXPORT_CONFIG, FORMAT_DEFS, MATTES } from "./config.mjs";
 
 export function normalizeBatchSettings(value) {
@@ -16,20 +17,24 @@ export function normalizeBatchSettings(value) {
     const size = value[key];
     if ((typeof size === "string" || typeof size === "number") && Number.isInteger(Number(size)) && Number(size) >= 1 && Number(size) <= 32768) config[key] = String(Number(size));
   }
+  if (["none", "deflate", "lzw"].includes(value.tiffCompression)) config.tiffCompression = value.tiffCompression;
+  if (Number.isInteger(value.tiffLevel) && value.tiffLevel >= 1 && value.tiffLevel <= 9) config.tiffLevel = value.tiffLevel;
+  if (typeof value.tiffPredictor === "boolean") config.tiffPredictor = value.tiffPredictor;
   return config;
 }
 
 export function validateComparison(value) {
   if (!value || ![2, 4].includes(value.layout) || !["checker", ...Object.keys(BACKGROUNDS)].includes(value.background)
-    || typeof value.autoApply !== "boolean" || !["panorama", "none"].includes(value.metadataPolicy)
+    || (value.autoApply !== undefined && typeof value.autoApply !== "boolean") || !["panorama", "none"].includes(value.metadataPolicy)
     || !Array.isArray(value.variants) || value.variants.length !== 4) throw new Error("Некорректные настройки сравнения.");
   const variants = value.variants.map(v => {
     if (!v || !Object.hasOwn(FORMAT_DEFS, v.format) || !Number.isInteger(v.quality) || v.quality < 1 || v.quality > 100
       || !Number.isInteger(v.gifColors) || v.gifColors < 2 || v.gifColors > 256 || typeof v.gifDither !== "boolean"
       || !Object.hasOwn(MATTES, v.matte)) throw new Error("Некорректные параметры варианта.");
-    return { format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, matte:v.matte };
+    return { ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, matte:v.matte };
   });
-  return {layout:value.layout, background:value.background, autoApply:value.autoApply, metadataPolicy:value.metadataPolicy, variants};
+  // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
+  return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};
 }
 
 export function parseProfiles(value) {

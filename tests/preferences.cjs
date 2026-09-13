@@ -13,13 +13,19 @@ function events() {
   const {createStudy}=await import('../src/ui/study.mjs');
   const {createPreferences}=await import('../src/ui/preferences.mjs');
   const defaults=defaultPreferences(),custom=defaultPreferences();
-  custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=false;
+  custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=true;
   custom.comparison.metadataPolicy='none';custom.comparison.variants[1].quality=37;custom.comparison.variants[3].format='avif';
   custom.filesVisible=false;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
   Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
     displays:{histogram:'delta',waveform:'overlay',parade:'delta',vectorscope:'overlay',profile:'separate'}});
   assert.deepEqual(normalizePreferences(custom),custom);
+  const legacy=structuredClone(custom);legacy.comparison.autoApply=false;
+  assert.deepEqual(normalizePreferences(legacy),custom,'legacy manual mode must restore as automatic without losing settings');
+  const withoutAuto=structuredClone(custom);delete withoutAuto.comparison.autoApply;
+  assert.deepEqual(normalizePreferences(withoutAuto),custom);
+  const {parseProfiles}=await import('../src/core/settings.mjs');
+  assert.deepEqual(parseProfiles({version:1,profiles:[{name:'Legacy',settings:legacy.comparison}]})[0].settings,custom.comparison);
   assert.equal(defaultPreferences().comparison.variants[1].quality,85);
   for(const value of [null,[],{version:2},'garbage'])assert.deepEqual(normalizePreferences(value),defaults);
   const invalid=structuredClone(custom);
@@ -50,11 +56,11 @@ function events() {
     const window={...events(),localStorage:storage};global.document=document;global.window=window;
     global.setTimeout=fn=>{pending.set(++next,fn);return next;};global.clearTimeout=id=>pending.delete(id);
     const flush=()=>{for(const [id,fn] of [...pending]){pending.delete(id);fn();}};
-    const els=Object.fromEntries(['workspace','toggleFiles','autoApply','metadataPolicy','backgroundSelect','batchDialog'].map(id=>[id,get(id)]));
+    const els=Object.fromEntries(['workspace','toggleFiles','metadataPolicy','backgroundSelect','batchDialog'].map(id=>[id,get(id)]));
     const file={name:'private.png'},source={pixels:'private pixels'},profiles=[{name:'kept'}],results=[{blob:'kept result'}];
     const app={files:[file],source,profiles,batchRun:{running:false,results},exportConfig:{format:'avif'},variants:defaults.comparison.variants.map(config=>({config:{...config},generation:3,blob:'old result'}))};
     let layout,output,region,resizing=false,renders=0,dirtyCalls=0;
-    const studyDeps={validateComparison,markDirty(v){assert.equal(els.autoApply.checked,false,'no auto-encode timers while applying all variants');v.generation++;v.dirty=true;dirtyCalls++;},
+    const studyDeps={validateComparison,markDirty(v,options){assert.equal(options.schedule,false,'no auto-encode timers while applying all variants');v.generation++;v.dirty=true;dirtyCalls++;},
       disposeVariantOutput(v){v.blob=null;},buildCellControls(){},buildMetrics(){},updateFormatOptions(){},resetView(){},
       updateLayout(value){app.layout=value;renders++;},formatUnavailableReason(){return '';},studyNotice(){}};
     const study=createStudy({app,els},studyDeps);
@@ -68,7 +74,7 @@ function events() {
       resize:v=>resizing=v,renders:()=>renders,dirtyCalls:()=>dirtyCalls,
       change(id,value,event='change'){get(id).value=value;document.emit(event,{target:get(id)});}};
   }
-  let env=use({raw:JSON.stringify(custom)});
+  let env=use({raw:JSON.stringify(legacy)});
   assert.deepEqual(env.ui.captureUserPreferences(),custom);assert.equal(env.renders(),0,'restore precedes initial controls/rendering');
   assert.equal(env.els.toggleFiles.attrs['aria-expanded'],'false');assert.equal(env.get('analysisPositionValue').textContent,'87%');
   env.ui.attachUserPreferenceEvents();assert.equal(env.document.count('input'),1);assert.equal(env.get('resetPreferences').count('click'),1);
@@ -105,6 +111,37 @@ function events() {
   env=use({raw:JSON.stringify(custom),deleteDenied:true});env.ui.resetUserPreferences();
   assert.deepEqual(env.ui.captureUserPreferences(),defaults);assert.equal(env.messages.at(-1)[1],true);assert.equal(env.values.get(PROFILE_KEY),'named profiles');
   console.log('PASS malformed/oversized JSON and storage read/write/delete failure fallback');
+
+  // Exercise real cell events and debouncing without a browser or an auto checkbox.
+  const {createControls}=await import('../src/ui/controls.mjs');
+  const timers=new Map(),renders=[],nodes=[];let timerId=0,hidden=false;
+  global.setTimeout=(fn,delay)=>{assert.equal(delay,320);timers.set(++timerId,fn);return timerId;};
+  global.clearTimeout=id=>timers.delete(id);
+  const node=tag=>{const n={...events(),tag,append(){},setAttribute(){}};nodes.push(n);return n;};
+  global.document={createElement:node,createTextNode:()=>node('text')};
+  const controlApp={source:{name:'source.png'}};
+  const variant={index:1,head:node('head'),config:{...defaults.comparison.variants[1]},generation:0,
+    cell:{classList:{contains:()=>hidden}},blob:{},url:'blob:result',resultConfig:{},resultSource:controlApp.source};
+  const controlDeps={syncControlsVisibility(){},clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
+    updateMetrics(v){assert.equal(v.dirty,true);assert.equal(v.metrics,null);},renderVariant(v){renders.push({...v.config});}};
+  const controls=createControls({app:controlApp,els:{}},controlDeps);Object.assign(controlDeps, {markDirty:controls.markDirty});
+  controls.buildCellControls(variant);
+  assert.equal(nodes.some(n=>n.tag==='button' && /Применить/.test(n.textContent || n.title || '')),false);
+  assert.equal(controls.isVariantReady(variant),true);
+  const flushTimers=()=>{for(const [id,fn] of [...timers]){timers.delete(id);fn();}};
+  for(const quality of [12,34,56]){variant.controls.quality.value=String(quality);variant.controls.quality.emit('input');}
+  assert.equal(controls.isVariantReady(variant),false);assert.equal(variant.generation,3);
+  assert.equal(timers.size,1);assert.equal(renders.length,0);flushTimers();
+  assert.equal(renders.length,1);assert.equal(renders[0].quality,56);
+  for(const [control,event,value,field] of [['select','change','gif','format'],['gifColors','change','32','gifColors'],
+    ['gifDither','change',false,'gifDither'],['matte','change','black','matte']]){
+    const el=variant.controls[control];el[typeof value==='boolean'?'checked':'value']=value;el.emit(event);
+    assert.equal(timers.size,1);flushTimers();assert.equal(renders.at(-1)[field],field==='gifColors'?32:value);
+  }
+  controls.markDirty(variant);controls.markDirty(variant,{schedule:false});assert.equal(timers.size,0);
+  hidden=true;controls.markDirty(variant);assert.equal(timers.size,0);
+  hidden=false;controlApp.source=null;controls.markDirty(variant);assert.equal(timers.size,0);
+  console.log('PASS automatic cell events, latest-quality debounce, immediate invalidation and atomic profile scheduling');
 
   const {createBootstrap}=await import('../src/ui/bootstrap.mjs');
   const app={layout:2},order=[];global.document={querySelectorAll:()=>Array.from({length:4},()=>({querySelector:()=>({getContext:()=>({})})}))};

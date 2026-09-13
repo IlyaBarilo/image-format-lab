@@ -74,7 +74,7 @@ watch отслеживает их изменения. Туда же включе
 | `core/vectorscope.mjs`, `core/line-profile.mjs`, `ui/scope-plots.mjs` | Собственные Cb/Cr-счётчики, дискретный профиль RGB/alpha/Y′ с минимумами/максимумами и Canvas-отрисовка; область и линия редактируются в `ui/analysis-region.mjs`, связи задаёт application |
 | `core/analysis-output.mjs`, `ui/analysis-combined.mjs`, `ui/analysis-output.mjs` | Нормировка наложения, валидация точек размера/метрики, сериализация массивов/Infinity, общий Canvas и PNG/JSON текущего анализа; снимок состояния и проверка его актуальности связаны через application |
 | `workers/heic.worker.mjs` | Запуск собственной WASM-сборки HEIC и выдача RGBA8 |
-| `workers/tiff.worker.mjs` | Проверка TIFF, адаптированный UTIF и собственная сборка libjpeg-turbo |
+| `workers/tiff.worker.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF; UTIF / libjpeg-turbo для совместимости |
 | `core/jpeg.mjs`, `core/tiff-jpeg.mjs`, `core/tiff.mjs` | Связь с C-декодером, JPEG-таблицы/полосы/плитки и проверки TIFF |
 
 Расширение `.mjs` явно обозначает ES-модуль. Сборщик и проверки используют Node.js.
@@ -156,7 +156,7 @@ Worker возвращает RGBA8 и завершается после кажд�
 исходников и замену декодера. Обычный `npm --prefix scripts run build` компилятор не запускает.
 
 TIFF: `services/tiff.mjs` последовательно запускает операции в отдельном Worker.
-В него входят адаптированный UTIF, pako и `jpeg-decoder.js`; после каждого файла
+В него входят libnsbmp, libtiff, адаптированный UTIF, pako и `jpeg-decoder.js`; после каждого файла
 Worker завершается и освобождает WASM-память. Предварительно проверяются каталоги,
 диапазоны данных и размер изображения. `core/tiff-jpeg.mjs` собирает JPEG-потоки
 из TIFF-таблиц/полос и сохраняет значения 8/12/14/16 бит. Исходники и сборка
@@ -184,6 +184,12 @@ libjpeg-turbo описаны в [инструкции](../vendor/sources/jpeg/RE
 `services/heic.mjs` и HEIC Worker обслуживают также AVIF (libaom).
 `services/modern.mjs` / `workers/modern.worker.mjs` обслуживают JPEG XL и WebP lossless;
 [сборка из исходников](../vendor/sources/modern/README.md). TIFF Worker использует
-собственный `core/tiff-encode.mjs` и pako. `core/ico.mjs` записывает контейнер PNG
+`core/raster-codecs.mjs` и libtiff с zlib: без сжатия, Deflate или LZW.
+`core/tiff-encode.mjs` сохраняется как независимая реализация для тестов. `core/ico.mjs` записывает контейнер PNG
 и безопасно выбирает наибольший встроенный PNG при чтении. Все операции используют
 явный исходник и общую очередь кодирования; пиксели исходника не передаются с потерей владения.
+
+Параметры TIFF `tiffCompression`, `tiffLevel`, `tiffPredictor` проверяются
+в `core/raster-codecs.mjs`. `ui/format-settings.mjs` получает конфигурацию
+и callback от композиционного корня; настройки варианта и черновика пакета
+не смешиваются. Параметры входят в профили, localStorage и CSV/JSON-отчёты.

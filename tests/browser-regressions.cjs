@@ -46,10 +46,9 @@ async function sample(page) {
         }
       });
       await check(`${file}: dirty output cannot download`, async () => {
-        await page.locator('#autoApply').uncheck();
         const result = await page.evaluate(async () => {
           const v = app.variants[1]; v.config.format = 'jpeg'; await renderVariant(v);
-          v.config.format = 'png'; markDirty(v);
+          v.config.format = 'png'; markDirty(v, {schedule:false});
           let clicks = 0;
           const original = HTMLAnchorElement.prototype.click;
           HTMLAnchorElement.prototype.click = () => { clicks++; };
@@ -69,7 +68,7 @@ async function sample(page) {
           };
           try {
             v.config.format = 'jpeg'; const pending = renderVariant(v); await waiting;
-            v.config.format = 'png'; markDirty(v); release(); await pending;
+            v.config.format = 'png'; markDirty(v, {schedule:false}); release(); await pending;
             return { dirty: v.dirty, blob: Boolean(v.blob), ready: isVariantReady(v) };
           } finally { encodeFromSource = real; }
         });
@@ -155,7 +154,6 @@ async function sample(page) {
         await page.reload();
         // Reload now restores saved comparison preferences from earlier cases.
         // Establish this scenario's format and metadata policy explicitly.
-        await page.locator('#autoApply').check();
         await page.locator('#metadataPolicy').selectOption('panorama');
         await page.locator('.cell .format-select').nth(1).selectOption('jpeg');
         await page.locator('#fileInput').setInputFiles(await panoramaFixture(page));

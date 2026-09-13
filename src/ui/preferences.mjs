@@ -29,7 +29,7 @@ export function createPreferences({app,els},deps){
     restoring=true;
     try{
       app.layout=value.comparison.layout;app.background=value.comparison.background;
-      els.autoApply.checked=value.comparison.autoApply;els.metadataPolicy.value=value.comparison.metadataPolicy;els.backgroundSelect.value=app.background;
+  els.metadataPolicy.value=value.comparison.metadataPolicy;els.backgroundSelect.value=app.background;
       app.variants.forEach((variant,i)=>{variant.config={...value.comparison.variants[i]};});
       applyInterface(value);
       lastSaved=JSON.stringify(value);
@@ -46,7 +46,7 @@ export function createPreferences({app,els},deps){
   }
   function requestSave(event){
     if(!enabled||restoring||event.target?.closest?.('#resetPreferences'))return;
-    if(!event.target?.closest?.('.appbar, .cell-head, #analysisPanel, #analysisSplitter, #studyDialog'))return;
+    if(!event.target?.closest?.('.appbar, .cell-head, #analysisPanel, #analysisSplitter, #studyDialog, #tiffSettingsDialog'))return;
     cancelSave();timer=setTimeout(flushUserPreferences,150);
   }
   function resetUserPreferences(){

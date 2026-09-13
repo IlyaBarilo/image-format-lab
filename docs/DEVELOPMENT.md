@@ -112,6 +112,7 @@ gifenc. Сохраняйте полные лицензионные тексты 
 | Компоненты | Исходники и инструкция |
 | --- | --- |
 | gifenc / PnnQuant | [Читаемые модули и сборщик](../vendor/sources/gifenc-1.0.3/README.md) |
+| BMP/TIFF | [Исходники, адаптеры и сборщик](../vendor/sources/raster/README.md) |
 | TIFF-часть UTIF | [Адаптированные исходники и описание изменений](../vendor/sources/utif/README.md) |
 | JPEG | [Закреплённые исходники libjpeg-turbo и WASM-сборщик](../vendor/sources/jpeg/README.md) |
 | HEIC / AVIF | [Исходный комплект, сборка и замена библиотеки](../vendor/sources/heic/README.md) |

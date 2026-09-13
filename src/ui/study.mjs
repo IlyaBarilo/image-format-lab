@@ -3,18 +3,16 @@ import { DEFAULT_VARIANTS, EXPERIMENTS, PROFILE_KEY } from "./../core/config.mjs
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStudy({app, els}, deps) {
   function captureComparison() {
-    return { layout: app.layout, background: app.background, autoApply: els.autoApply.checked,
+    return { layout: app.layout, background: app.background, autoApply: true,
       metadataPolicy: els.metadataPolicy.value, variants: app.variants.map(v => ({ ...v.config })) };
   }
   
   function applyComparison(value) {
     const settings = deps.validateComparison(value);
     // Invalidate all old results first; updateLayout below starts one rendering pass.
-    els.autoApply.checked = false;
     els.metadataPolicy.value = settings.metadataPolicy;
     els.backgroundSelect.value = app.background = settings.background;
-    app.variants.forEach((v, i) => { v.config = settings.variants[i]; deps.markDirty(v); deps.disposeVariantOutput(v); deps.buildCellControls(v); deps.buildMetrics(v); });
-    els.autoApply.checked = settings.autoApply;
+    app.variants.forEach((v, i) => { v.config = settings.variants[i]; deps.markDirty(v, { schedule: false }); deps.disposeVariantOutput(v); deps.buildCellControls(v); deps.buildMetrics(v); });
     deps.updateFormatOptions(); deps.resetView(); deps.updateLayout(settings.layout);
     const unavailable = settings.variants.filter(v => v.format !== "original").map(v => deps.formatUnavailableReason(v.format)).filter(Boolean);
     deps.studyNotice(unavailable.length ? unavailable.join(" ") : "Настройки сравнения применены. Параметры пакета сохранены.");
