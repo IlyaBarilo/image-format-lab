@@ -4,6 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const { createRequire } = require('node:module');
+const { pathToFileURL } = require('node:url');
 const requireBuildTool = createRequire(path.join(__dirname, '../scripts/package.json'));
 const { parse } = requireBuildTool('acorn');
 const { decodeScript } = require('./support/codec-payload.cjs');
@@ -26,6 +27,34 @@ const { decodeScript } = require('./support/codec-payload.cjs');
   assert.ok(first.html.startsWith('<!doctype html>\n<!-- Generated from src/'));
   assert.equal(fs.readFileSync(path.join(root, 'image-format-lab.html'), 'utf8'), first.html, 'root HTML must be current');
   console.log('PASS deterministic build and current root HTML');
+  // A source checkout contains no generated HTML. Copy only the build's
+  // explicit inputs and use the installed build tool through a local adapter.
+  const sourceFixture = fs.mkdtempSync(path.join(os.tmpdir(), 'image-format-source-build-'));
+  try {
+    for (const name of new Set(first.watchFiles)) {
+      const target = path.resolve(sourceFixture, name);
+      assert.ok(target.startsWith(sourceFixture + path.sep));
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(path.join(root, name), target);
+    }
+    const tool = path.join(sourceFixture, 'scripts/node_modules/esbuild');
+    fs.mkdirSync(tool, { recursive: true });
+    fs.writeFileSync(path.join(tool, 'package.json'), JSON.stringify({ type: 'module', exports: './index.mjs' }));
+    fs.writeFileSync(path.join(tool, 'index.mjs'), `export { build } from ${JSON.stringify(pathToFileURL(requireBuildTool.resolve('esbuild')).href)};\n`);
+    const output = path.join(sourceFixture, 'image-format-lab.html');
+    assert.equal(fs.existsSync(output), false, 'generated HTML is absent from the source checkout');
+    execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: sourceFixture, stdio: 'pipe' });
+    const fresh = fs.readFileSync(output, 'utf8');
+    const expected = tag ? (await buildViewer()).html : first.html;
+    assert.equal(fresh, expected, 'a fresh checkout builds the same local HTML');
+    execFileSync(process.execPath, ['scripts/build.mjs', '--check'], { cwd: sourceFixture, stdio: 'pipe' });
+  } finally {
+    const resolved = fs.realpathSync(sourceFixture);
+    assert.equal(path.dirname(resolved), fs.realpathSync(os.tmpdir()));
+    assert.ok(path.basename(resolved).startsWith('image-format-source-build-'));
+    fs.rmSync(resolved, { recursive: true, force: true });
+  }
+  console.log('PASS source-only checkout builds the root HTML without a pre-existing output');
   // Model Git/editor line-ending conversion only for the explicitly embedded
   // project texts. No files are changed, and vendor bytes are never converted.
   const embeddedTextPaths = new Set(['src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg',

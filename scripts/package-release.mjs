@@ -9,7 +9,7 @@ try {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const { RELEASE_TAG: tag, GITHUB_REPOSITORY: repository } = process.env;
   verifyReleaseCheckout(tag, root);
-  checkRepository(root, { allowBuiltHtml: true });
+  checkRepository(root);
   const files = new Map(assetNames.map((name, i) => [name, fs.readFileSync(path.join(root, i ? 'vendor' : '', name))]));
   files.set(checksumName, Buffer.from(checksumText(files)));
   validateAssets(files, repository, tag);

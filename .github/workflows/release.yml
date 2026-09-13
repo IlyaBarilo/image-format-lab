@@ -39,9 +39,7 @@ jobs:
           node --input-type=module -e 'import { verifyReleaseCheckout } from "./scripts/build-version.mjs"; verifyReleaseCheckout(process.env.RELEASE_TAG, process.cwd());'
       - uses: ./.github/actions/setup-tests
       - name: Check publication paths and clean inputs
-        run: |
-          node scripts/check-repository.mjs
-          npm --prefix scripts run build -- --check
+        run: node scripts/check-repository.mjs
       - name: Build the selected tag with its source URLs
         id: commit
         run: |

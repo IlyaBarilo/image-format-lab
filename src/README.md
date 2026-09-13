@@ -3,6 +3,7 @@
 Редактируйте файлы здесь, затем выполняйте `npm --prefix scripts run build` из корня проекта.
 Готовый `image-format-lab.html` в корне создаётся автоматически и включает
 стили, JavaScript, код Worker, сторонние библиотеки, лицензии и манифест.
+Этот результат сборки не включается в Git; готовый HTML публикуется в Releases.
 Для использования готового приложения скачивайте
 [image-format-lab.html из последнего релиза](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html).
 Постоянное имя релизного файла совпадает с именем результата локальной сборки.

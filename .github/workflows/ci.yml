@@ -20,13 +20,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-tests
-      - name: Check tracked files and committed HTML
+      - name: Check tracked inputs and build the application
         run: |
           node scripts/check-repository.mjs
-          npm --prefix scripts run build -- --check
+          npm --prefix scripts run build
       - name: Run all registered tests
         run: npm --prefix scripts test
-      - name: Confirm tests preserved the committed build
+      - name: Confirm tests preserved the build and tracked inputs
         run: |
           npm --prefix scripts run build -- --check
           node scripts/check-repository.mjs

@@ -20,15 +20,17 @@ const root = path.resolve(__dirname, '..');
   try {
     git('init', '--template=', '--initial-branch=test');
     for (const name of ['image-format-lab.html', 'input.txt']) fs.writeFileSync(path.join(fixture, name), 'original');
-    git('add', '--', 'image-format-lab.html', 'input.txt');
+    git('add', '--', 'input.txt');
     git('commit', '-m', 'Fixture');
     checkRepository(fixture);
     fs.writeFileSync(path.join(fixture, 'image-format-lab.html'), 'built');
-    assert.throws(() => checkRepository(fixture), /inputs have changed/);
-    checkRepository(fixture, { allowBuiltHtml: true });
+    checkRepository(fixture); // Rebuilding the untracked output is allowed.
+    git('add', '--', 'image-format-lab.html');
+    assert.throws(() => checkRepository(fixture), /Excluded paths/);
+    git('rm', '--cached', '--', 'image-format-lab.html');
     fs.writeFileSync(path.join(fixture, 'input.txt'), 'modified');
     git('add', '--', 'input.txt');
-    assert.throws(() => checkRepository(fixture, { allowBuiltHtml: true }), /inputs have changed/);
+    assert.throws(() => checkRepository(fixture), /inputs have changed/);
   } finally {
     const resolved = fs.realpathSync(fixture);
     assert.equal(path.dirname(resolved), tempRoot);
