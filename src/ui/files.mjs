@@ -148,7 +148,7 @@ export function createFiles({app, els}, deps) {
       row.querySelector(".file-name").textContent = item.name;
       row.querySelector(".file-meta").textContent = (item.width ? `${item.width}×${item.height} • ` : "") + deps.formatBytes(item.size);
       row.querySelector(".file-state").textContent = item.status === "loading" ? "Открываю…"
-        : item.status === "error" ? "Ошибка · нажмите для повтора" : selected ? "Выбран" : "";
+        : item.status === "error" ? "Ошибка · нажмите для повтора" : "";
       const entry = app.batchRun?.byId.get(item.id);
       row.classList.toggle("batch-error", entry?.status === "error");
       const batchState = row.querySelector(".file-batch-state");

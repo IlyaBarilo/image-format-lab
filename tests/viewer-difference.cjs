@@ -12,7 +12,7 @@ const changed={width:4,height:1,data:new Uint8ClampedArray([10,20,30,255,255,0,0
 const middle={x0:250,y0:0,x1:750,y1:1000};
 async function ready(page){await page.waitForFunction(()=>app.source&&!app.sourceLoading&&app.variants.slice(0,app.layout).every(isVariantReady));}
 async function plots(page,kind='difference'){await page.waitForFunction(kind=>[...document.querySelectorAll('.analysis-card')].filter(c=>!c.hidden).every(c=>c.dataset.state==='ready'&&c.querySelector('canvas').dataset.kind===kind),kind);}
-async function edit(page,values){await page.locator('#analysisRegionOpen').click();for(const [name,value]of Object.entries(values))await page.locator('#analysisRegion'+name).fill(String(value));}
+async function edit(page,values){await page.locator('#analysisScope').selectOption('region');for(const [name,value]of Object.entries(values))await page.locator('#analysisRegion'+name).fill(String(value));}
 (async()=>{
   const {computeDifference,differenceColor}=await import('../src/core/difference.mjs');
   const {analysisBounds}=await import('../src/core/analysis-region.mjs');
@@ -111,9 +111,9 @@ async function edit(page,values){await page.locator('#analysisRegionOpen').click
         assert.ok((await page.locator('.analysis-chart').first().getAttribute('aria-label')).includes('480×320'));
       }
       assert.deepEqual(await page.evaluate(()=>({comparison:captureComparison(),batch:JSON.stringify(app.exportConfig),storage:JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([key])=>key!=='image-format-viewer.preferences.v1'))),metrics:app.variants.map(v=>v.metrics)})),original);
-      await page.locator('button[data-analysis-size="max"][aria-pressed]').click();await page.locator('#analysisRegionOpen').click();await page.keyboard.press('Escape');
+      await page.locator('button[data-analysis-size="max"][aria-pressed]').click();await page.locator('#analysisScope').selectOption('region');await page.keyboard.press('Escape');
       assert.equal(await page.locator('#analysisRegionEditor').isVisible(),false);assert.equal(await page.locator('.stage').getAttribute('data-analysis-size'),'max');
-      await page.keyboard.press('Escape');await page.locator('#analysisRegionOpen').click();await page.locator('#analysisRegionReset').click();await plots(page);
+      await page.keyboard.press('Escape');await page.locator('#analysisScope').selectOption('region');await page.locator('#analysisRegionReset').click();await plots(page);
       assert.equal(await page.evaluate(()=>getAnalysisRegion()),null);
       await edit(page,{X:25,Width:50});await page.locator('#analysisRegionApply').click();await plots(page);
       await page.locator('#fileInput').setInputFiles({name:'replacement.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8"><path fill="red" d="M0 0h12v8H0z"/></svg>')});
@@ -133,7 +133,7 @@ async function edit(page,values){await page.locator('#analysisRegionOpen').click
       await page.locator('button[data-analysis-size="compact"]').click();await page.locator('#analysisType').selectOption('difference');await page.waitForFunction(()=>diffActive>0);
       await edit(page,{X:25,Y:25,Width:50,Height:50});await page.locator('#analysisRegionApply').click();await plots(page);
       assert.ok((await page.locator('.analysis-chart').first().getAttribute('aria-label')).includes('480×320'));assert.equal(await page.evaluate(()=>diffMax),1);
-      await page.locator('#analysisRegionOpen').click();await page.locator('#analysisRegionReset').click();await page.waitForFunction(()=>diffActive>0);
+      await page.locator('#analysisScope').selectOption('region');await page.locator('#analysisRegionReset').click();await page.waitForFunction(()=>diffActive>0);
       await page.locator('#clearFiles').click();await page.waitForFunction(()=>diffActive===0);assert.equal(await page.locator('.analysis-chart').first().isVisible(),false);
       await page.evaluate(()=>{diffFail=true;});await page.locator('#sampleImage').click();await ready(page);
       await page.waitForFunction(()=>document.querySelector('.analysis-info').textContent.includes('Проверочная ошибка'));
@@ -145,7 +145,7 @@ async function edit(page,values){await page.locator('#analysisRegionOpen').click
       await page.locator('.cell .quality').nth(1).fill('10');await ready(page);await plots(page);
       await page.waitForFunction(()=>getComputedStyle(document.getElementById('status')).opacity==='0');
       if(folder){fs.mkdirSync(folder,{recursive:true});await page.screenshot({path:path.join(folder,artifacts.runId+'-difference-desktop.png')});}
-      await page.locator('#analysisRegionOpen').click();
+      await page.locator('#analysisScope').selectOption('region');
       const box=await page.locator('#analysisRegionCanvas').boundingBox();
       await page.mouse.move(box.x+box.width*0.4,box.y+box.height*0.25);await page.mouse.down();await page.mouse.move(box.x+box.width*0.6,box.y+box.height*0.75,{steps:4});await page.mouse.up();
       assert.equal(await page.evaluate(()=>getAnalysisRegion()),null);
@@ -153,7 +153,7 @@ async function edit(page,values){await page.locator('#analysisRegionOpen').click
       if(folder)await page.screenshot({path:path.join(folder,artifacts.runId+'-region-desktop.png')});
       await page.locator('#analysisRegionApply').click();await plots(page);
       assert.ok(await page.evaluate(()=>getAnalysisRegion()!==null));
-      await page.locator('#analysisRegionOpen').click();const draft=await page.locator('#analysisRegionWidth').inputValue();
+      await page.locator('#analysisScope').selectOption('region');const draft=await page.locator('#analysisRegionWidth').inputValue();
       const point={clientX:box.x+box.width/2,clientY:box.y+box.height/2,pointerId:11,pointerType:'touch',button:0};
       // Synthetic cancellation exercises restoration; real mouse selection above uses capture.
       await page.locator('#analysisRegionCanvas').evaluate(c=>{c.setPointerCapture=()=>{};});
@@ -164,7 +164,7 @@ async function edit(page,values){await page.locator('#analysisRegionOpen').click
       await page.locator('#layout4').click();await ready(page);await plots(page);
       for(const width of [1080,768,390,320]){
         await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-        await page.locator('button[data-analysis-size="max"][aria-pressed]').click();await page.locator('#analysisRegionOpen').click();
+        await page.locator('button[data-analysis-size="max"][aria-pressed]').click();await page.locator('#analysisScope').selectOption('region');
         assert.equal(await page.locator('#analysisPanel').evaluate(d=>d.scrollWidth>d.clientWidth),false);
         if(width===390&&folder)await page.screenshot({path:path.join(folder,artifacts.runId+'-region-mobile.png')});
         await page.keyboard.press('Escape');assert.equal(await page.locator('#analysisRegionEditor').isVisible(),false);

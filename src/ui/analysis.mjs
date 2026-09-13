@@ -33,7 +33,6 @@ export function createAnalysis({ app }, deps) {
     const tradeoff=type.value==='tradeoff',output=deps.getAnalysisOutputSettings();
     get('analysisScope').hidden=tradeoff;
     get('analysisMatteField').hidden=tradeoff;
-    get('analysisRegionOpen').hidden=tradeoff || followsViewport();
     const difference = type.value === 'difference', spatial = ['waveform','parade'].includes(type.value);
     const profile = type.value === 'profile', vector = type.value === 'vectorscope';
     get('analysisChannelField').hidden = type.value !== 'histogram';
@@ -65,7 +64,7 @@ export function createAnalysis({ app }, deps) {
       help.title='Профиль значений вдоль общей линии A→B. Уровни 0–255; положение и каналы общие. Линию можно выбрать на миниатюре. Нажмите для подробностей.';
       get('analysisMethod').textContent='Профиль показывает ближайшие пиксели дискретной линии A→B внутри выбранной области. Шаг — один пиксель по её более длинной проекции, оба конца включены. По горизонтали положение от A (0%) до B (100%), по вертикали кодовые уровни 0–255. RGB смешивается с выбранной подложкой, α измеряется отдельно; Y′ = round(0,2126 R + 0,7152 G + 0,0722 B). До 1024 групп: линия графика показывает среднее группы, вертикальные отрезки — её минимум/максимум, чтобы сохранить узкие пики длинной линии. Указатель выбирает группу ближайшего пикселя. Одна точка или растр 1×1 дают один отсчёт. При разных размерах относительная линия одинакова, число отсчётов и координаты отличаются. «Линия…» редактирует черновик; применение обновляет все профили, отмена отбрасывает изменения. Это кодовые значения, не линейная физическая яркость.';
     }
-    get('analysisMethod').textContent += ' В режиме «Заданная область» кнопка «Область…» задаёт общий прямоугольник в долях кадра для всех графиков. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; сохраняемые изображения и основные метрики не кадрируются.';
+    get('analysisMethod').textContent += ' Пункт «Заданная область» в списке области анализа открывает редактор общего прямоугольника в долях кадра для всех графиков. Повторный выбор этого пункта открывает сохранённую область для правки. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; сохраняемые изображения и основные метрики не кадрируются.';
     if(output.display==='overlay')get('analysisMethod').textContent+=' Наложение сравнивает выбранную пару ячеек. Для гистограммы и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют каналам: пастельные R/G/B у заливки, насыщенные R/G/B у контура. Числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform/Parade/вектороскопа первый след голубой, второй оранжевый; пересечение складывает свет обоих следов. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.';
     if(output.display==='delta'){
       help.title='Разница графиков: вторая выбранная ячейка минус первая. Ноль означает совпадение графиков. Нажмите для методики и единиц.';
@@ -531,7 +530,7 @@ export function createAnalysis({ app }, deps) {
     deps.attachAnalysisOutputEvents();
     deps.attachAnalysisLayoutEvents();
     help.addEventListener('click', () => setHelpOpen(helpContent.hidden));
-    get('analysisRegionOpen').addEventListener('click',()=>{setHelpOpen(false);deps.toggleAnalysisRegion();});
+    get('analysisScope').addEventListener('change',()=>setHelpOpen(false));
     get('analysisLineOpen').addEventListener('click',()=>{setHelpOpen(false);deps.toggleAnalysisLine();});
     panel.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !helpContent.hidden) {

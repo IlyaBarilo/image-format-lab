@@ -4,7 +4,7 @@ import { DEFAULT_ANALYSIS_LINE, profileEndpoints } from '../core/line-profile.mj
 const FULL = { x0: 0, y0: 0, x1: 1000, y1: 1000 };
 export function createAnalysisRegion({ app }, deps) {
   const get = id => document.getElementById(id);
-  const editor = get('analysisRegionEditor'), button = get('analysisRegionOpen'), canvas = get('analysisRegionCanvas');
+  const editor = get('analysisRegionEditor'), canvas = get('analysisRegionCanvas');
   const lineButton = get('analysisLineOpen');
   const scope = get('analysisScope');
   const fields = ['X','Y','Width','Height'].map(name=>get('analysisRegion'+name));
@@ -22,9 +22,12 @@ export function createAnalysisRegion({ app }, deps) {
     closeAnalysisRegion();syncAnalysisRegion();
   }
   function closeAnalysisRegion(focus = false) {
-    editor.hidden = true; button.setAttribute('aria-expanded','false'); lineButton.setAttribute('aria-expanded','false'); drag = null;
+    editor.hidden = true; lineButton.setAttribute('aria-expanded','false'); drag = null;
+    // Keep the current label in a hidden option so choosing the visible item
+    // again changes the selection and reopens the editor with native controls.
+    get('analysisRegionCurrent').selected = scope.value === 'region';
     canvas.width = canvas.height = 1; box = null;
-    if(focus)(mode==='line'?lineButton:button).focus();
+    if(focus)(mode==='line'?lineButton:scope).focus();
   }
   function syncAnalysisRegion() {
     if(source !== app.source) {
@@ -33,12 +36,8 @@ export function createAnalysisRegion({ app }, deps) {
       else {region=null;if(scope.value==='region')scope.value='full';line={...DEFAULT_ANALYSIS_LINE};}
       closeAnalysisRegion();
     }
-    button.disabled = !source || app.sourceLoading;
-    lineButton.disabled = button.disabled;
+    lineButton.disabled = !source || app.sourceLoading;
     if (scope.value === 'viewport' && source) lineButton.disabled ||= !lineRegion();
-    const activeRegion = getAnalysisRegion();
-    button.textContent = activeRegion ? 'Область ✓' : 'Область…';
-    button.title = activeRegion ? `X ${activeRegion.x0/10}%, Y ${activeRegion.y0/10}%, ширина ${(activeRegion.x1-activeRegion.x0)/10}%, высота ${(activeRegion.y1-activeRegion.y0)/10}%` : 'Весь кадр. Выбрать общую область для всех графиков.';
     lineButton.textContent = Object.keys(line).every(key=>line[key]===DEFAULT_ANALYSIS_LINE[key])?'Линия…':'Линия ✓';
     lineButton.title=`A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%) внутри выбранной области`;
   }
@@ -85,9 +84,6 @@ export function createAnalysisRegion({ app }, deps) {
     ctx.strokeStyle='#0f766e';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.strokeRect(x,y,rw,rh);
     canvas.setAttribute('aria-label',`Область: слева ${draft.x0/10}%, сверху ${draft.y0/10}%, ширина ${(draft.x1-draft.x0)/10}%, высота ${(draft.y1-draft.y0)/10}%. Координаты можно изменить в полях.`);
   }
-  function toggleAnalysisRegion() {
-    openEditor('region');
-  }
   function toggleAnalysisLine() { openEditor('line'); }
   function openEditor(nextMode) {
     if(!editor.hidden&&mode===nextMode){closeAnalysisRegion(true);return;}
@@ -103,7 +99,7 @@ export function createAnalysisRegion({ app }, deps) {
     get('analysisLinePresets').hidden=!isLine;
     get('analysisGeometryHint').textContent=isLine?'Проведите линию A→B внутри выбранной области или задайте её концы в процентах. Она общая для всех профилей; экспорт не меняется.':'Выделите область на исходнике или задайте её в процентах. Она применяется ко всем графикам; сохраняемый файл не кадрируется.';
     fillFields();error.textContent='';
-    editor.hidden=false;(isLine?lineButton:button).setAttribute('aria-expanded','true');drawAnalysisRegion();fields[0].focus();
+    editor.hidden=false;if(isLine)lineButton.setAttribute('aria-expanded','true');drawAnalysisRegion();fields[0].focus();
   }
   function apply(value) {
     if(mode==='line')line={...value};
@@ -130,7 +126,7 @@ export function createAnalysisRegion({ app }, deps) {
   function attachAnalysisRegionEvents() {
     scope.addEventListener('change', () => {
       closeAnalysisRegion(); syncAnalysisRegion(); deps.updateAnalysis();
-      if (scope.value==='region' && !region) openEditor('region');
+      if (scope.value==='region') openEditor('region');
     });
     get('analysisRegionApply').addEventListener('click',submit);
     get('analysisRegionReset').addEventListener('click',()=>apply(mode==='line'?DEFAULT_ANALYSIS_LINE:FULL));
@@ -155,5 +151,5 @@ export function createAnalysisRegion({ app }, deps) {
     canvas.addEventListener('lostpointercapture',()=>{if(drag){draft=drag.previous;drag=null;fillFields();drawAnalysisRegion();}});
     syncAnalysisRegion();
   }
-  return {getAnalysisScope,getAnalysisRegion,getAnalysisLine,syncAnalysisRegion,closeAnalysisRegion,toggleAnalysisRegion,toggleAnalysisLine,drawAnalysisRegion,attachAnalysisRegionEvents,captureAnalysisRegionPreferences,applyAnalysisRegionPreferences};
+  return {getAnalysisScope,getAnalysisRegion,getAnalysisLine,syncAnalysisRegion,closeAnalysisRegion,toggleAnalysisLine,drawAnalysisRegion,attachAnalysisRegionEvents,captureAnalysisRegionPreferences,applyAnalysisRegionPreferences};
 }

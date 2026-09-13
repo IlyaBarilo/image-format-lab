@@ -277,7 +277,7 @@ export function createApplication() {
   Object.assign(actions, createAnalysisCombined());
   Object.assign(actions, createAnalysisOutput(context, dependencies(["getAnalysisSnapshot", "redrawAnalysis", "downloadBlob", "renderAnalysisOverlay", "renderAnalysisDelta", "renderAnalysisTradeoff", "isAnalysisResizing"])));
   Object.assign(actions, createAnalysisLayout(context, dependencies(["drawAll", "redrawAnalysis", "drawAnalysisRegion", "expandAnalysis", "collapseAnalysis", "pauseAnalysisForResize", "resumeAnalysisAfterResize"])));
-  Object.assign(actions, createAnalysis(context, dependencies(["isVariantReady", "outputFormatLabel", "workerCompute", "drawAll", "getAnalysisScope", "getAnalysisViewport", "getAnalysisRegion", "getAnalysisLine", "syncAnalysisRegion", "closeAnalysisRegion", "toggleAnalysisRegion", "toggleAnalysisLine", "drawAnalysisRegion", "attachAnalysisRegionEvents", "plotVectorscope", "plotLineProfile", "getAnalysisOutputSettings", "syncAnalysisOutput", "presentAnalysis", "attachAnalysisOutputEvents", "attachAnalysisLayoutEvents", "syncAnalysisLayout", "restoreAnalysisLayout"])));
+  Object.assign(actions, createAnalysis(context, dependencies(["isVariantReady", "outputFormatLabel", "workerCompute", "drawAll", "getAnalysisScope", "getAnalysisViewport", "getAnalysisRegion", "getAnalysisLine", "syncAnalysisRegion", "closeAnalysisRegion", "toggleAnalysisLine", "drawAnalysisRegion", "attachAnalysisRegionEvents", "plotVectorscope", "plotLineProfile", "getAnalysisOutputSettings", "syncAnalysisOutput", "presentAnalysis", "attachAnalysisOutputEvents", "attachAnalysisLayoutEvents", "syncAnalysisLayout", "restoreAnalysisLayout"])));
   Object.assign(actions, createStatus(context, dependencies([
 
   ])));

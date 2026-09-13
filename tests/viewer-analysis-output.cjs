@@ -38,7 +38,7 @@ async function shot(page,name){if(folder){fs.mkdirSync(folder,{recursive:true});
       let points=JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points'));assert.equal(points[0].value,'Infinity');assert.ok(points[1].value>0);
       for(const m of ['alphaErrorPercent','processingMs','psnrRGB']){await page.locator('#analysisMetric').selectOption(m);points=JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points'));const expected=await page.evaluate(metric=>app.variants.slice(0,2).map(v=>({cell:v.index+1,bytes:v.measurement.bytes,value:v.measurement[metric]===Infinity?'Infinity':v.measurement[metric]})),m);assert.deepEqual(points,expected);}
       assert.equal(await page.evaluate(()=>outputCalls+outputEncodes),0);assert.deepEqual(await page.evaluate(()=>({comparison:captureComparison(),batch:app.exportConfig,storage:JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([key])=>key!=='image-format-viewer.preferences.v1')))})),state);
-      assert.equal(await page.locator('#analysisRegionOpen').isVisible(),false);assert.equal(await page.locator('#analysisMatte').isVisible(),false);
+      assert.equal(await page.locator('#analysisScope').isVisible(),false);assert.equal(await page.locator('#analysisMatte').isVisible(),false);
       await page.locator('#layout4').click();await ready(page);await graph(page,'tradeoff',true);assert.equal(JSON.parse(await page.locator('#analysisCombinedChart').getAttribute('data-points')).length,4);
       await page.locator('#autoApply').uncheck();await page.locator('.cell .quality').nth(1).fill('1');
       await page.waitForFunction(()=>JSON.parse(document.getElementById('analysisCombinedChart').dataset.points).every(p=>p.cell!==2));
@@ -65,7 +65,7 @@ async function shot(page,name){if(folder){fs.mkdirSync(folder,{recursive:true});
       await page.locator('#analysisType').selectOption('difference');await graph(page,'difference');assert.equal(await page.locator('#analysisDisplayField').isVisible(),false);assert.equal(await page.locator('#analysisCombined').isVisible(),false);
     },{deviceScaleFactor:2});
     await check('JSON includes exact arrays, ROI/line/config and infinity; PNG signature/dimensions and screenshots',async page=>{
-      await start(page);await page.locator('#analysisRegionOpen').click();await page.locator('#analysisRegionX').fill('25');await page.locator('#analysisRegionWidth').fill('50');await page.locator('#analysisRegionApply').click();await graph(page,'histogram');
+      await start(page);await page.locator('#analysisScope').selectOption('region');await page.locator('#analysisRegionX').fill('25');await page.locator('#analysisRegionWidth').fill('50');await page.locator('#analysisRegionApply').click();await graph(page,'histogram');
       for(const kind of ['histogram','waveform','parade','difference','vectorscope','profile']){
         await page.locator('#analysisType').selectOption(kind);await graph(page,kind);
         const data=JSON.parse((await download(page,'analysisJSON')).toString());assert.equal(data.settings.type,kind);assert.equal(data.settings.region.x0,250);assert.equal(data.items.length,2);assert.equal(data.items[0].measurement.psnrRGB,'Infinity');assert.equal(data.items[0].config.format,'original');
@@ -77,7 +77,7 @@ async function shot(page,name){if(folder){fs.mkdirSync(folder,{recursive:true});
       const blob=await download(page,'analysisPNG');assert.equal(blob.toString('hex',0,8),'89504e470d0a1a0a');assert.equal(blob.readUInt32BE(16),1200);assert.ok(blob.readUInt32BE(20)>400);
       if(folder)fs.writeFileSync(path.join(folder,artifacts.runId+'-export-profile.png'),blob);
       const overlay=JSON.parse((await download(page,'analysisJSON')).toString());assert.equal(overlay.settings.display,'overlay');assert.deepEqual(overlay.settings.pair,[1,2]);
-      await page.locator('#analysisRegionOpen').click();await page.locator('#analysisRegionReset').click();await graph(page,'profile',true);
+      await page.locator('#analysisScope').selectOption('region');await page.locator('#analysisRegionReset').click();await graph(page,'profile',true);
       await page.waitForFunction(()=>getComputedStyle(document.getElementById('status')).opacity==='0');await shot(page,'overlay-profile-desktop');
       await page.locator('#analysisType').selectOption('vectorscope');await page.locator('#analysisDisplayOverlay').click();await graph(page,'vectorscope',true);await shot(page,'overlay-vectorscope-desktop');
       await page.locator('#analysisType').selectOption('tradeoff');await graph(page,'tradeoff',true);

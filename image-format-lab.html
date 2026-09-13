@@ -40,6 +40,7 @@
   --scope-second: #c65d13;
   --shadow: 0 12px 32px rgba(20, 32, 44, 0.10);
   --toolbar-h: 64px;
+  --file-panel-width: 296px;
 }
 
 :root[data-theme="dark"] {
@@ -130,8 +131,9 @@ select:disabled {
 }
 
 .brand {
-  min-width: 208px;
-  max-width: 208px;
+  /* Header padding (12), gap (10) and first button group inset (4). */
+  min-width: calc(var(--file-panel-width) - 26px);
+  max-width: calc(var(--file-panel-width) - 26px);
   display: grid;
   gap: 2px;
 }
@@ -144,7 +146,6 @@ select:disabled {
 }
 
 .toolbar-preferences { display: flex; align-items: center; gap: 6px; margin-inline-start: auto; }
-.brand .app-subtitle { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
 .toolbar-preferences .theme-toggle { flex: 0 0 36px; }
 .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -314,7 +315,7 @@ select:disabled {
 
 .workspace {
   display: grid;
-  grid-template-columns: 296px minmax(0, 1fr);
+  grid-template-columns: var(--file-panel-width) minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
 }
@@ -775,7 +776,7 @@ select:disabled {
     flex-direction: column;
     align-items: stretch;
   }
-  .brand { max-width: 100%; }
+  .brand { min-width: 0; max-width: 100%; }
 
   .workspace { display: block; }
   .file-panel { height: auto; min-height: 300px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -1026,7 +1027,6 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
   <header class="appbar">
     <div class="brand">
       <h1>Image Format Lab</h1>
-      <p class="app-subtitle">Изучение и сравнение форматов изображений</p>
       <div class="app-credits">
         <a href="https://barilo.ru/" target="_blank" rel="noopener noreferrer" title="Сайт автора — barilo.ru">Автор: Барило И.И.</a>
         <span class="credit-separator" aria-hidden="true">·</span>
@@ -1233,13 +1233,12 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
           </div>
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
-          <select class="select" id="analysisScope" aria-label="Область анализа" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option></select>
+          <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField">Уровень <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
           <label id="analysisDifferenceField" hidden>Канал <select class="select" id="analysisDifferenceChannel" aria-label="Различия RGB или прозрачности"><option value="rgb">RGB</option><option value="alpha">α</option></select></label>
           <label id="analysisGainField" hidden>Усиление <select class="select" id="analysisGain"><option value="1">×1</option><option value="4" selected>×4</option><option value="16">×16</option><option value="64">×64</option></select></label>
-          <button class="text-btn" id="analysisRegionOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor">Область…</button>
           <label id="analysisProfileField" hidden>Каналы <select class="select" id="analysisProfileChannel"><option value="rgb">RGB</option><option value="r">R</option><option value="g">G</option><option value="b">B</option><option value="y">Y′ — яркость</option><option value="alpha">α — прозрачность</option></select></label>
           <label class="analysis-level" id="analysisPositionField" hidden>Позиция <input id="analysisPosition" type="range" min="0" max="1000" value="500"><output id="analysisPositionValue" for="analysisPosition">50%</output></label>
           <button class="text-btn" id="analysisLineOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor" hidden>Линия…</button>
@@ -3167,7 +3166,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
         button.title = item.name + (item.error ? "\n" + item.error + "\nНажмите, чтобы повторить открытие." : "");
         row.querySelector(".file-name").textContent = item.name;
         row.querySelector(".file-meta").textContent = (item.width ? `${item.width}×${item.height} • ` : "") + deps.formatBytes(item.size);
-        row.querySelector(".file-state").textContent = item.status === "loading" ? "Открываю…" : item.status === "error" ? "Ошибка · нажмите для повтора" : selected ? "Выбран" : "";
+        row.querySelector(".file-state").textContent = item.status === "loading" ? "Открываю…" : item.status === "error" ? "Ошибка · нажмите для повтора" : "";
         const entry = app.batchRun?.byId.get(item.id);
         row.classList.toggle("batch-error", entry?.status === "error");
         const batchState = row.querySelector(".file-batch-state");
@@ -5001,7 +5000,6 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
       const tradeoff = type.value === "tradeoff", output = deps.getAnalysisOutputSettings();
       get("analysisScope").hidden = tradeoff;
       get("analysisMatteField").hidden = tradeoff;
-      get("analysisRegionOpen").hidden = tradeoff || followsViewport();
       const difference = type.value === "difference", spatial = ["waveform", "parade"].includes(type.value);
       const profile = type.value === "profile", vector = type.value === "vectorscope";
       get("analysisChannelField").hidden = type.value !== "histogram";
@@ -5029,7 +5027,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
         help.title = "Профиль значений вдоль общей линии A→B. Уровни 0–255; положение и каналы общие. Линию можно выбрать на миниатюре. Нажмите для подробностей.";
         get("analysisMethod").textContent = "Профиль показывает ближайшие пиксели дискретной линии A→B внутри выбранной области. Шаг — один пиксель по её более длинной проекции, оба конца включены. По горизонтали положение от A (0%) до B (100%), по вертикали кодовые уровни 0–255. RGB смешивается с выбранной подложкой, α измеряется отдельно; Y′ = round(0,2126 R + 0,7152 G + 0,0722 B). До 1024 групп: линия графика показывает среднее группы, вертикальные отрезки — её минимум/максимум, чтобы сохранить узкие пики длинной линии. Указатель выбирает группу ближайшего пикселя. Одна точка или растр 1×1 дают один отсчёт. При разных размерах относительная линия одинакова, число отсчётов и координаты отличаются. «Линия…» редактирует черновик; применение обновляет все профили, отмена отбрасывает изменения. Это кодовые значения, не линейная физическая яркость.";
       }
-      get("analysisMethod").textContent += " В режиме «Заданная область» кнопка «Область…» задаёт общий прямоугольник в долях кадра для всех графиков. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; сохраняемые изображения и основные метрики не кадрируются.";
+      get("analysisMethod").textContent += " Пункт «Заданная область» в списке области анализа открывает редактор общего прямоугольника в долях кадра для всех графиков. Повторный выбор этого пункта открывает сохранённую область для правки. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; сохраняемые изображения и основные метрики не кадрируются.";
       if (output.display === "overlay") get("analysisMethod").textContent += " Наложение сравнивает выбранную пару ячеек. Для гистограммы и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют каналам: пастельные R/G/B у заливки, насыщенные R/G/B у контура. Числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform/Parade/вектороскопа первый след голубой, второй оранжевый; пересечение складывает свет обоих следов. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.";
       if (output.display === "delta") {
         help.title = "Разница графиков: вторая выбранная ячейка минус первая. Ноль означает совпадение графиков. Нажмите для методики и единиц.";
@@ -5583,10 +5581,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
       deps.attachAnalysisOutputEvents();
       deps.attachAnalysisLayoutEvents();
       help.addEventListener("click", () => setHelpOpen(helpContent.hidden));
-      get("analysisRegionOpen").addEventListener("click", () => {
-        setHelpOpen(false);
-        deps.toggleAnalysisRegion();
-      });
+      get("analysisScope").addEventListener("change", () => setHelpOpen(false));
       get("analysisLineOpen").addEventListener("click", () => {
         setHelpOpen(false);
         deps.toggleAnalysisLine();
@@ -5991,7 +5986,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
   var FULL = { x0: 0, y0: 0, x1: 1e3, y1: 1e3 };
   function createAnalysisRegion({ app }, deps) {
     const get = (id) => document.getElementById(id);
-    const editor = get("analysisRegionEditor"), button = get("analysisRegionOpen"), canvas = get("analysisRegionCanvas");
+    const editor = get("analysisRegionEditor"), canvas = get("analysisRegionCanvas");
     const lineButton = get("analysisLineOpen");
     const scope = get("analysisScope");
     const fields = ["X", "Y", "Width", "Height"].map((name) => get("analysisRegion" + name));
@@ -6025,12 +6020,12 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
     }
     function closeAnalysisRegion(focus = false) {
       editor.hidden = true;
-      button.setAttribute("aria-expanded", "false");
       lineButton.setAttribute("aria-expanded", "false");
       drag = null;
+      get("analysisRegionCurrent").selected = scope.value === "region";
       canvas.width = canvas.height = 1;
       box = null;
-      if (focus) (mode === "line" ? lineButton : button).focus();
+      if (focus) (mode === "line" ? lineButton : scope).focus();
     }
     function syncAnalysisRegion() {
       if (source !== app.source) {
@@ -6043,12 +6038,8 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
         }
         closeAnalysisRegion();
       }
-      button.disabled = !source || app.sourceLoading;
-      lineButton.disabled = button.disabled;
+      lineButton.disabled = !source || app.sourceLoading;
       if (scope.value === "viewport" && source) lineButton.disabled ||= !lineRegion();
-      const activeRegion = getAnalysisRegion();
-      button.textContent = activeRegion ? "Область ✓" : "Область…";
-      button.title = activeRegion ? `X ${activeRegion.x0 / 10}%, Y ${activeRegion.y0 / 10}%, ширина ${(activeRegion.x1 - activeRegion.x0) / 10}%, высота ${(activeRegion.y1 - activeRegion.y0) / 10}%` : "Весь кадр. Выбрать общую область для всех графиков.";
       lineButton.textContent = Object.keys(line).every((key) => line[key] === DEFAULT_ANALYSIS_LINE[key]) ? "Линия…" : "Линия ✓";
       lineButton.title = `A (${line.x0 / 10}%, ${line.y0 / 10}%) → B (${line.x1 / 10}%, ${line.y1 / 10}%) внутри выбранной области`;
     }
@@ -6139,9 +6130,6 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
       ctx.strokeRect(x, y, rw, rh);
       canvas.setAttribute("aria-label", `Область: слева ${draft.x0 / 10}%, сверху ${draft.y0 / 10}%, ширина ${(draft.x1 - draft.x0) / 10}%, высота ${(draft.y1 - draft.y0) / 10}%. Координаты можно изменить в полях.`);
     }
-    function toggleAnalysisRegion() {
-      openEditor("region");
-    }
     function toggleAnalysisLine() {
       openEditor("line");
     }
@@ -6170,7 +6158,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
       fillFields();
       error.textContent = "";
       editor.hidden = false;
-      (isLine ? lineButton : button).setAttribute("aria-expanded", "true");
+      if (isLine) lineButton.setAttribute("aria-expanded", "true");
       drawAnalysisRegion();
       fields[0].focus();
     }
@@ -6218,7 +6206,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
         closeAnalysisRegion();
         syncAnalysisRegion();
         deps.updateAnalysis();
-        if (scope.value === "region" && !region) openEditor("region");
+        if (scope.value === "region") openEditor("region");
       });
       get("analysisRegionApply").addEventListener("click", submit);
       get("analysisRegionReset").addEventListener("click", () => apply(mode === "line" ? DEFAULT_ANALYSIS_LINE : FULL));
@@ -6281,7 +6269,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
       });
       syncAnalysisRegion();
     }
-    return { getAnalysisScope, getAnalysisRegion, getAnalysisLine, syncAnalysisRegion, closeAnalysisRegion, toggleAnalysisRegion, toggleAnalysisLine, drawAnalysisRegion, attachAnalysisRegionEvents, captureAnalysisRegionPreferences, applyAnalysisRegionPreferences };
+    return { getAnalysisScope, getAnalysisRegion, getAnalysisLine, syncAnalysisRegion, closeAnalysisRegion, toggleAnalysisLine, drawAnalysisRegion, attachAnalysisRegionEvents, captureAnalysisRegionPreferences, applyAnalysisRegionPreferences };
   }
 
   // src/core/vectorscope.mjs
@@ -8430,7 +8418,7 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
     Object.assign(actions, createAnalysisCombined());
     Object.assign(actions, createAnalysisOutput(context, dependencies(["getAnalysisSnapshot", "redrawAnalysis", "downloadBlob", "renderAnalysisOverlay", "renderAnalysisDelta", "renderAnalysisTradeoff", "isAnalysisResizing"])));
     Object.assign(actions, createAnalysisLayout(context, dependencies(["drawAll", "redrawAnalysis", "drawAnalysisRegion", "expandAnalysis", "collapseAnalysis", "pauseAnalysisForResize", "resumeAnalysisAfterResize"])));
-    Object.assign(actions, createAnalysis(context, dependencies(["isVariantReady", "outputFormatLabel", "workerCompute", "drawAll", "getAnalysisScope", "getAnalysisViewport", "getAnalysisRegion", "getAnalysisLine", "syncAnalysisRegion", "closeAnalysisRegion", "toggleAnalysisRegion", "toggleAnalysisLine", "drawAnalysisRegion", "attachAnalysisRegionEvents", "plotVectorscope", "plotLineProfile", "getAnalysisOutputSettings", "syncAnalysisOutput", "presentAnalysis", "attachAnalysisOutputEvents", "attachAnalysisLayoutEvents", "syncAnalysisLayout", "restoreAnalysisLayout"])));
+    Object.assign(actions, createAnalysis(context, dependencies(["isVariantReady", "outputFormatLabel", "workerCompute", "drawAll", "getAnalysisScope", "getAnalysisViewport", "getAnalysisRegion", "getAnalysisLine", "syncAnalysisRegion", "closeAnalysisRegion", "toggleAnalysisLine", "drawAnalysisRegion", "attachAnalysisRegionEvents", "plotVectorscope", "plotLineProfile", "getAnalysisOutputSettings", "syncAnalysisOutput", "presentAnalysis", "attachAnalysisOutputEvents", "attachAnalysisLayoutEvents", "syncAnalysisLayout", "restoreAnalysisLayout"])));
     Object.assign(actions, createStatus(context, dependencies([])));
     Object.assign(actions, createHeic());
     Object.assign(actions, createModern());

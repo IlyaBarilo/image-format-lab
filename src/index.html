@@ -13,7 +13,6 @@
   <header class="appbar">
     <div class="brand">
       <h1>Image Format Lab</h1>
-      <p class="app-subtitle">Изучение и сравнение форматов изображений</p>
       <div class="app-credits">
         <a href="https://barilo.ru/" target="_blank" rel="noopener noreferrer" title="Сайт автора — barilo.ru">Автор: Барило И.И.</a>
         <span class="credit-separator" aria-hidden="true">·</span>
@@ -220,13 +219,12 @@
           </div>
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
-          <select class="select" id="analysisScope" aria-label="Область анализа" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option></select>
+          <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField">Уровень <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
           <label id="analysisDifferenceField" hidden>Канал <select class="select" id="analysisDifferenceChannel" aria-label="Различия RGB или прозрачности"><option value="rgb">RGB</option><option value="alpha">α</option></select></label>
           <label id="analysisGainField" hidden>Усиление <select class="select" id="analysisGain"><option value="1">×1</option><option value="4" selected>×4</option><option value="16">×16</option><option value="64">×64</option></select></label>
-          <button class="text-btn" id="analysisRegionOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor">Область…</button>
           <label id="analysisProfileField" hidden>Каналы <select class="select" id="analysisProfileChannel"><option value="rgb">RGB</option><option value="r">R</option><option value="g">G</option><option value="b">B</option><option value="y">Y′ — яркость</option><option value="alpha">α — прозрачность</option></select></label>
           <label class="analysis-level" id="analysisPositionField" hidden>Позиция <input id="analysisPosition" type="range" min="0" max="1000" value="500"><output id="analysisPositionValue" for="analysisPosition">50%</output></label>
           <button class="text-btn" id="analysisLineOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor" hidden>Линия…</button>

@@ -89,7 +89,7 @@ async function screenshot(page,name){if(folder){fs.mkdirSync(folder,{recursive:t
       assert.ok(await page.locator('#analysisRegionError').textContent());
       await page.locator('[data-line-preset="vertical"]').click();await page.locator('#analysisRegionHeight').press('Enter');await plots(page,'profile');
       assert.deepEqual(await page.evaluate(()=>getAnalysisLine()),{x0:500,y0:0,x1:500,y1:1000});assert.equal(await page.locator('.analysis-chart').first().getAttribute('data-profile-samples'),'640');
-      await page.locator('#analysisRegionOpen').click();await fields(page,{X:25,Y:25,Width:50,Height:50});await page.locator('#analysisRegionApply').click();await plots(page,'profile');
+      await page.locator('#analysisScope').selectOption('region');await fields(page,{X:25,Y:25,Width:50,Height:50});await page.locator('#analysisRegionApply').click();await plots(page,'profile');
       assert.equal(await page.locator('.analysis-chart').first().getAttribute('data-profile-samples'),'320');
       assert.ok((await page.locator('.analysis-chart').first().getAttribute('aria-label')).includes('A (480, 160) → B (480, 479)'));
       await page.evaluate(()=>{const worker=workerCompute,encode=encodeOne;window.scopeCalls=0;window.scopeEncodes=0;workerCompute=(...args)=>{scopeCalls++;return worker(...args);};encodeOne=(...args)=>{scopeEncodes++;return encode(...args);};});
