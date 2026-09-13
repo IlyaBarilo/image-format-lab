@@ -1,0 +1,41 @@
+name: Checks
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      IMAGE_TEST_PYTHON: python
+      IMAGE_TEST_HEIC_NATIVE: '1'
+      IMAGE_TEST_LOGS: test-results
+      IMAGE_TEST_RUN_ID: ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tests
+      - name: Check tracked files and committed HTML
+        run: |
+          node scripts/check-repository.mjs
+          npm --prefix scripts run build -- --check
+      - name: Run all registered tests
+        run: npm --prefix scripts test
+      - name: Confirm tests preserved the committed build
+        run: |
+          npm --prefix scripts run build -- --check
+          node scripts/check-repository.mjs
+      - name: Save test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14

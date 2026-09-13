@@ -1,0 +1,29 @@
+UTIF 3.1.0 / viewer-1: JPEG implementations replaced
+===================================================
+
+UTIF upstream commit: 27f1098a67c3cfd4348c9b8fd887fcd8cd171095
+https://github.com/photopea/UTIF.js/tree/27f1098a67c3cfd4348c9b8fd887fcd8cd171095
+The supplied TIFF source is an adaptation of this revision, not a byte-for-byte
+copy. Photopea's own TIFF code retains the MIT notice in UTIF-LICENSE.
+
+Modifications by Ilya Barilo:
+- The entire minified ordinary JPEG decoder IIFE was removed.
+- The entire UTIF.LosslessJpegDecode implementation was removed.
+- The previous old/new JPEG-in-TIFF adapter functions were removed.
+- JPEG dispatch no longer mistakes a compressed strip for uncompressed bytes
+  when its input length happens to equal the output buffer length.
+- CMYK without alpha produces an opaque final pixel.
+- Private MakerNote/DNG directories are not automatically decoded for image display.
+
+The source is supplied as sources/utif/UTIF.js. The transformation script
+scripts/prepare-utif.cjs verifies the original revision's SHA-256 before removing
+the old implementations. The original file containing those implementations is
+not included in this distribution.
+
+JPEG decoding now uses libjpeg-turbo 3.2.0 through our separate MIT C/JS bridge.
+The TIFF Worker installs our adapters from src/core/tiff-jpeg.mjs.
+The JPEG library and runtime retain their original conditions and attribution:
+see JPEG-NOTICE, libjpeg-turbo-README.ijg, libjpeg-turbo-LICENSE and
+JPEG-RUNTIME-NOTICE. Our separate adapters are Copyright (c) 2026 Ilya Barilo, MIT.
+
+This software is based in part on the work of the Independent JPEG Group.

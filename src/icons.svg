@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="icon-definitions" width="0" height="0" aria-hidden="true" focusable="false">
+  <!-- Original project artwork. Image Format Lab.
+       Pixel frames and action marks; no third-party icon paths. Project MIT license. -->
+  <symbol id="viewer-icon-add" viewBox="0 0 24 24">
+    <path d="M12.5 4.5h-9v16h13v-9"/>
+    <path d="M18.5 2.5v6m-3-3h6"/>
+    <path d="M6.5 17.5v-3h3v-3h4v6Z" fill="currentColor" stroke="none"/>
+    <rect x="6.5" y="7.5" width="2" height="2" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="viewer-icon-sample" viewBox="0 0 24 24">
+    <rect x="3.5" y="3.5" width="17" height="17"/>
+    <path d="M11.5 3.5v17"/>
+    <path d="M3.5 3.5h4v4h-4Zm4 4h4v4h-4Zm-4 4h4v4h-4Zm4 4h4v5h-4Z" fill="currentColor" stroke="none"/>
+    <rect x="14.5" y="6.5" width="3" height="3" fill="currentColor" stroke="none"/>
+    <path d="M14.5 17.5v-4h3v-2"/>
+  </symbol>
+  <symbol id="viewer-icon-apply" viewBox="0 0 24 24">
+    <rect x="3.5" y="3.5" width="6" height="9"/>
+    <rect x="14.5" y="3.5" width="6" height="9"/>
+    <path d="M5.5 6.5h2m-2 3h2M16.5 9.5h2v-3"/>
+    <path d="M3.5 18.5h17m-3-3 3 3-3 3"/>
+  </symbol>
+  <symbol id="viewer-icon-reset" viewBox="0 0 24 24">
+    <path d="M7.5 2.5 3.5 6.5l4 4m-4-4h13v4"/>
+    <rect x="5.5" y="13.5" width="15" height="7"/>
+    <rect x="10.5" y="15.5" width="5" height="3" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="viewer-icon-fit" viewBox="0 0 24 24">
+    <path d="M7.5 3.5h-4v4m13-4h4v4m0 9v4h-4m-9 0h-4v-4"/>
+    <rect x="7.5" y="8.5" width="9" height="7"/>
+    <rect x="10.5" y="10.5" width="3" height="3" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="viewer-icon-download" viewBox="0 0 24 24">
+    <path d="M12.5 17.5h-9v-14h13v6"/>
+    <path d="M6.5 13.5v-3h3v-3h4v6Z" fill="currentColor" stroke="none"/>
+    <path d="M18.5 12.5v9m-3-3 3 3 3-3M3.5 21.5h8"/>
+  </symbol>
+</svg>

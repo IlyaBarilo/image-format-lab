@@ -1,0 +1,3 @@
+# Test-only tools; never included in the standalone HTML or release assets.
+Pillow==12.3.0
+pillow-heif==1.7.0

@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Format Lab</title>
+  <!-- VIEWER_FAVICON -->
+  <!-- VIEWER_THEME -->
+  <!-- VIEWER_STYLES -->
+</head>
+<body>
+  <!-- VIEWER_ICONS -->
+  <header class="appbar">
+    <div class="brand">
+      <h1>Image Format Lab</h1>
+      <p class="app-subtitle">Изучение и сравнение форматов изображений</p>
+      <div class="app-credits">
+        <a href="https://barilo.ru/" target="_blank" rel="noopener noreferrer" title="Сайт автора — barilo.ru">Автор: Барило И.И.</a>
+        <span class="credit-separator" aria-hidden="true">·</span>
+        <a id="projectWebsite" href="https://github.com/IlyaBarilo/image-format-lab" target="_blank" rel="noopener noreferrer" title="Image Format Lab на GitHub">Сайт проекта</a>
+      </div>
+      <div class="codec-notice" id="codecNotice" hidden>
+        <span class="codec-status" id="codecStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+        <button class="text-btn" id="retryCodecs" type="button" aria-label="Повторить запуск кодеков" hidden>Повторить</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button class="text-btn" id="toggleFiles" type="button" aria-expanded="true" aria-controls="filePanel" title="Показать или скрыть список файлов">Список <span class="file-count" id="fileCountToggle">0</span></button>
+        <button class="text-btn primary" id="convertAll" type="button" aria-haspopup="dialog" aria-controls="batchDialog" disabled>Пакетное конвертирование…</button>
+      </div>
+
+      <div class="toolbar-group" title="Количество вариантов сравнения">
+        <span class="toolbar-label">Вид</span>
+        <div class="segmented" role="group" aria-label="Режим сравнения">
+          <button id="layout2" class="active" type="button" aria-pressed="true">2</button>
+          <button id="layout4" type="button" aria-pressed="false">4</button>
+        </div>
+      </div>
+
+      <div class="toolbar-group toolbar-zoom" aria-label="Масштаб сравнения">
+        <button class="text-btn" id="zoomOut" type="button" aria-label="Уменьшить масштаб">−</button>
+        <output class="zoom-readout" id="zoomReadout" aria-label="Текущий масштаб">—</output>
+        <button class="text-btn" id="zoomIn" type="button" aria-label="Увеличить масштаб">+</button>
+        <button class="text-btn" id="zoom100" type="button" title="Один пиксель изображения — один CSS-пиксель экрана">100%</button>
+        <button class="icon-btn" id="resetView" type="button" title="Сбросить масштаб и положение" aria-label="Сбросить масштаб и положение">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-reset"/></svg>
+        </button>
+        <button class="icon-btn" id="fitView" type="button" title="Вписать изображение в ячейки" aria-label="Вписать изображение в ячейки">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-fit"/></svg>
+        </button>
+      </div>
+
+      <div class="toolbar-group">
+        <label class="toolbar-label" for="backgroundSelect">Фон</label>
+        <select class="select" id="backgroundSelect" title="Подложка для проверки прозрачности">
+          <option value="checker">Клеточка</option>
+          <option value="red">Красный</option>
+          <option value="green">Зеленый</option>
+          <option value="blue">Синий</option>
+          <option value="black">Черный</option>
+          <option value="white">Белый</option>
+          <option value="gray">Серый</option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label class="switch" title="Если выключено, изменения применяются только по кнопке">
+          <input id="autoApply" type="checkbox" checked>
+          Авто
+        </label>
+        <button class="text-btn" id="applyAll" type="button" title="Пересчитать все видимые варианты">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-apply"/></svg>
+          Применить
+        </button>
+      </div>
+
+      <div class="toolbar-group" title="При перекодировании EXIF и прочие метаданные удаляются. Данные панорамы GPano можно сохранить только в JPEG. Исходный файл скачивается без изменений.">
+        <label class="toolbar-label" for="metadataPolicy">Метаданные</label>
+        <select class="select" id="metadataPolicy" aria-label="Метаданные при перекодировании">
+          <option value="panorama">GPano в JPEG</option>
+          <option value="none">Удалять</option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <button class="text-btn" id="studyOpen" type="button" aria-haspopup="dialog">Эксперименты и отчёт…</button>
+        <button class="text-btn" id="licensesOpen" type="button" aria-haspopup="dialog" aria-controls="licensesDialog">Лицензии</button>
+      </div>
+      <div class="toolbar-preferences">
+        <button class="text-btn" id="resetPreferences" type="button" title="Сбросить тему, панели, сравнение, анализ и параметры пакета. Файлы и именованные наборы останутся.">Сброс настроек</button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Тёмная тема" aria-pressed="false" title="Включить тёмную тему">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <aside class="file-panel" id="filePanel" aria-label="Файлы для сравнения">
+      <div class="file-panel-head">
+        <div class="source-info" id="sourceInfo" role="status" aria-live="polite"></div>
+        <div class="file-add-actions">
+          <label class="file-btn primary" for="fileInput" title="Добавить изображения в список">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-add"/></svg>
+            Добавить
+            <input class="sr-only" id="fileInput" type="file" accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.avif,.heic,.heif,.tif,.tiff,.jxl,.ico" multiple>
+          </label>
+          <button class="text-btn" id="sampleImage" type="button" title="Создать тестовое изображение с прозрачностью">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#viewer-icon-sample"/></svg>
+            Образец
+          </button>
+        </div>
+        <div class="file-panel-title">
+          <h2>Файлы <span class="file-count" id="fileCount">0</span></h2>
+          <div class="file-actions">
+            <button class="icon-btn" id="previousFile" type="button" aria-label="Предыдущий файл" title="Предыдущий файл" disabled>↑</button>
+            <button class="icon-btn" id="nextFile" type="button" aria-label="Следующий файл" title="Следующий файл" disabled>↓</button>
+            <button class="text-btn" id="clearFiles" type="button" title="Убрать все файлы из списка" disabled>Очистить</button>
+          </div>
+        </div>
+      </div>
+      <p class="file-hint" id="fileListEmpty">Перетащите сюда одно или несколько изображений. Один добавленный файл сразу откроется.</p>
+      <div class="selection-tools"><span id="batchSelectionCount"></span><button class="text-btn" type="button" id="batchSelectAll">Все</button><button class="text-btn" type="button" id="batchSelectNone">Ни одного</button></div>
+      <ul class="file-list" id="fileList" aria-label="Список файлов"></ul>
+      <div class="file-panel-foot">Перетащите файлы сюда, чтобы добавить.<br>↑ ↓ — переключение внутри списка.</div>
+      <div class="file-drop-overlay" id="fileDropHint" aria-hidden="true" hidden><span>Отпустите, чтобы добавить в список</span></div>
+    </aside>
+    <div class="stage has-analysis" id="stage">
+    <section class="batch-panel" id="batchPanel" aria-label="Пакетное сохранение" hidden>
+      <button class="text-btn" id="retryBatch" type="button" hidden>Повторить ошибки</button>
+      <div class="batch-progress-row">
+        <span id="batchSummary" role="status" aria-live="polite">Добавьте файлы для сохранения.</span>
+        <progress id="batchProgress" value="0" max="1" aria-label="Прогресс обработки" hidden></progress>
+        <button class="text-btn" id="cancelBatch" type="button" hidden>Отмена</button>
+      </div>
+      <p class="batch-note" id="batchRunConfig" hidden></p>
+      <p class="batch-note batch-storage-warning" id="batchStorageWarning" role="status" hidden></p>
+      <details class="batch-report" id="batchReport" hidden>
+        <summary>Результаты обработки</summary>
+        <ol class="batch-results" id="batchResults"></ol>
+      </details>
+    </section>
+    <section class="grid two" id="grid" aria-label="Панель сравнения">
+      <article class="cell" data-index="0">
+        <div class="cell-head"></div>
+        <div class="canvas-shell">
+          <canvas class="view"></canvas>
+        </div>
+        <div class="cell-foot"></div>
+      </article>
+      <article class="cell" data-index="1">
+        <div class="cell-head"></div>
+        <div class="canvas-shell">
+          <canvas class="view"></canvas>
+        </div>
+        <div class="cell-foot"></div>
+      </article>
+      <article class="cell hidden" data-index="2">
+        <div class="cell-head"></div>
+        <div class="canvas-shell">
+          <canvas class="view"></canvas>
+        </div>
+        <div class="cell-foot"></div>
+      </article>
+      <article class="cell hidden" data-index="3">
+        <div class="cell-head"></div>
+        <div class="canvas-shell">
+          <canvas class="view"></canvas>
+        </div>
+        <div class="cell-foot"></div>
+      </article>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-box">
+          <strong id="emptyTitle">Перетащите изображение сюда</strong>
+          <span id="emptyMessage">Оно сразу откроется для сравнения. Или нажмите «Добавить» или «Образец» в колонке файлов.</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="analysis-splitter" id="analysisSplitter" role="separator" tabindex="0"
+      aria-label="Высота графиков" aria-orientation="horizontal" aria-controls="grid analysisPanel"
+      aria-valuemin="0" aria-valuemax="100" aria-valuenow="35" aria-describedby="analysisSplitterHelp"
+      title="Потяните вверх или вниз. Двойной щелчок — вернуть готовый размер." hidden>
+      <span class="sr-only" id="analysisSplitterHelp">Потяните вверх, чтобы развернуть свёрнутые графики, или вниз до края, чтобы свернуть. В максимуме потяните вниз, чтобы вернуть изображения; стрелка вниз возвращает прежнее соотношение. Стрелки вверх и вниз меняют высоту графиков; Shift — крупный шаг. Home и End — крайние положения. Enter или двойной щелчок раскрывает графики в готовом размере. В свёрнутом состоянии стрелка вверх также раскрывает графики. Escape отменяет перетаскивание.</span>
+    </div>
+    <section class="analysis-panel" id="analysisPanel" aria-labelledby="analysisTitle">
+      <div class="analysis-heading" tabindex="-1" title="Потяните заголовок вверх, чтобы вытянуть графики, или вниз до края, чтобы свернуть">
+        <h2 id="analysisTitle">Анализ</h2>
+        <div class="analysis-header-actions">
+          <div class="analysis-actions">
+            <button class="text-btn" id="analysisPNG" type="button" title="Сохранить графики с подписями и методикой" disabled>PNG</button>
+            <button class="text-btn" id="analysisJSON" type="button" title="Сохранить данные и параметры текущего анализа" disabled>JSON</button>
+            <button class="text-btn analysis-help" id="analysisHelp" type="button" aria-label="Как читать графики" aria-expanded="false" aria-controls="analysisHelpContent" title="Графики 1–4 соответствуют ячейкам сравнения. Нажмите, чтобы открыть пояснения и подробные числа.">?</button>
+          </div>
+          <div class="toolbar-group analysis-size-field">
+            <span class="toolbar-label">Размер</span>
+            <div class="segmented analysis-sizes" role="group" aria-label="Размер панели анализа">
+              <button id="analysisCollapse" type="button" data-analysis-size="collapsed" aria-pressed="false" aria-expanded="true" aria-controls="analysisBody" title="Оставить только заголовок и переключатель размера">Свернуть</button>
+              <button class="active" type="button" data-analysis-size="compact" aria-pressed="true" aria-controls="analysisBody" title="Раскрыть небольшие графики под изображениями">Компактно</button>
+              <button type="button" data-analysis-size="balance" aria-pressed="false" aria-controls="analysisBody" title="Раскрыть графики, уменьшив высоту изображений">Баланс</button>
+              <button type="button" data-analysis-size="max" aria-pressed="false" aria-controls="analysisBody" title="Раскрыть графики и скрыть изображения; повторное нажатие возвращает прежнее соотношение">Максимум</button>
+              <button type="button" data-analysis-size="manual" aria-pressed="false" aria-controls="analysisBody" title="Сначала настройте высоту полоской между просмотром и графиками" disabled>Вручную</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="analysis-body" id="analysisBody">
+      <div class="analysis-toolbar">
+        <div class="analysis-tools">
+          <select class="select" id="analysisType" aria-label="Вид графика"><option value="histogram">Гистограмма</option><option value="waveform">Waveform · яркость</option><option value="parade">RGB Parade</option><option value="difference">Различия с исходником</option><option value="vectorscope">Вектороскоп</option><option value="profile">Профиль по линии</option><option value="tradeoff">Размер и метрика</option></select>
+          <div class="toolbar-group analysis-display-field" id="analysisDisplayField">
+            <span class="toolbar-label">Вид</span>
+            <div class="segmented analysis-display" role="radiogroup" aria-label="Вид сравнения графиков текущей диаграммы">
+              <label class="segment-option"><input type="radio" name="analysis-display" id="analysisDisplaySeparate" value="separate"><span>Рядом</span></label>
+              <label class="segment-option"><input type="radio" name="analysis-display" id="analysisDisplayOverlay" value="overlay" checked><span>Наложение</span></label>
+              <label class="segment-option" id="analysisDisplayDeltaField"><input type="radio" name="analysis-display" id="analysisDisplayDelta" value="delta"><span>Разница</span></label>
+            </div>
+          </div>
+          <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
+          <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
+          <select class="select" id="analysisScope" aria-label="Область анализа" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option></select>
+          <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
+          <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
+          <label class="analysis-level" id="analysisLevelField">Уровень <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
+          <label id="analysisDifferenceField" hidden>Канал <select class="select" id="analysisDifferenceChannel" aria-label="Различия RGB или прозрачности"><option value="rgb">RGB</option><option value="alpha">α</option></select></label>
+          <label id="analysisGainField" hidden>Усиление <select class="select" id="analysisGain"><option value="1">×1</option><option value="4" selected>×4</option><option value="16">×16</option><option value="64">×64</option></select></label>
+          <button class="text-btn" id="analysisRegionOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor">Область…</button>
+          <label id="analysisProfileField" hidden>Каналы <select class="select" id="analysisProfileChannel"><option value="rgb">RGB</option><option value="r">R</option><option value="g">G</option><option value="b">B</option><option value="y">Y′ — яркость</option><option value="alpha">α — прозрачность</option></select></label>
+          <label class="analysis-level" id="analysisPositionField" hidden>Позиция <input id="analysisPosition" type="range" min="0" max="1000" value="500"><output id="analysisPositionValue" for="analysisPosition">50%</output></label>
+          <button class="text-btn" id="analysisLineOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor" hidden>Линия…</button>
+        </div>
+      </div>
+      <section class="analysis-region" id="analysisRegionEditor" aria-label="Общая область анализа" hidden>
+        <p class="analysis-note" id="analysisGeometryHint">Выделите область на исходнике или задайте её в процентах. Она применяется ко всем графикам; сохраняемый файл не кадрируется.</p>
+        <div class="analysis-region-body">
+          <canvas id="analysisRegionCanvas" width="1" height="1" role="img" aria-label="Область на исходном изображении; координаты доступны в полях рядом"></canvas>
+          <div>
+            <div class="analysis-actions" id="analysisLinePresets" hidden><button class="text-btn" type="button" data-line-preset="horizontal">Горизонталь</button><button class="text-btn" type="button" data-line-preset="vertical">Вертикаль</button><button class="text-btn" type="button" data-line-preset="diagonal">Диагональ</button></div>
+            <div class="analysis-region-fields">
+              <label>Слева, % <input class="small-input" id="analysisRegionX" type="number" min="0" max="99.9" step="0.1" value="0"></label>
+              <label>Сверху, % <input class="small-input" id="analysisRegionY" type="number" min="0" max="99.9" step="0.1" value="0"></label>
+              <label>Ширина, % <input class="small-input" id="analysisRegionWidth" type="number" min="0.1" max="100" step="0.1" value="100"></label>
+              <label>Высота, % <input class="small-input" id="analysisRegionHeight" type="number" min="0.1" max="100" step="0.1" value="100"></label>
+            </div>
+            <p class="analysis-note" id="analysisRegionError" role="alert"></p>
+            <div class="analysis-actions">
+              <button class="text-btn" id="analysisRegionApply" type="button">Применить область</button>
+              <button class="text-btn" id="analysisRegionReset" type="button">Весь кадр</button>
+              <button class="text-btn" id="analysisRegionCancel" type="button">Отмена</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="analysis-help-content" id="analysisHelpContent" hidden>
+        <p id="analysisMethod">Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни 0–255, по вертикали — доля пикселей канала в процентах. Шкала общая для всех видимых графиков. Считаются все пиксели кадра RGBA 8 бит. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.</p>
+        <p id="analysisCaveat">Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:</p>
+        <p id="analysisDetails"></p>
+      </div>
+      <div class="analysis-difference-legend" id="analysisDifferenceLegend" hidden aria-label="Шкала различий">
+        <span>Δ 0</span><span class="analysis-difference-ramp" aria-hidden="true"></span><span id="analysisDifferenceLimit"></span>
+      </div>
+      <div id="analysisCombined" hidden>
+        <div id="analysisCombinedLegend" class="analysis-combined-legend"></div>
+        <canvas id="analysisCombinedChart" role="img" aria-label="Общий график анализа" hidden></canvas>
+        <p class="analysis-note" id="analysisCombinedInfo" role="status"></p>
+      </div>
+      <div class="analysis-plots">
+        <div class="analysis-card" data-analysis-side="0">
+          <span class="analysis-index" aria-hidden="true">1</span>
+          <p class="analysis-info" hidden></p>
+          <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 1" hidden></canvas>
+          <p class="analysis-values"></p>
+        </div>
+        <div class="analysis-card" data-analysis-side="1">
+          <span class="analysis-index" aria-hidden="true">2</span>
+          <p class="analysis-info" hidden></p>
+          <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 2" hidden></canvas>
+          <p class="analysis-values"></p>
+        </div>
+        <div class="analysis-card" data-analysis-side="2" hidden>
+          <span class="analysis-index" aria-hidden="true">3</span>
+          <p class="analysis-info" hidden></p>
+          <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 3" hidden></canvas>
+          <p class="analysis-values"></p>
+        </div>
+        <div class="analysis-card" data-analysis-side="3" hidden>
+          <span class="analysis-index" aria-hidden="true">4</span>
+          <p class="analysis-info" hidden></p>
+          <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 4" hidden></canvas>
+          <p class="analysis-values"></p>
+        </div>
+      </div>
+      <p class="analysis-note" id="analysisStatus" role="status" aria-live="polite"></p>
+      <p class="analysis-note" id="analysisSaveStatus" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="file-drop-overlay" id="viewDropHint" aria-hidden="true" hidden><span>Отпустите, чтобы открыть для сравнения<small>Если файлов несколько, откроется первый. Все добавятся в список.</small></span></div>
+    </div>
+  </main>
+
+  <dialog class="batch-dialog" id="batchDialog" aria-labelledby="batchDialogTitle" aria-describedby="batchDialogCount">
+    <form id="batchForm" novalidate>
+      <div class="batch-dialog-head">
+        <div>
+          <h2 id="batchDialogTitle">Пакетное конвертирование</h2>
+          <p class="batch-note" id="batchDialogCount"></p>
+        </div>
+        <button class="icon-btn" id="batchDialogClose" type="button" aria-label="Закрыть окно настроек">×</button>
+      </div>
+      <div class="batch-dialog-body">
+      <div class="batch-settings">
+      <div class="batch-dialog-fields">
+        <label class="batch-field" for="batchFormat">Выходной формат
+          <select class="select" id="batchFormat" autofocus></select>
+        </label>
+        <div class="batch-field" id="batchQualityField">
+          <label for="batchQualityNumber">Качество кодирования</label>
+          <div class="batch-quality-row">
+            <input id="batchQuality" type="range" min="1" max="100" step="1" aria-label="Качество кодирования — ползунок">
+            <input class="small-input" id="batchQualityNumber" type="number" min="1" max="100" step="1" aria-describedby="batchQualityHint">
+          </div>
+          <span class="batch-note" id="batchQualityHint">1–100 — настройка кодировщика. Большее значение отдаёт приоритет качеству, а не уменьшению файла.</span>
+        </div>
+        <div class="batch-field" id="batchGifField" hidden>
+          <label for="batchGifColors">Количество цветов: 2–256</label>
+          <input class="small-input" id="batchGifColors" type="number" min="2" max="256" step="1">
+          <label class="switch" id="batchDitherField"><input id="batchGifDither" type="checkbox"> Дизеринг — передача оттенков точками</label>
+          <span class="batch-note">Сохраняется статичное изображение. GIF не поддерживает полупрозрачность.</span>
+        </div>
+        <label class="batch-field" for="batchResizeMode">Размеры
+          <select class="select" id="batchResizeMode">
+            <option value="original">Исходные размеры</option>
+            <option value="limit">Ограничить ширину / высоту</option>
+          </select>
+        </label>
+        <div id="batchDimensions" hidden>
+          <div class="batch-dimensions">
+            <label class="batch-field" for="batchDialogWidth">Макс. ширина, px <input class="small-input" id="batchDialogWidth" type="number" min="1" max="32768" step="1" placeholder="Без ограничения"></label>
+            <label class="batch-field" for="batchDialogHeight">Макс. высота, px <input class="small-input" id="batchDialogHeight" type="number" min="1" max="32768" step="1" placeholder="Без ограничения"></label>
+          </div>
+          <p class="batch-note">Укажите одну или обе границы. Пропорции сохраняются, маленькие изображения не увеличиваются.</p>
+        </div>
+      </div>
+      <details id="batchAdvanced">
+        <summary>Дополнительно</summary>
+        <label class="batch-field" id="batchMatteField" for="batchMatte">Заливка прозрачных областей
+          <select class="select" id="batchMatte">
+            <option value="white">Белый</option><option value="black">Чёрный</option><option value="gray">Серый</option>
+            <option value="red">Красный</option><option value="green">Зелёный</option><option value="blue">Синий</option>
+          </select>
+          <span class="batch-note">Этот цвет попадёт в сохранённое изображение. Фон просмотра на него не влияет.</span>
+        </label>
+        <label class="batch-field" for="batchMetadata">Метаданные
+          <select class="select" id="batchMetadata">
+            <option value="panorama">Сохранять данные панорамы GPano в JPEG</option>
+            <option value="none">Удалять метаданные</option>
+          </select>
+        </label>
+        <p class="batch-note" id="batchMetadataHint"></p>
+        <p class="batch-note">Встроенные кодеки запускаются автоматически. Если запуск завершился ошибкой, нажмите «Повторить» рядом с их статусом в верхней панели.</p>
+      </details>
+      <label class="batch-field" for="batchDelivery">Получить результат
+        <select class="select" id="batchDelivery"><option value="files">Отдельные файлы</option><option value="zip">Один ZIP</option></select>
+      </label>
+      <fieldset id="batchBudgetFields" class="batch-field">
+        <legend>Подбор качества под размер</legend>
+        <label for="batchTargetKB">Не больше КБ (1000 байт); пусто — без подбора</label>
+        <input class="small-input" id="batchTargetKB" type="number" min="1" max="1000000" step="1" placeholder="300">
+        <label for="batchMinQuality">Минимальное качество</label>
+        <input class="small-input" id="batchMinQuality" type="number" min="1" max="100" value="40">
+        <p class="batch-note">Верхняя граница — выбранное качество. До 21 пробы, результат проверяется по реальному размеру. Разрешение меняется только по указанным выше границам.</p>
+      </fieldset>
+      <p class="batch-dialog-summary" id="batchDialogSummary"></p>
+      <p class="batch-note" id="batchNameExample"></p>
+      <p class="batch-note">Отдельные скачивания могут потребовать разрешения браузера. ZIP содержит успешно обработанные файлы, в том числе при отмене; предел результатов одного архива — 256 МиБ. Совпадающие имена различаются номером.</p>
+      <p class="batch-note">При перекодировании сохраняется один неподвижный кадр или одна страница. Анимация и остальные страницы GIF/APNG/WebP/AVIF/JPEG XL/TIFF/HEIC не переносятся. Скачивание «Исходного файла» сохраняет его байты. TIFF сохраняется в 8-битном RGBA с Deflate. ICO содержит размеры 16, 24, 32, 48, 64, 128 и 256 px: пропорции сохраняются, свободное место прозрачное; предпросмотр показывает 256 px. Уменьшение ограничивает рисунок внутри значка; размеры ICO остаются стандартными.</p>
+      <p class="batch-note" id="batchStorageNotice" role="status">Настройки сохраняются в этом браузере при сохранении или запуске. Файлы в хранилище не записываются.</p>
+      <p class="batch-dialog-error" id="batchDialogError" role="alert" hidden></p>
+      </div>
+      <section class="batch-preview" aria-labelledby="batchPreviewTitle">
+        <h3 id="batchPreviewTitle">Предпросмотр текущего файла</h3>
+        <p class="batch-note" id="batchPreviewSource"></p>
+        <p class="batch-note" id="batchPreviewStatus" role="status" aria-live="polite"></p>
+        <div class="batch-preview-grid">
+          <figure>
+            <figcaption>До</figcaption>
+            <canvas id="batchPreviewBefore" width="1" height="1" aria-label="Исходное изображение"></canvas>
+            <p class="batch-note" id="batchPreviewBeforeInfo"></p>
+          </figure>
+          <figure>
+            <figcaption>После</figcaption>
+            <canvas id="batchPreviewAfter" width="1" height="1" aria-label="Результат с параметрами пакета"></canvas>
+            <p class="batch-note" id="batchPreviewAfterInfo"></p>
+          </figure>
+        </div>
+        <div class="batch-preview-tools">
+          <button class="text-btn" id="batchPreviewZoomOut" type="button" aria-label="Уменьшить масштаб предпросмотра">−</button>
+          <button class="text-btn" id="batchPreviewZoomIn" type="button" aria-label="Увеличить масштаб предпросмотра">+</button>
+          <button class="text-btn" id="batchPreviewFit" type="button">Вписать</button>
+          <button class="text-btn" id="batchPreviewDownload" type="button" disabled>Скачать результат</button>
+        </div>
+        <p class="batch-note">Масштаб и перемещение синхронны. Колесо — масштаб, перетаскивание — перемещение.</p>
+        <p class="batch-preview-metrics" id="batchPreviewMetrics"></p>
+        <p class="batch-note">PSNR RGB и Δα сравнивают результат с исходником, уменьшенным до выходных размеров. Цвета сравниваются на белом фоне.</p>
+      </section>
+      </div>
+      <div class="batch-dialog-actions">
+        <button class="text-btn" id="batchDialogCancel" type="button">Отмена</button>
+        <button class="text-btn" id="batchSaveSettings" type="button">Сохранить настройки</button>
+        <button class="text-btn primary" id="batchStart" type="submit">Конвертировать</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
+    <h2 id="studyTitle">Эксперименты и отчёт</h2>
+    <section>
+      <label for="experimentSelect">Готовый эксперимент</label>
+      <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Фото: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">GIF: палитра и дизеринг</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
+      <p id="experimentQuestion"></p><p class="batch-note">Для фотографии добавьте свой снимок. Для прозрачности и палитры подходит кнопка «Образец». Эксперимент меняет настройки сравнения; параметры пакета сохраняются.</p>
+    </section>
+    <section>
+      <label for="profileName">Именованные настройки сравнения</label>
+      <div class="study-tools"><input id="profileName" type="text" maxlength="80" placeholder="Название набора"><button class="text-btn" id="profileSave" type="button">Сохранить набор</button></div>
+      <div class="study-tools"><select class="select" id="profileSelect" aria-label="Сохранённые наборы"></select><button class="text-btn" id="profileApply" type="button">Применить</button><button class="text-btn" id="profileDelete" type="button">Удалить набор</button><button class="text-btn" id="profileReset" type="button">Начальные настройки</button></div>
+      <div class="study-tools"><button class="text-btn" id="profileExport" type="button">Экспорт наборов JSON</button><label for="profileImport">Импорт JSON</label><input id="profileImport" type="file" accept=".json,application/json"></div>
+      <p class="batch-note">Сохраняются параметры четырёх ячеек, вид, фон, «Авто» и метаданные JPEG. Файлы и результаты не записываются. Импорт добавляет наборы; совпадения имён получают номер.</p>
+    </section>
+    <section>
+      <h3>Отчёт текущего сравнения</h3>
+      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button></div>
+      <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
+    </section>
+    <section><details><summary>Форматы и ограничения</summary>
+      <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>
+      <p class="batch-note">Обработка статическая: один кадр/страница; анимация и остальные страницы при перекодировании теряются. GIF сохраняет только двоичную прозрачность и ограниченную палитру. JPEG/BMP24 заменяют прозрачность заливкой. В JPEG можно сохранять GPano; прочие исходные метаданные не копируются. Пиксели обрабатываются через Canvas, сохранение исходного ICC/HDR не обещается. Исходный файл скачивается без перекодирования.</p>
+      <p class="batch-note">Все дополнительные библиотеки находятся внутри HTML и запускаются автоматически, без обращения к интернету. AVIF, JPEG XL и WebP lossless кодируются встроенными библиотеками. Обычный WebP зависит от возможностей браузера. JPEG, PNG и другие базовые операции доступны также при ошибке запуска дополнительных кодеков.</p>
+      <p class="batch-note">HEIC сохраняет неподвижное изображение с HEVC: SDR 8-bit, 4:2:0, качество 1–100. Качество 100 не означает отсутствие потерь; прозрачность также может сжиматься с потерями. HDR, Live Photos и метаданные камеры не сохраняются.</p>
+    </details></section>
+    <p id="studyNotice" role="status" aria-live="polite"></p>
+    <form method="dialog"><button class="text-btn primary">Закрыть</button></form>
+  </dialog>
+  <dialog class="study-dialog licenses-dialog" id="licensesDialog" aria-labelledby="licensesTitle" aria-describedby="licensesSummary">
+    <div class="licenses-heading"><h2 id="licensesTitle">Лицензии и исходники</h2><form method="dialog"><button class="text-btn" aria-label="Закрыть лицензии" autofocus>Закрыть</button></form></div>
+    <p id="licensesSummary"></p>
+    <p>В приложении используются <strong>libheif и libde265 под LGPL-3.0-or-later</strong>. Собственный код и значки — MIT; условия всех компонентов приведены ниже.</p>
+    <div class="study-tools"><button class="text-btn" id="licensesDownload" type="button" disabled>Скачать уведомления TXT</button><a class="text-btn" id="licensesSources" target="_blank" rel="noopener noreferrer" hidden>Исходники gifenc (ZIP) ↗</a><a class="text-btn" id="licensesHeicSources" target="_blank" rel="noopener noreferrer" hidden>Исходники HEIC / AVIF (ZIP) ↗</a></div>
+    <p class="batch-note">Кодеки и тексты лицензий встроены и работают без интернета. Исходники для изменения и пересборки библиотек предоставляются отдельными ZIP; для обычной работы скачивать их не требуется.</p>
+    <p class="batch-note" id="licensesSourceStatus"></p>
+    <p id="licensesError" role="status" aria-live="polite"></p>
+    <div id="licensesContent"></div>
+  </dialog>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+
+  <!-- Copyright (c) 2026 Ilya Barilo (https://barilo.ru/). Own code: MIT.
+       Third-party components retain their licenses, including Zlib, Apache-2.0,
+       MPL-2.0 (PnnQuant), LGPL-3.0 (libheif/libde265), BSD-3-Clause (Kvazaar) and IJG.
+       Full project notices: embedded-notices; library texts: embedded-codecs. -->
+  <!-- VIEWER_NOTICES -->
+  <!-- VIEWER_CODECS -->
+  <!-- VIEWER_SCRIPT -->
+</body>
+</html>

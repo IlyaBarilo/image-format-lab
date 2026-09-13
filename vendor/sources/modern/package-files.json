@@ -1,0 +1,35 @@
+{
+  "files": [
+    "README.md",
+    "PROJECT-LICENSE",
+    "bridge.cpp",
+    "build.py",
+    "sources.lock.json",
+    "package-files.json",
+    "upstream/webp-1.6.0-sources.tar.gz",
+    "upstream/jxl-0.12.0-sources.tar.gz",
+    "upstream/brotli-028fb5a-sources.tar.gz",
+    "upstream/highway-457c891-sources.tar.gz",
+    "upstream/skcms-96d9171-sources.tar.gz"
+  ],
+  "licenseFiles": [
+    "MODERN-NOTICE",
+    "modern-aom-AUTHORS",
+    "modern-aom-LICENSE",
+    "modern-aom-PATENTS",
+    "modern-aom-third_party-fastfeat-LICENSE",
+    "modern-aom-third_party-highway-LICENSE-BSD3",
+    "modern-aom-third_party-vector-LICENSE",
+    "modern-aom-third_party-x86inc-LICENSE",
+    "modern-brotli-LICENSE",
+    "modern-highway-LICENSE",
+    "modern-highway-LICENSE-BSD3",
+    "modern-jxl-AUTHORS",
+    "modern-jxl-LICENSE",
+    "modern-jxl-PATENTS",
+    "modern-skcms-LICENSE",
+    "modern-webp-AUTHORS",
+    "modern-webp-COPYING",
+    "modern-webp-PATENTS"
+  ]
+}

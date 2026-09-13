@@ -1,0 +1,25 @@
+JPEG decoder: libjpeg-turbo 3.2.0
+================================
+
+This software is based in part on the work of the Independent JPEG Group.
+
+Official source: https://github.com/libjpeg-turbo/libjpeg-turbo/releases/tag/3.2.0
+Pinned source hashes, file selection and tool versions: sources/jpeg/sources.lock.json
+Rebuild recipe and our MIT bridge: sources/jpeg/README.md, build.py, bridge.c.
+
+The libjpeg API library uses the IJG License in libjpeg-turbo-README.ijg.
+The Modified BSD License and the upstream component overview are preserved in
+libjpeg-turbo-LICENSE. Copyright headers from linked source files are retained
+in JPEG-RUNTIME-NOTICE, including Thomas G. Lane, Guido Vollbeding, Ken Murchison,
+D. R. Commander and other named contributors. Source bytes of the selected
+upstream files are unchanged; our separate bridge and adapters are by Ilya Barilo.
+
+This build uses Emscripten 6.0.9, CMake 4.4.3 and Ninja 1.13.2. It links the
+libjpeg decoding API with emmalloc and the Emscripten C runtime. It does not
+link TurboJPEG, PNG/libspng, platform assembly SIMD, libc++ or libde265/libheif.
+Those HEIC libraries remain separately documented components of the application.
+
+Keep this attribution and applicable license texts with copies of the HTML.
+The library's permissive terms allow personal and commercial use, modification
+and redistribution. They do not replace this project's MIT license or require
+the whole application to be licensed under the library's terms.

@@ -1,0 +1,20 @@
+name: Set up test tools
+description: Install fixed build and browser test dependencies on a GitHub runner
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '24.16.0'
+        package-manager-cache: false
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.13'
+    - name: Install build and test tools
+      shell: bash
+      run: |
+        npm ci --prefix scripts
+        python -m pip install -r scripts/ci-requirements.txt
+        npm install --prefix "$RUNNER_TEMP/image-format-tests" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.63.0
+        node "$RUNNER_TEMP/image-format-tests/node_modules/playwright/cli.js" install --with-deps chromium
+        echo "NODE_PATH=$RUNNER_TEMP/image-format-tests/node_modules" >> "$GITHUB_ENV"

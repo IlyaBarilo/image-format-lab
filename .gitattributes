@@ -1,0 +1,24 @@
+# Use CRLF in working text files; Git stores normalized text as LF.
+* text=auto eol=crlf
+
+# Generated output and Unix/workflow scripts keep their expected LF bytes.
+/image-format-lab.html text eol=lf
+/.github/** text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.patch text eol=lf
+*.diff text eol=lf
+
+# Vendored bytes are pinned by SHA-256; never normalize them on checkout.
+/vendor/** -text !eol
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.heic binary
+*.tif binary
+*.tiff binary
+*.zip binary
+*.gz binary

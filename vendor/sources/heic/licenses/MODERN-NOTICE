@@ -1,0 +1,44 @@
+AVIF, WebP lossless and JPEG XL components
+
+Copyright (c) 2026 Ilya Barilo: application adapters, TIFF/ICO writers and
+native bridges/build scripts are MIT. Third-party libraries are not relicensed.
+
+AVIF: libaom 3.15.0 (de4c1d1edc49723a78954d30a83690aa1937422f),
+BSD-2-Clause and AOM Patent License 1.0. See modern-aom-LICENSE, PATENTS,
+AUTHORS and retained third_party notices for fastfeat (BSD-3-Clause), vector
+(MIT), Highway subset (BSD-3-Clause; Apache-2.0 file headers retained), x86inc (ISC; source only, not WASM).
+libyuv, libwebm, googletest and Butteraugli tuning are disabled/excluded.
+libaom is linked into the existing LGPL libheif module; its complete selected
+sources/build materials are included in heic-sources.zip. See HEIC-NOTICE.
+
+WebP: libwebp 1.6.0 (4fa21912338357f89e4fd51cf2368325b59e9bd9), BSD-3-Clause
+and its additional patent grant. See modern-webp-COPYING, PATENTS and AUTHORS.
+The build includes libsharpyuv under the same terms. Lossless encoding preserves
+all RGBA input samples (exact=1), including RGB behind fully transparent pixels.
+
+JPEG XL: libjxl 0.12.0 (a7a9c787341cf703dede03c2009fa460cae5e5df), BSD-3-Clause
+and additional patent grant. See modern-jxl-LICENSE, PATENTS and AUTHORS.
+Build scripts bearing Apache-2.0 headers retain that license (Apache-2.0-LICENSE).
+Pinned upstream submodules: Brotli 028fb5a (MIT), Highway 457c891
+(Apache-2.0 OR BSD-3-Clause, both texts supplied), skcms 96d9171 (BSD-3-Clause).
+Only these dependencies are linked. No sjpeg, lcms, libpng, JPEGli, OpenEXR,
+test fixtures, HEVC reference software or external network loading is included.
+The wrapper handles the first displayed frame in RGBA8. Lossless applies to
+these input samples, not to metadata, animation, HDR or prior canvas conversions.
+
+Build provenance: sources/modern/sources.lock.json pins upstream URLs, commits,
+original archive SHA-256 and selected-source SHA-256. Sources are unmodified;
+the project provides its own bridge.cpp and offline build.py. The selected
+archives omit image fixtures and unused dependencies. CMake/Ninja/Python and
+the portable Emscripten SDK are build tools, not included application scripts.
+
+Both modules use Emscripten 6.0.9: Emscripten/MIT-or-NCSA glue and emmalloc,
+musl permissive notices, libc++/libc++abi/compiler-rt/LLVM libc under
+Apache-2.0 WITH LLVM-exception and retained legacy terms. Their full texts and
+credits are already supplied: Emscripten-LICENSE, Emscripten-AUTHORS,
+musl-COPYRIGHT, libcxx-LICENSE, libcxxabi-LICENSE, compiler-rt-LICENSE,
+compiler-rt-CREDITS and llvm-libc-LICENSE. No external filesystem is used.
+
+These licenses permit use and distribution, including commercial use, subject
+to their conditions. Patent grants have scope and termination provisions;
+they are not a warranty covering every patent or every jurisdiction.

@@ -1,0 +1,9 @@
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Что вам хотелось бы делать?
+      description: Опишите свою задачу и чего сейчас не хватает. Техническое решение предлагать не обязательно.
+      placeholder: В какой ситуации пригодится улучшение?
+    validations:
+      required: true

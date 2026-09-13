@@ -1,0 +1,28 @@
+import { encodeBmp } from '../core/bmp.mjs';
+import { encodeGif } from '../core/gif.mjs';
+import { computePsnr, computeAlphaError } from '../core/metrics.mjs';
+import { computeHistogram } from '../core/histogram.mjs';
+import { computeWaveform } from '../core/waveform.mjs';
+import { computeDifference } from '../core/difference.mjs';
+import { computeVectorscope } from '../core/vectorscope.mjs';
+import { computeLineProfile } from '../core/line-profile.mjs';
+
+self.onmessage = event => {
+  try {
+    const { kind, payload } = event.data;
+    let result;
+    if (kind === 'metrics') result = { psnr: computePsnr(payload.a, payload.b), alpha: computeAlphaError(payload.a, payload.b) };
+    else if (kind === 'histogram') result = computeHistogram(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'waveform') result = computeWaveform(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);
+    else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'profile') result = computeLineProfile(payload.imageData, payload.matte, payload.region, payload.line);
+    else {
+      const { config, source } = payload;
+      const encoded = kind === 'gif' ? encodeGif(config.gifColors, config.gifDither, source, false)
+        : encodeBmp(kind === 'bmp32', config.matte, source, false);
+      result = { blob: encoded.blob };
+    }
+    self.postMessage({ result });
+  } catch (error) { self.postMessage({ error: error.message || String(error) }); }
+};

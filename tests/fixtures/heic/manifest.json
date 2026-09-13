@@ -1,0 +1,100 @@
+{
+  "generator": "tests/support/generate-heic-fixtures.py",
+  "license": "MIT project",
+  "pillow": "12.3.0",
+  "pillowHeif": "1.7.0",
+  "nativeLibrary": {
+    "libheif": "1.23.3",
+    "HEIF": "x265 HEVC encoder (4.3+1-e9b8812)",
+    "AVIF": "",
+    "encoders": {
+      "x265": "x265 HEVC encoder (4.3+1-e9b8812)",
+      "mask": "mask"
+    },
+    "decoders": {
+      "libde265": "libde265 HEVC decoder, version 1.1.1"
+    }
+  },
+  "cases": [
+    {
+      "name": "rgb8",
+      "file": "rgb8.heic",
+      "expected": "rgb8.png",
+      "width": 96,
+      "height": 64,
+      "bitDepth": 8,
+      "bytes": 2853,
+      "sha256": "61b21d29c3b4c50fc3d614794bd3a5b6bb9ee945364b0344e2dfdddb1abb5fc5"
+    },
+    {
+      "name": "alpha8",
+      "file": "alpha8.heic",
+      "expected": "alpha8.png",
+      "width": 96,
+      "height": 64,
+      "bitDepth": 8,
+      "bytes": 3485,
+      "sha256": "24b78475556fdc0f24b2e1c028e9a036e26ccceb1b3293f74d6d2393235e1f2e"
+    },
+    {
+      "name": "rotate90",
+      "file": "rotate90.heic",
+      "expected": "rotate90.png",
+      "width": 64,
+      "height": 96,
+      "bitDepth": 8,
+      "bytes": 2964,
+      "sha256": "86845cbc7d0e89ab592ee03806b02d8d6f3832d39f7d53cad47b035df8d7b356"
+    },
+    {
+      "name": "mirror",
+      "file": "mirror.heic",
+      "expected": "mirror.png",
+      "width": 96,
+      "height": 64,
+      "bitDepth": 8,
+      "bytes": 2964,
+      "sha256": "d0f8179bc7b2b9518baa7849f5f1995cb146b0603853513b06b14d8f0065a51e"
+    },
+    {
+      "name": "rgb10",
+      "file": "rgb10.heic",
+      "expected": "rgb10.png",
+      "width": 96,
+      "height": 64,
+      "bitDepth": 10,
+      "bytes": 2443,
+      "sha256": "060e81ed64271e26e7cf10da2dd6e0fda7cd0fd2cfd23b75881634ac00323e36"
+    },
+    {
+      "name": "primary-second",
+      "file": "primary-second.heic",
+      "expected": "primary-second.png",
+      "width": 96,
+      "height": 64,
+      "bitDepth": 8,
+      "bytes": 3110,
+      "sha256": "a99f9019cfd5766b07a455e9b1c70e6b9e4ed92b4ffbd9cac7384fef9f39db08"
+    },
+    {
+      "name": "grid",
+      "file": "grid.heic",
+      "expected": "grid.png",
+      "width": 128,
+      "height": 96,
+      "bitDepth": 8,
+      "bytes": 5512,
+      "sha256": "6c7630f7754fd4efcb3bc96ba6431c57ae623ece8aab514f9f3d84f5660eab64"
+    },
+    {
+      "name": "large",
+      "file": "large.heic",
+      "expected": "large.png",
+      "width": 2048,
+      "height": 1536,
+      "bitDepth": 8,
+      "bytes": 613105,
+      "sha256": "a3e3e4426c851a6037ed90e44fde1e41d1d8e366fe21588fc7daf240212ee2fd"
+    }
+  ]
+}

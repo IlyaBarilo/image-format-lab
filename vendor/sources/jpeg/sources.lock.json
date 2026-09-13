@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "library": {
+    "name": "libjpeg-turbo",
+    "version": "3.2.0",
+    "archive": "libjpeg-turbo-3.2.0-sources.tar.gz",
+    "url": "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz",
+    "sha256": "053e5299ad2689533fa5f9934b46fa5aa7679d454102b2c5aaa629e40b081a5e",
+    "upstreamSha256": "6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e",
+    "files": 252,
+    "selection": "Unmodified file bytes: root docs, src and wrappers, cmakescripts, release and test .in templates. No test images, SIMD, JNA, spng or md5 sources."
+  },
+  "toolchain": {
+    "emscripten": "6.0.9",
+    "cmake": "4.4.3",
+    "ninja": "1.13.2"
+  }
+}

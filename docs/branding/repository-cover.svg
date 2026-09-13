@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">Image Format Lab — изучение и сравнение форматов изображений</title>
+  <desc id="description">Собственный значок «Кадры», два условных изображения и схематичные кривые. Один HTML-файл, работа без интернета. Это иллюстрация, а не снимок интерфейса или результат измерений.</desc>
+  <!-- Original project artwork. Project MIT license.
+       The Frames mark below preserves the geometry of src/favicon.svg.
+       No external assets, embedded fonts, scripts or network references. -->
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fcfdfb"/>
+      <stop offset="1" stop-color="#edf6f2"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#d5eee6"/>
+      <stop offset="1" stop-color="#eff6dd"/>
+    </linearGradient>
+    <pattern id="pixels" width="14" height="14" patternUnits="userSpaceOnUse">
+      <path d="M14 0H0V14" fill="none" stroke="#fcfdfb" stroke-width="0.7" opacity="0.3"/>
+    </pattern>
+    <g id="landscape">
+      <rect width="192" height="156" rx="8" fill="url(#sky)"/>
+      <rect x="144" y="26" width="20" height="20" fill="#efbd6a"/>
+      <path d="M0 130 62 64 118 123 148 91 192 137V156H0Z" fill="#92cabc"/>
+      <path d="M0 145 62 92 120 149 157 125 192 150V156H0Z" fill="#0f766e"/>
+    </g>
+  </defs>
+  <rect width="1280" height="640" fill="url(#background)"/>
+  <path d="M675 0H1280V640H1031Z" fill="#dceee7" opacity="0.42"/>
+  <rect x="0" y="0" width="1280" height="8" fill="#0f766e"/>
+
+  <!-- Selected project mark: unchanged paths, rectangles and square sun. -->
+  <g transform="translate(64 56) scale(2)">
+    <rect width="32" height="32" rx="7" fill="#0f766e"/>
+    <rect x="4" y="5" width="18" height="17" rx="2" fill="#99e0cf"/>
+    <rect x="6" y="7" width="14" height="13" rx="0" fill="#0f766e"/>
+    <rect x="9" y="10" width="19" height="18" rx="2" fill="#0f766e"/>
+    <rect x="10" y="11" width="18" height="17" rx="2" fill="#ffffff"/>
+    <rect x="12" y="13" width="14" height="13" rx="0" fill="#0f766e"/>
+    <rect x="22" y="15" width="2" height="2" rx="0" fill="#ffffff"/>
+    <polygon points="12,26 12,22 16,18 20,22 23,20 26,23 26,26" fill="#ffffff"/>
+  </g>
+
+  <g font-family="'Segoe UI', Arial, sans-serif">
+    <text x="148" y="83" font-size="19" font-weight="600" fill="#365d55">КАЧЕСТВО</text>
+    <text x="148" y="110" font-size="19" letter-spacing="0.3" fill="#647a72">ЦВЕТ · РАЗМЕР · ФОРМАТ</text>
+    <text x="60" y="235" font-size="82" font-weight="700" letter-spacing="-2.2" fill="#153c35">Image</text>
+    <text x="60" y="325" font-size="82" font-weight="700" letter-spacing="-2.2" fill="#153c35">Format Lab</text>
+    <text x="64" y="388" font-size="30" fill="#45645b">Изучение и сравнение</text>
+    <text x="64" y="428" font-size="30" fill="#45645b">форматов изображений</text>
+
+    <rect x="64" y="474" width="163" height="44" rx="12" fill="#0f766e"/>
+    <text x="145.5" y="503" font-size="21" font-weight="600" fill="#ffffff" text-anchor="middle">Один HTML</text>
+    <rect x="239" y="474" width="203" height="44" rx="12" fill="#e3eee8"/>
+    <text x="340.5" y="503" font-size="21" font-weight="600" fill="#365d55" text-anchor="middle">Без интернета</text>
+    <text x="64" y="582" font-size="22" fill="#567068">Сравнение · Анализ · Конвертация</text>
+
+    <text x="726" y="115" font-size="18" font-weight="600" letter-spacing="1.5" fill="#55736a">ОДИН ИСХОДНИК. РАЗНЫЕ ВАРИАНТЫ.</text>
+    <rect x="726" y="141" width="222" height="218" rx="16" fill="#d4e7de"/>
+    <rect x="726" y="136" width="222" height="218" rx="16" fill="#ffffff" stroke="#c9dfd5"/>
+    <use href="#landscape" x="741" y="151"/>
+    <text x="743" y="336" font-size="18" font-weight="600" fill="#45645b">Исходник</text>
+
+    <rect x="974" y="166" width="222" height="218" rx="16" fill="#d4e7de"/>
+    <rect x="974" y="161" width="222" height="218" rx="16" fill="#ffffff" stroke="#9fcbbd"/>
+    <use href="#landscape" x="989" y="176"/>
+    <rect x="989" y="176" width="192" height="156" rx="8" fill="url(#pixels)"/>
+    <text x="991" y="361" font-size="18" font-weight="600" fill="#45645b">Вариант</text>
+    <path d="M941 341H961V366" fill="none" stroke="#679e8f" stroke-width="2"/>
+    <path d="m955 360 6 6 6-6" fill="none" stroke="#679e8f" stroke-width="2"/>
+
+    <rect x="726" y="414" width="470" height="152" rx="16" fill="#ffffff" stroke="#c9dfd5"/>
+    <text x="747" y="443" font-size="17" font-weight="600" fill="#58736a">Графики цвета и яркости</text>
+    <g transform="translate(748 461)">
+      <path d="M0 21H426M0 45H426M0 69H426" fill="none" stroke="#e7eeea"/>
+      <path d="M0 84C26 83 30 58 54 61S87 2 114 19 158 78 183 49 222 72 249 52 295 17 322 41 364 13 391 53 414 69 426 72V84Z" fill="#e9b7b4" opacity="0.55"/>
+      <path d="M0 84C21 80 38 77 61 68S95 36 117 47 151 67 176 30 214 16 239 38 275 64 303 50 347 39 372 61 406 78 426 76V84Z" fill="#b9d9c7" opacity="0.7"/>
+      <path d="M0 84C25 83 36 54 61 58S101 10 128 30 155 71 184 42 224 76 253 46 295 29 322 39 362 21 391 56 412 67 426 70" fill="none" stroke="#be6668" stroke-width="2.6"/>
+      <path d="M0 84C21 80 38 77 61 68S95 31 117 42 151 62 176 25 214 13 239 35 275 59 303 45 347 36 372 58 406 78 426 76" fill="none" stroke="#12806e" stroke-width="2.6"/>
+      <path d="M0 84H426" stroke="#adc7bb" fill="none"/>
+    </g>
+    <text x="1196" y="599" font-size="16" fill="#6f877e" text-anchor="end">barilo.ru · IlyaBarilo/image-format-lab</text>
+  </g>
+</svg>

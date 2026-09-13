@@ -1,0 +1,803 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "file": "pako-2.1.0.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js",
+      "bytes": 46859,
+      "sha256": "ede2693a4a6a5126b9d35669062b358ecab6ae7b9b86a1cf302feb45a8514907"
+    },
+    {
+      "file": "pako-LICENSE",
+      "url": "https://cdn.jsdelivr.net/npm/pako@2.1.0/LICENSE",
+      "bytes": 1104,
+      "sha256": "a04665b3b2de56c66730c1f720f528175739e4104f79073614aa611da1e85539"
+    },
+    {
+      "file": "pako-ZLIB-LICENSE",
+      "url": "https://raw.githubusercontent.com/nodeca/pako/2.1.0/lib/zlib/README",
+      "bytes": 2180,
+      "sha256": "d8b499598e43d755ea8918448128259ff01820c50d94d5a48c8883d0a594ddb1"
+    },
+    {
+      "file": "UPNG-2.1.0.js",
+      "url": "https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.js",
+      "bytes": 31508,
+      "sha256": "b7c0bdb021dffeb82f1ac27c6762f939f967a9e4e0886518fef649331b612164"
+    },
+    {
+      "file": "UPNG-LICENSE",
+      "url": "https://cdn.jsdelivr.net/npm/upng-js@2.1.0/LICENSE",
+      "bytes": 1065,
+      "sha256": "c1fb8861eca211bf5aea574358aba7039396c0c1824c2a1477cc126d398efd89"
+    },
+    {
+      "file": "UTIF-3.1.0.js",
+      "url": "Adapted sources/utif/UTIF.js; original embedded JPEG removed; see UTIF-JPEG-NOTICE",
+      "bytes": 35458,
+      "sha256": "996e901159cf7285284ad3ee4ad147f86b9c7d7fdaef22bf0bc27d66e591b292"
+    },
+    {
+      "file": "UTIF-LICENSE",
+      "url": "https://cdn.jsdelivr.net/npm/utif@3.1.0/LICENSE",
+      "bytes": 1065,
+      "sha256": "c1fb8861eca211bf5aea574358aba7039396c0c1824c2a1477cc126d398efd89"
+    },
+    {
+      "file": "gifenc-1.0.3.cjs",
+      "url": "Built from sources/gifenc-1.0.3/src by sources/gifenc-1.0.3/build.cjs",
+      "bytes": 23779,
+      "sha256": "7c16e351c9a56841ea046f1c8ab01ce10abf349febe4e12f8b27267da2ba2878"
+    },
+    {
+      "file": "gifenc-LICENSE",
+      "url": "https://cdn.jsdelivr.net/npm/gifenc@1.0.3/LICENSE.md",
+      "bytes": 1083,
+      "sha256": "47bc590c39d8ccccfc544875a9faebf44bafa828ef20315b396b5d0629f0cfd6"
+    },
+    {
+      "file": "UTIF-JPEG-NOTICE",
+      "url": "Adaptation notice: original embedded JPEG removed and replaced by libjpeg-turbo; source revision recorded inside",
+      "bytes": 1637,
+      "sha256": "e65ea200b670af8c80ec56b894ee5ea4d07fff6acea2229bd852b7e74ac52394"
+    },
+    {
+      "file": "Apache-2.0-LICENSE",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "gifenc-NOTICE",
+      "url": "Collection of upstream PnnQuant / LZW credits; exact sources cited inside",
+      "bytes": 2444,
+      "sha256": "41abaaf7933f9e7b1a90b57be98f8bcdfce0081a3648941bbd7b14bdc99f8ffa"
+    },
+    {
+      "file": "PnnQuant-MPL-2.0",
+      "url": "https://raw.githubusercontent.com/takase1121/PnnQuant.js/1a8577ad21bcd3871dc5c90a6d880ae0074c5389/LICENSE",
+      "bytes": 16725,
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+    },
+    {
+      "file": "gif-js-LICENSE",
+      "url": "https://raw.githubusercontent.com/jnordberg/gif.js/master/LICENSE",
+      "bytes": 1086,
+      "sha256": "9a11e10f1864ed90c106d344eee7c20dd7170c4f0fbb8c45fe2e8a3b1fb821fe"
+    },
+    {
+      "file": "gif-codec-LICENSE",
+      "url": "https://api.github.com/repos/potomak/gif-codec/license",
+      "bytes": 1087,
+      "sha256": "935e4d1f5ada1b7b8859af8d3651fb8af6065aa67f861cfe9805a0b22f83946e"
+    },
+    {
+      "file": "components.json",
+      "url": "Project component registry with licenses and source references",
+      "bytes": 16245,
+      "sha256": "7ad664ddc0f3ddcc216d8af715808235fcaff76358b9daf489855ca68f46eff1"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/color.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/color.js",
+      "bytes": 1467,
+      "sha256": "41a914e3a2502ea3529414a730d6f9776f9e7f60aa2fba7c0459ccdaa8e5732c"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/constants.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/constants.js",
+      "bytes": 782,
+      "sha256": "ebbc17a4b34af7f141285bca39ad533fab33ca40a54f1ed024435421c58a2103"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/index.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/index.js",
+      "bytes": 7049,
+      "sha256": "cabba5e290b21e40611f1cb972c1e6fee912139b727a254aacb05605cbd61c5c"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/lzwEncode.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/lzwEncode.js",
+      "bytes": 5971,
+      "sha256": "f25e485eda237d20c7780f1cd456c4b346b6dbff8e3f5215fb4ee5b32793b33a"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/palettize.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/palettize.js",
+      "bytes": 5612,
+      "sha256": "70f8e191d8f6f6e51bc6fc853a51f1b008c0a2fe144c4a3390b6342aaa9857bb"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/pnnquant2.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/pnnquant2.js (MPL notice added; algorithm unchanged)",
+      "bytes": 8103,
+      "sha256": "b1332c870e0e23fcc21a333abef1aa9ed1831dc990b158f9bfa76a2177204466"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/rgb-packing.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/rgb-packing.js",
+      "bytes": 783,
+      "sha256": "ff33b1c5fee53b07089109b12d828e2c039b38ad50976665b25637ea906d2f53"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/src/stream.js",
+      "url": "https://raw.githubusercontent.com/mattdesl/gifenc/15e2c3e65ed03c977b42fec48de59b05ee9b9f54/src/stream.js",
+      "bytes": 1907,
+      "sha256": "31f4a64498ff8bcd5d69c04f8c0dc7e07f235e4708bd52472981266201f83f41"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/package.json",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 223,
+      "sha256": "96c7dbd4fc986f5ef657d6eefb7daed37a288c9a373691a3d2715e83d951cc81"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/build.cjs",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 911,
+      "sha256": "de0ff18d2ab570c9c4784f7753398ff93d1f43baf6a2d3221f8e35f10dee00d2"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/README.md",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 2324,
+      "sha256": "47b007a95cdec834265ff6081592837ae77c9dba188dae3b294fc7cb3a3bcd2b"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/PROJECT-LICENSE",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 1068,
+      "sha256": "cb10a1a27c838e2bde451cc12cd7c51a8d650a724b4897a55fecd403c219e432"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/LICENSE",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 1083,
+      "sha256": "47bc590c39d8ccccfc544875a9faebf44bafa828ef20315b396b5d0629f0cfd6"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/MPL-2.0",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 16725,
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/NOTICE.md",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 2444,
+      "sha256": "41abaaf7933f9e7b1a90b57be98f8bcdfce0081a3648941bbd7b14bdc99f8ffa"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/gif-js-LICENSE",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 1086,
+      "sha256": "9a11e10f1864ed90c106d344eee7c20dd7170c4f0fbb8c45fe2e8a3b1fb821fe"
+    },
+    {
+      "file": "sources/gifenc-1.0.3/gif-codec-LICENSE",
+      "url": "Project source-package helper or license copy; see source package README.md",
+      "bytes": 1087,
+      "sha256": "935e4d1f5ada1b7b8859af8d3651fb8af6065aa67f861cfe9805a0b22f83946e"
+    },
+    {
+      "file": "sources/heic/README.md",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 7800,
+      "sha256": "b9163f4c3c7bb89b4b88b5800f6bf23dc1ba6cc69bd4a21f8a95424358974119"
+    },
+    {
+      "file": "sources/heic/PROJECT-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1068,
+      "sha256": "cb10a1a27c838e2bde451cc12cd7c51a8d650a724b4897a55fecd403c219e432"
+    },
+    {
+      "file": "sources/heic/package-files.json",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1333,
+      "sha256": "154112af55289a40ee264f301d7eb93040ed61c218ac45cacc8638c8ccac9781"
+    },
+    {
+      "file": "sources/heic/sources.lock.json",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 2744,
+      "sha256": "620b0a5eb0fdb80d54d4914a83c3d9e6b749b4b692d691e64fdc788319aa86bb"
+    },
+    {
+      "file": "sources/heic/bridge.cpp",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 8135,
+      "sha256": "2716f76b7feb7e243d39171453cc2840e662c87e3dc3efd592c96ff071d896f8"
+    },
+    {
+      "file": "sources/heic/build.py",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 8371,
+      "sha256": "559a17b99f57467248f6415d78c5dc1715dbbe730835ac522752bd524f04fc5c"
+    },
+    {
+      "file": "sources/heic/package.py",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1814,
+      "sha256": "67c89ea897eeeaf0fe540563b92e02d7a3196c215d19b689e5d9b46adfd1a950"
+    },
+    {
+      "file": "sources/heic/export-sources.py",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 2970,
+      "sha256": "22baf93652a78e9bf2f880ed950b078b1352fda59e206c8f1b6381ec893b8fa0"
+    },
+    {
+      "file": "sources/heic/relink.mjs",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 6617,
+      "sha256": "575fa4f8248d917d7f31757d02270fde4af9934514b50a5c7e7c458a33981a3a"
+    },
+    {
+      "file": "sources/heic/upstream/libheif-1.23.4-sources.tar.gz",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 783894,
+      "sha256": "922457064810f211857bbdc634457565e5a777c42eba31c1af7faa1e0f0119c5"
+    },
+    {
+      "file": "sources/heic/upstream/libde265-1.1.2-sources.tar.gz",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 287842,
+      "sha256": "cb74c4d5c6377f29b07cef88c0646c9ae4b4a3932dacb319d9f3c3f40d0e027d"
+    },
+    {
+      "file": "sources/heic/licenses/libheif-COPYING",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 44366,
+      "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596"
+    },
+    {
+      "file": "sources/heic/licenses/libde265-COPYING",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 44339,
+      "sha256": "02cc1585a20677992e0ba578fa692635dc193735f2691dc81de924b51c4e8020"
+    },
+    {
+      "file": "sources/heic/licenses/HEIC-NOTICE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 3807,
+      "sha256": "f063f546df4ceea7349792199dbfb1584a49b02f599df47180ea97d080a15024"
+    },
+    {
+      "file": "sources/heic/licenses/HEIC-RUNTIME-NOTICE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 17008,
+      "sha256": "70178404aa86f74455abca1a8b77e95c60931942f9f46cbffefd29f892ad9ffa"
+    },
+    {
+      "file": "sources/heic/licenses/Emscripten-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 5093,
+      "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86"
+    },
+    {
+      "file": "sources/heic/licenses/Emscripten-AUTHORS",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 29142,
+      "sha256": "018d4191aa649d5c82ba1b2f9117b9902648792c89d5f0d5564a689dc4198aaa"
+    },
+    {
+      "file": "sources/heic/licenses/musl-COPYRIGHT",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 6196,
+      "sha256": "b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b"
+    },
+    {
+      "file": "sources/heic/licenses/libcxx-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
+    },
+    {
+      "file": "sources/heic/licenses/libcxxabi-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c"
+    },
+    {
+      "file": "sources/heic/licenses/compiler-rt-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d"
+    },
+    {
+      "file": "sources/heic/licenses/compiler-rt-CREDITS",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1049,
+      "sha256": "a9901f47a089da41e4690682d00ce4cedaa2baf41fedbe79beee366d43ac2461"
+    },
+    {
+      "file": "sources/heic/licenses/llvm-libc-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 15140,
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47"
+    },
+    {
+      "file": "sources/heic/upstream/kvazaar-2.3.2-sources.tar.gz",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 394979,
+      "sha256": "e2c065622f9ec9fd7be195bb06a732e9afc48b38cb154e48ba44368428fb8128"
+    },
+    {
+      "file": "sources/heic/licenses/kvazaar-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1549,
+      "sha256": "3c1dc3d7f8a3d08c14f4fbe9942f45764d8a21a3296e8d83446f33fd65f21c38"
+    },
+    {
+      "file": "sources/heic/licenses/kvazaar-CREDITS",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 493,
+      "sha256": "b32be8e46eb27ade47763bab1518071351a6f635ca08eafda9868b93748e2ea2"
+    },
+    {
+      "file": "sources/heic/licenses/kvazaar-NOTICE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 4701,
+      "sha256": "8a9b72e7e3086cf5d3a018bda411d2714540af5f4d07c0f8894148a063d4654a"
+    },
+    {
+      "file": "sources/heic/upstream/aom-3.15.0-sources.tar.gz",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 5196676,
+      "sha256": "bc06a5e55538b2c8ba40a19040e13a4461a726918eabc4c110d7ece3132861aa"
+    },
+    {
+      "file": "sources/heic/licenses/MODERN-NOTICE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 2826,
+      "sha256": "0993cfd5a46e67ed102b27cf1cf799582b66fec6024609fb74bef66983581601"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-AUTHORS",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 13178,
+      "sha256": "c31b80ca48fde06ca03aef2f3dec15413fe0c2661fe6b56e86ccd69dbc6f9a1d"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1316,
+      "sha256": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-PATENTS",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 5701,
+      "sha256": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-third_party-fastfeat-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1504,
+      "sha256": "499041ddee5227b6f29ca06c17803e5fe24d60f243c69635cd76b7ba08d0ddd5"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-third_party-highway-LICENSE-BSD3",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1515,
+      "sha256": "d25e82e26acd42ca3ccc9993622631163425b869b9e16284226d534cff6470f2"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-third_party-vector-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 1084,
+      "sha256": "ff6c857ce2708e87701323078aef115c1872a1f80a9649f86dc899b48083bc60"
+    },
+    {
+      "file": "sources/heic/licenses/modern-aom-third_party-x86inc-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 936,
+      "sha256": "719d8fa235f2068e0ae6d6a7dceb0a7720d7840f0f0ebed29957989e6ded3cd8"
+    },
+    {
+      "file": "sources/heic/licenses/Apache-2.0-LICENSE",
+      "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "kvazaar-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 1549,
+      "sha256": "3c1dc3d7f8a3d08c14f4fbe9942f45764d8a21a3296e8d83446f33fd65f21c38"
+    },
+    {
+      "file": "kvazaar-CREDITS",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 493,
+      "sha256": "b32be8e46eb27ade47763bab1518071351a6f635ca08eafda9868b93748e2ea2"
+    },
+    {
+      "file": "kvazaar-NOTICE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 4701,
+      "sha256": "8a9b72e7e3086cf5d3a018bda411d2714540af5f4d07c0f8894148a063d4654a"
+    },
+    {
+      "file": "libheif-COPYING",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 44366,
+      "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596"
+    },
+    {
+      "file": "libde265-COPYING",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 44339,
+      "sha256": "02cc1585a20677992e0ba578fa692635dc193735f2691dc81de924b51c4e8020"
+    },
+    {
+      "file": "HEIC-NOTICE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 3807,
+      "sha256": "f063f546df4ceea7349792199dbfb1584a49b02f599df47180ea97d080a15024"
+    },
+    {
+      "file": "HEIC-RUNTIME-NOTICE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 17008,
+      "sha256": "70178404aa86f74455abca1a8b77e95c60931942f9f46cbffefd29f892ad9ffa"
+    },
+    {
+      "file": "Emscripten-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 5093,
+      "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86"
+    },
+    {
+      "file": "Emscripten-AUTHORS",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 29142,
+      "sha256": "018d4191aa649d5c82ba1b2f9117b9902648792c89d5f0d5564a689dc4198aaa"
+    },
+    {
+      "file": "musl-COPYRIGHT",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 6196,
+      "sha256": "b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b"
+    },
+    {
+      "file": "libcxx-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
+    },
+    {
+      "file": "libcxxabi-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c"
+    },
+    {
+      "file": "compiler-rt-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d"
+    },
+    {
+      "file": "compiler-rt-CREDITS",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 1049,
+      "sha256": "a9901f47a089da41e4690682d00ce4cedaa2baf41fedbe79beee366d43ac2461"
+    },
+    {
+      "file": "llvm-libc-LICENSE",
+      "url": "Pinned HEIC library / Emscripten runtime notice; see HEIC-NOTICE",
+      "bytes": 15140,
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47"
+    },
+    {
+      "file": "heic-decoder.js",
+      "url": "Built from sources/heic/ using Emscripten 6.0.9; libheif 1.23.4, libde265 1.1.2 and Kvazaar 2.3.2",
+      "bytes": 6982019,
+      "sha256": "36dbcbbf7608e5ddc1a2abe1d5808d3fca042936fe0a97b23a4ffb77a4ecfedb"
+    },
+    {
+      "file": "heic-sources.zip",
+      "url": "Deterministic package of sources/heic/package-files.json",
+      "bytes": 6764436,
+      "sha256": "e33924ef4dda01f4eab42d9132123993adc3166877283e56624bbd1193352cd7"
+    },
+    {
+      "file": "gifenc-1.0.3-sources.zip",
+      "url": "Deterministic package of the explicit gifenc sourceNames list in scripts/vendor-files.cjs",
+      "bytes": 23922,
+      "sha256": "bc86c4694db81c2d66650cced3fbbb013218a25d5904913fc5d4c82e850be869"
+    },
+    {
+      "file": "sources/utif/UTIF.js",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 35458,
+      "sha256": "996e901159cf7285284ad3ee4ad147f86b9c7d7fdaef22bf0bc27d66e591b292"
+    },
+    {
+      "file": "sources/utif/upstream.json",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 279,
+      "sha256": "bcc719d4887076493e0bd86efda36bc2506805624cd2446d42d79c1f6ccc6824"
+    },
+    {
+      "file": "sources/utif/README.md",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 1393,
+      "sha256": "f067b5c875b993647177d3496caeacf4d697c28b8e020f0b568c864a9e659fa1"
+    },
+    {
+      "file": "sources/jpeg/bridge.c",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 4465,
+      "sha256": "65618fdb8d0850ce548bb5212124fe099fd657537a1ffa1e207cea2085521d86"
+    },
+    {
+      "file": "sources/jpeg/build.py",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 4453,
+      "sha256": "e29ff393b79ff7ca1dd7c4e1fd5eaf9b80f740519720a5cbe53b16cacf8119f7"
+    },
+    {
+      "file": "sources/jpeg/sources.lock.json",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 723,
+      "sha256": "933e879f1150a2622780f4999dc9d5d713d07db37fcce6ba688cca16d792c349"
+    },
+    {
+      "file": "sources/jpeg/PROJECT-LICENSE",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 1068,
+      "sha256": "cb10a1a27c838e2bde451cc12cd7c51a8d650a724b4897a55fecd403c219e432"
+    },
+    {
+      "file": "sources/jpeg/README.md",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 2570,
+      "sha256": "8310e4afa615a11e7da61bee706b0f7d92b21466028de6e8f8a9eb8739f3a6ea"
+    },
+    {
+      "file": "sources/jpeg/upstream/libjpeg-turbo-3.2.0-sources.tar.gz",
+      "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
+      "bytes": 588888,
+      "sha256": "053e5299ad2689533fa5f9934b46fa5aa7679d454102b2c5aaa629e40b081a5e"
+    },
+    {
+      "file": "libjpeg-turbo-LICENSE",
+      "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
+      "bytes": 6077,
+      "sha256": "ba6bceebcba0fdd35488477c2cca8c4632ce82c74dbfbc87d886ce6fc4433579"
+    },
+    {
+      "file": "libjpeg-turbo-README.ijg",
+      "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
+      "bytes": 12799,
+      "sha256": "75815e3bf6484201a3c3d17a1bbf10f2e8e3237f84df10a2357ea896db2a81d6"
+    },
+    {
+      "file": "JPEG-NOTICE",
+      "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
+      "bytes": 1480,
+      "sha256": "3a8087495d6e5c79580fc7ecaa904919afb7ae862b2550e6372e9643f8ca747b"
+    },
+    {
+      "file": "JPEG-RUNTIME-NOTICE",
+      "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
+      "bytes": 34058,
+      "sha256": "7181a2ed20b87f3f98c856cef32952ec84c26e4fb8a7bb3d02bfc6e5fba2611e"
+    },
+    {
+      "file": "jpeg-decoder.js",
+      "url": "Built from sources/jpeg/ using Emscripten 6.0.9; libjpeg-turbo 3.2.0",
+      "bytes": 377766,
+      "sha256": "31c6351c1183cc0238f828356ee5f7b3e7ac8c500f5700c85e83d3be1a08f6ec"
+    },
+    {
+      "file": "sources/modern/README.md",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1701,
+      "sha256": "4be048b21013aab684300d567cce8d2dad9877750ca9a9480db745eb80415be3"
+    },
+    {
+      "file": "sources/modern/PROJECT-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1068,
+      "sha256": "cb10a1a27c838e2bde451cc12cd7c51a8d650a724b4897a55fecd403c219e432"
+    },
+    {
+      "file": "sources/modern/bridge.cpp",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 6327,
+      "sha256": "2e52cdcc50c9c22e549b9fece1e5b0ceb7c1d349a4815850e56684b03c279f9b"
+    },
+    {
+      "file": "sources/modern/build.py",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 4849,
+      "sha256": "d4d8dde40356df0c53c67e99f1720ee95d53b315b9e2b7da4dca5c9f447ecaaf"
+    },
+    {
+      "file": "sources/modern/sources.lock.json",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 3640,
+      "sha256": "9ce3fe5fd1ee1ccec33856e048c359a416dda8d4e94edf7871d68e11eca06aa2"
+    },
+    {
+      "file": "sources/modern/package-files.json",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 994,
+      "sha256": "fb2de5219e9878e818c7e5bd4b7341c8451fb0d3667ec5c020718322f2f4c1b2"
+    },
+    {
+      "file": "sources/modern/upstream/webp-1.6.0-sources.tar.gz",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 664446,
+      "sha256": "4623096206ecae21d99d3ce2d464bd21edaf2258dd89d647aa75d71e8657869f"
+    },
+    {
+      "file": "sources/modern/upstream/jxl-0.12.0-sources.tar.gz",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1391782,
+      "sha256": "d7c92acad33cd32b3ea53c3c6a7eb4522d57b386529d62893d14e4c17c259058"
+    },
+    {
+      "file": "sources/modern/upstream/brotli-028fb5a-sources.tar.gz",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 495100,
+      "sha256": "73bc72f15b92434fe18dff96056114527f773442fa3427cb050b97d5b29a691b"
+    },
+    {
+      "file": "sources/modern/upstream/highway-457c891-sources.tar.gz",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 905497,
+      "sha256": "a8d50a336d8f2ceee6a4456c672dc91b86d5cdffb6cbcac3b8d815bfda595f14"
+    },
+    {
+      "file": "sources/modern/upstream/skcms-96d9171-sources.tar.gz",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 78571,
+      "sha256": "bf2fb7d5c0342f30278fd20376f30544baf6aa916eb0387c5fd0f07106658f1d"
+    },
+    {
+      "file": "MODERN-NOTICE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 2826,
+      "sha256": "0993cfd5a46e67ed102b27cf1cf799582b66fec6024609fb74bef66983581601"
+    },
+    {
+      "file": "modern-aom-AUTHORS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 13178,
+      "sha256": "c31b80ca48fde06ca03aef2f3dec15413fe0c2661fe6b56e86ccd69dbc6f9a1d"
+    },
+    {
+      "file": "modern-aom-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1316,
+      "sha256": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2"
+    },
+    {
+      "file": "modern-aom-PATENTS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 5701,
+      "sha256": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61"
+    },
+    {
+      "file": "modern-aom-third_party-fastfeat-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1504,
+      "sha256": "499041ddee5227b6f29ca06c17803e5fe24d60f243c69635cd76b7ba08d0ddd5"
+    },
+    {
+      "file": "modern-aom-third_party-highway-LICENSE-BSD3",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1515,
+      "sha256": "d25e82e26acd42ca3ccc9993622631163425b869b9e16284226d534cff6470f2"
+    },
+    {
+      "file": "modern-aom-third_party-vector-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1084,
+      "sha256": "ff6c857ce2708e87701323078aef115c1872a1f80a9649f86dc899b48083bc60"
+    },
+    {
+      "file": "modern-aom-third_party-x86inc-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 936,
+      "sha256": "719d8fa235f2068e0ae6d6a7dceb0a7720d7840f0f0ebed29957989e6ded3cd8"
+    },
+    {
+      "file": "modern-brotli-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1084,
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+    },
+    {
+      "file": "modern-highway-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 11356,
+      "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+    },
+    {
+      "file": "modern-highway-LICENSE-BSD3",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1515,
+      "sha256": "d25e82e26acd42ca3ccc9993622631163425b869b9e16284226d534cff6470f2"
+    },
+    {
+      "file": "modern-jxl-AUTHORS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 3913,
+      "sha256": "c987f35e1e87c45aeef0c7d204f0003eb4cb9652c6f1aad45f5521e8a22d8bdd"
+    },
+    {
+      "file": "modern-jxl-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1508,
+      "sha256": "8405932022a556380c2d8c272eff154a923feb197233f348ce5f7334fb0a5ede"
+    },
+    {
+      "file": "modern-jxl-PATENTS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1333,
+      "sha256": "91915f8ae056a68a3c5bdf05d9f6f78bb6903e27a8ca3a8434c9e4ac87300575"
+    },
+    {
+      "file": "modern-skcms-LICENSE",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1635,
+      "sha256": "e59bb5c5c6ba426a9ac4ba9fe667ad14c5166b12aa25be8af1d122b14fbe2e36"
+    },
+    {
+      "file": "modern-webp-AUTHORS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 3279,
+      "sha256": "f251be89fd442bd9d701360730aea163cc8e2076ff03528f59267dc2c4f8b60a"
+    },
+    {
+      "file": "modern-webp-COPYING",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1496,
+      "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
+    },
+    {
+      "file": "modern-webp-PATENTS",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1436,
+      "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+    },
+    {
+      "file": "modern-codecs.js",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 3825751,
+      "sha256": "70937529796a61c0fca9ac01e5dde50d7ebb594416722ffbebeaff1753adde4d"
+    },
+    {
+      "file": "gifenc-1.0.3.browser.js",
+      "url": "Generated wrapper of gifenc rebuilt from supplied sources; algorithm unchanged",
+      "bytes": 24001,
+      "sha256": "875fd15af5865bdbdaa53063ccdb3f4fe839cca3bb295e77091045dd7388b0b6"
+    }
+  ]
+}

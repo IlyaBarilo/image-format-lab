@@ -1,0 +1,67 @@
+{
+  "toolchain": {
+    "emscripten": "6.0.9"
+  },
+  "libraries": {
+    "aom": {
+      "version": "3.15.0",
+      "commit": "de4c1d1edc49723a78954d30a83690aa1937422f",
+      "url": "https://aomedia.googlesource.com/aom/+archive/refs/tags/v3.15.0.tar.gz",
+      "upstreamSha256": "208e5aa0aa95986fd1d41fd96f1a74ee4d90f214ba5ccb64c6fe10430e127a95",
+      "archive": "aom-3.15.0-sources.tar.gz",
+      "sha256": "bc06a5e55538b2c8ba40a19040e13a4461a726918eabc4c110d7ece3132861aa",
+      "files": 1312,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    },
+    "webp": {
+      "version": "1.6.0",
+      "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9",
+      "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+      "upstreamSha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+      "archive": "webp-1.6.0-sources.tar.gz",
+      "sha256": "4623096206ecae21d99d3ce2d464bd21edaf2258dd89d647aa75d71e8657869f",
+      "files": 214,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    },
+    "jxl": {
+      "version": "0.12.0",
+      "commit": "a7a9c787341cf703dede03c2009fa460cae5e5df",
+      "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.12.0.tar.gz",
+      "upstreamSha256": "03e9be69a30be4011f559da75328b6d7cea8ad921fabfbd551ce10bf45cdc992",
+      "archive": "jxl-0.12.0-sources.tar.gz",
+      "sha256": "d7c92acad33cd32b3ea53c3c6a7eb4522d57b386529d62893d14e4c17c259058",
+      "files": 762,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    },
+    "brotli": {
+      "version": "028fb5a",
+      "commit": "028fb5a23661f123017c060daa546b55cf4bde29",
+      "url": "https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz",
+      "upstreamSha256": "0afe09a53c8bad9861c8dd1fc1284308d54f19d2979ba3541cfdcc9b05fe360f",
+      "archive": "brotli-028fb5a-sources.tar.gz",
+      "sha256": "73bc72f15b92434fe18dff96056114527f773442fa3427cb050b97d5b29a691b",
+      "files": 135,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    },
+    "highway": {
+      "version": "457c891",
+      "commit": "457c891775a7397bdb0376bb1031e6e027af1c48",
+      "url": "https://github.com/google/highway/archive/457c891775a7397bdb0376bb1031e6e027af1c48.tar.gz",
+      "upstreamSha256": "5124b0501c98d9930dbb065bfa1a5bbbd59ce0f12facb7e1e33aaef01a5f1f1a",
+      "archive": "highway-457c891-sources.tar.gz",
+      "sha256": "a8d50a336d8f2ceee6a4456c672dc91b86d5cdffb6cbcac3b8d815bfda595f14",
+      "files": 195,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    },
+    "skcms": {
+      "version": "96d9171",
+      "commit": "96d9171c94b937a1b5f0293de7309ac16311b722",
+      "url": "https://skia.googlesource.com/skcms/+archive/96d9171c94b937a1b5f0293de7309ac16311b722.tar.gz",
+      "upstreamSha256": "8f4a9b36a067d18e9616c6ea850f326d52cd5e0f91a06bf1963d8eef8da062f5",
+      "archive": "skcms-96d9171-sources.tar.gz",
+      "sha256": "bf2fb7d5c0342f30278fd20376f30544baf6aa916eb0387c5fd0f07106658f1d",
+      "files": 18,
+      "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+    }
+  }
+}

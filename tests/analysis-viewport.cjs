@@ -1,0 +1,106 @@
+// Real geometry and pixel algorithms; supplied viewports, no browser layout engine.
+const assert = require('node:assert/strict');
+(async () => {
+  const { visibleAnalysisRegion: visible } = await import('../src/core/analysis-viewport.mjs');
+  const { analysisBounds } = await import('../src/core/analysis-region.mjs');
+  const { computeHistogram } = await import('../src/core/histogram.mjs');
+  const { computeWaveform } = await import('../src/core/waveform.mjs');
+  const { computeDifference } = await import('../src/core/difference.mjs');
+  const { computeVectorscope } = await import('../src/core/vectorscope.mjs');
+  const { computeLineProfile } = await import('../src/core/line-profile.mjs');
+  const { createCanvas } = await import('../src/ui/canvas.mjs');
+  const source = {width:1000,height:600}, view = {centerX:500,centerY:300};
+  const area = (x,y,width,height) => ({unit:'pixels',x,y,width,height});
+  assert.deepEqual(visible(source,source,view,{width:400,height:200},2),area(400,250,200,100));
+  assert.deepEqual(visible(source,source,view,{width:800,height:400},4),area(400,250,200,100),'DPR does not change source pixels');
+  assert.deepEqual(visible(source,source,view,{width:800,height:800},0.5),area(0,0,1000,600),'fit excludes margins');
+  assert.deepEqual(visible(source,source,{centerX:0,centerY:0},{width:201,height:101},2),area(0,0,51,26),'partial boundary pixels included');
+  assert.equal(visible(source,source,{centerX:-100,centerY:0},{width:200,height:200},1),null,'touching the frame edge includes no pixels');
+  assert.equal(visible(source,source,view,{width:0,height:200},1),null);
+  assert.equal(visible(source,source,view,{width:200,height:200},NaN),null);
+  assert.deepEqual(visible({width:500,height:300},source,view,{width:400,height:200},2),area(150,100,200,100),'smaller centered results use their own raster coordinates');
+  assert.deepEqual(visible({width:20000,height:2000},{width:20000,height:2000},{centerX:10000.5,centerY:1000.5},{width:10,height:10},128),area(10000,1000,1,1),'a highly magnified pixel is not expanded to 0.1% of a large frame');
+
+  const image={width:4,height:2,data:new Uint8ClampedArray(32)};
+  for(let i=0;i<8;i++)image.data.set(i%4<2?[255,0,0,255]:[0,0,255,255],i*4);
+  const region=area(2,0,2,2);
+  assert.deepEqual(analysisBounds(image,region),{x:2,y:0,width:2,height:2});
+  assert.throws(()=>analysisBounds(image,area(4,0,1,1)),/область/);
+  assert.throws(()=>analysisBounds(image,area(0,0,0,1)),/область/);
+  assert.throws(()=>analysisBounds(image,area(0.5,0,1,1)),/область/);
+  const h=computeHistogram(image,'white',region);
+  assert.equal(h.pixelCount,4);assert.equal(h.channels[0][255],0);assert.equal(h.channels[2][255],4);
+  assert.equal(computeHistogram(image).pixelCount,8);
+  assert.equal(computeWaveform(image,'white',region).pixelCount,4);
+  assert.equal(computeVectorscope(image,'white',region).pixelCount,4);
+  assert.equal(computeLineProfile(image,'white',region).sampleCount,2);
+  const changed={...image,data:new Uint8ClampedArray(image.data)};changed.data[0]=0;
+  assert.equal(computeDifference(changed,image,'white',region).pixelCount,4);
+  assert.deepEqual(computeDifference(changed,image,'white',region),computeDifference(image,image,'white',region),'an error outside the viewport does not enter its map');
+  for(const dpr of [1,2]) {
+    globalThis.window={devicePixelRatio:dpr};globalThis.document={getElementById:()=>({})};
+    let rect={width:400,height:200},updates=0;
+    const canvas={width:1,height:1,getBoundingClientRect:()=>rect,parentElement:{getBoundingClientRect:()=>rect}};
+    const app={source,variants:[{canvas,imageData:source,cell:{classList:{contains:()=>false}}}],view:{...view,absoluteScale:2,zoom:1}};
+    const deps={drawVariant(){},clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),updateAnalysisViewport:()=>updates++,isAnalysisResizing:()=>false};
+    const ui=createCanvas({app,els:{}},deps);Object.assign(deps,ui,{drawVariant(){}});
+    ui.drawAll();assert.deepEqual(ui.getAnalysisViewport(0).region,area(400,250,200,100));
+    const prior=ui.getAnalysisViewport(0);rect={width:0,height:0};ui.drawAll();assert.deepEqual(ui.getAnalysisViewport(0),prior,'maximum retains last viewport size');
+    ui.setComparisonScale(4);assert.deepEqual(ui.getAnalysisViewport(0).region,area(450,275,100,50));
+    rect={width:400,height:400};ui.drawAll();assert.deepEqual(ui.getAnalysisViewport(0).region,area(450,250,100,100));
+    app.view.centerX=-1000;ui.drawAll();assert.equal(ui.getAnalysisViewport(0).region,null);assert.match(ui.getAnalysisViewport(0).message,/вне/);
+    assert.ok(updates>=5,'draws notify analysis after resizing buffers');
+  }
+  console.log('PASS viewport crop, fit, pan, zoom, DPR=1/2, edge pixels, empty view, differing raster sizes, hidden previews and all pixel scopes');
+
+  const { createAnalysisRegion } = await import('../src/ui/analysis-region.mjs');
+  let thumbnail=null,updates=0;
+  const context=new Proxy({drawImage:(...args)=>{thumbnail=args;}},{get:(target,key)=>target[key]||(()=>{})});
+  const elements=new Map(),get=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',hidden:false,events:new Map(),parentElement:{firstChild:{}},
+      addEventListener(name,fn){this.events.set(name,fn);},
+      emit(name,values={}){const event={target:this,defaultPrevented:false,propagationStopped:false,
+        preventDefault(){this.defaultPrevented=true;},stopPropagation(){this.propagationStopped=true;},...values};
+        this.events.get(name)?.(event);return event;},
+      setAttribute(){},focus(){document.activeElement=this;},querySelectorAll:()=>[],getBoundingClientRect:()=>({width:300,height:180}),getContext:()=>context});
+    return elements.get(id);
+  };
+  globalThis.document={getElementById:get};globalThis.devicePixelRatio=1;
+  get('analysisScope').value='full';get('analysisRegionEditor').hidden=true;
+  const app={source:{imageData:image,canvas:{}},sourceLoading:false};let viewport={region};
+  const editor=createAnalysisRegion({app},{updateAnalysis:()=>updates++,getAnalysisViewport:()=>viewport,isAnalysisResizing:()=>false});
+  editor.attachAnalysisRegionEvents();
+  get('analysisScope').value='region';get('analysisScope').emit('change');assert.equal(get('analysisRegionEditor').hidden,false);
+  ['X','Y','Width','Height'].forEach((key,i)=>get('analysisRegion'+key).value=String([50,0,50,100][i]));
+  get('analysisRegionApply').emit('click');assert.equal(editor.getAnalysisScope(),'region');
+  assert.deepEqual(editor.getAnalysisRegion(),{x0:500,y0:0,x1:1000,y1:1000});
+  get('analysisScope').value='full';get('analysisScope').emit('change');assert.equal(editor.getAnalysisRegion(),null);
+  get('analysisScope').value='region';get('analysisScope').emit('change');assert.equal(editor.getAnalysisRegion().x0,500,'manual crop retained across scope changes');
+  get('analysisScope').value='viewport';get('analysisScope').emit('change');assert.equal(editor.getAnalysisRegion(),null);
+  editor.toggleAnalysisLine();assert.deepEqual(thumbnail.slice(1,5),[2,0,2,2],'line editor shows the viewport crop');
+  assert.equal(document.activeElement,get('analysisRegionX'),'opening the line editor focuses its first field');
+  const savedLine=editor.getAnalysisLine(),beforeEscapeUpdates=updates;
+  get('analysisRegionX').value='25';get('analysisRegionX').emit('input');
+  const escape=get('analysisRegionEditor').emit('keydown',{key:'Escape',target:get('analysisRegionX')});
+  assert.equal(escape.defaultPrevented,true,'editor handles Escape');
+  assert.equal(escape.propagationStopped,true,'editor Escape must not reach the panel size handler');
+  assert.equal(get('analysisRegionEditor').hidden,true);
+  assert.equal(document.activeElement,get('analysisLineOpen'),'editor Escape restores focus to the line button');
+  assert.deepEqual(editor.getAnalysisLine(),savedLine,'Escape discards the draft without changing the applied line');
+  assert.equal(updates,beforeEscapeUpdates,'cancelling the line does not recompute analysis');
+  editor.toggleAnalysisLine();assert.equal(get('analysisRegionX').value,String(savedLine.x0/10),'reopening restores the applied line');
+  viewport={region:null};editor.drawAnalysisRegion();assert.equal(get('analysisRegionEditor').hidden,true,'empty view cannot masquerade as a whole-frame line preview');
+  app.source={imageData:image,canvas:{}};editor.syncAnalysisRegion();assert.equal(editor.getAnalysisScope(),'viewport','new source keeps live-view mode');
+  get('analysisScope').value='region';editor.syncAnalysisRegion();assert.equal(editor.getAnalysisRegion(),null,'new source discards manual crop');
+  assert.ok(updates>=5);
+  console.log('PASS scope selector, manual crop preservation/reset, live-view source changes, profile-line editor and Escape isolation/focus/draft cancellation');
+  const restoredApp={source:null};
+  const restored=createAnalysisRegion({app:restoredApp},{updateAnalysis(){},getAnalysisViewport:()=>viewport,isAnalysisResizing:()=>false});
+  const stored={scope:'region',region:{x0:500,y0:0,x1:1000,y1:1000},line:{x0:0,y0:0,x1:1000,y1:1000}};
+  restored.applyAnalysisRegionPreferences(stored);assert.deepEqual(restored.captureAnalysisRegionPreferences(),stored);
+  restoredApp.source={imageData:image,canvas:{}};restored.syncAnalysisRegion();assert.deepEqual(restored.captureAnalysisRegionPreferences(),stored,'first file retains restored relative geometry');
+  restoredApp.source={imageData:image,canvas:{}};restored.syncAnalysisRegion();
+  assert.equal(restored.getAnalysisScope(),'full');assert.equal(restored.getAnalysisRegion(),null);
+  assert.deepEqual(restored.getAnalysisLine(),{x0:0,y0:500,x1:1000,y1:500},'later source switches discard image-specific geometry');
+  console.log('PASS region/line restore for the first source and reset on subsequent source changes');
+})().catch(error=>{console.error(error);process.exitCode=1;});

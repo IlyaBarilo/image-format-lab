@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "libheif": {
+    "version": "1.23.4",
+    "url": "https://github.com/strukturag/libheif/releases/download/v1.23.4/libheif-1.23.4.tar.gz",
+    "upstreamSha256": "d0c02b4b0e978f34a1974b6f3eea7975a537bf7a9195ffeea38e7242ff316fdd",
+    "archive": "libheif-1.23.4-sources.tar.gz",
+    "sha256": "922457064810f211857bbdc634457565e5a777c42eba31c1af7faa1e0f0119c5",
+    "files": 373,
+    "selection": {
+      "rootFiles": true,
+      "directories": [
+        "cmake",
+        "extra",
+        "gnome",
+        "heifio",
+        "libheif",
+        "scripts"
+      ],
+      "note": "Unmodified file bytes; test images, examples and unrelated optional dependencies omitted."
+    }
+  },
+  "libde265": {
+    "version": "1.1.2",
+    "url": "https://github.com/strukturag/libde265/releases/download/v1.1.2/libde265-1.1.2.tar.gz",
+    "upstreamSha256": "eaacd1943ab0c452c19f6136a36ca227e6b761b39a81eaca8454d48c147e1f67",
+    "archive": "libde265-1.1.2-sources.tar.gz",
+    "sha256": "cb74c4d5c6377f29b07cef88c0646c9ae4b4a3932dacb319d9f3c3f40d0e027d",
+    "files": 116,
+    "selection": {
+      "rootFiles": true,
+      "directories": [
+        "cmake",
+        "extra",
+        "libde265"
+      ],
+      "note": "Unmodified file bytes; test images, examples and unrelated optional dependencies omitted."
+    }
+  },
+  "toolchain": {
+    "emscripten": "6.0.9",
+    "emsdkCommit": "5eb0bde7585670252e8ba05e9d361627bffd08b5",
+    "releaseHash": "f04ea239d533260dd1db760dd2d668d5f9a88d6b",
+    "cmake": "4.4.3",
+    "ninja": "1.13.2"
+  },
+  "kvazaar": {
+    "version": "2.3.2",
+    "commit": "6040962bed5cc68c5ad01234c38c08b8b2822068",
+    "url": "https://github.com/ultravideo/kvazaar/archive/refs/tags/v2.3.2.tar.gz",
+    "upstreamSha256": "ddd0038696631ca5368d8e40efee36d2bbb805854b9b1dda8b12ea9b397ea951",
+    "archive": "kvazaar-2.3.2-sources.tar.gz",
+    "sha256": "e2c065622f9ec9fd7be195bb06a732e9afc48b38cb154e48ba44368428fb8128",
+    "files": 156,
+    "selection": {
+      "note": "Unmodified build/source bytes. No upstream images, test framework, Windows pthread replacement, or external crypto library."
+    }
+  },
+  "aom": {
+    "version": "3.15.0",
+    "commit": "de4c1d1edc49723a78954d30a83690aa1937422f",
+    "url": "https://aomedia.googlesource.com/aom/+archive/refs/tags/v3.15.0.tar.gz",
+    "upstreamSha256": "208e5aa0aa95986fd1d41fd96f1a74ee4d90f214ba5ccb64c6fe10430e127a95",
+    "archive": "aom-3.15.0-sources.tar.gz",
+    "sha256": "bc06a5e55538b2c8ba40a19040e13a4461a726918eabc4c110d7ece3132861aa",
+    "files": 1312,
+    "selection": "Unmodified source/build text and notices. No upstream image fixtures; unused bundled test libraries excluded."
+  }
+}

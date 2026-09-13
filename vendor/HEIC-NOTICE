@@ -1,0 +1,60 @@
+HEIC decoder and encoder in Image Format Lab
+
+The application links libheif 1.23.4, libde265 1.1.2, Kvazaar 2.3.2 and libaom 3.15.0 in WebAssembly.
+libaom adds AVIF encoding/decoding under BSD-2-Clause and AOM Patent License 1.0;
+see MODERN-NOTICE and modern-aom license files.
+Kvazaar uses BSD-3-Clause; see kvazaar-LICENSE, kvazaar-CREDITS and kvazaar-NOTICE.
+libheif and libde265 are used under LGPL-3.0-or-later; they are not relicensed as MIT.
+libheif: Copyright (c) 2017-2025 Dirk Farin and other contributors named in sources.
+libde265: Copyright (c) 2013-2014 struktur AG, Dirk Farin; other dates and
+contributors as named in the source files.
+See libheif-COPYING and libde265-COPYING for LGPLv3 and GPLv3 texts.
+Individual source file copyright dates and notices are retained in the archives.
+
+The original C/C++ source bytes come from the official release archives:
+https://github.com/strukturag/libheif/releases/tag/v1.23.4
+https://github.com/strukturag/libde265/releases/tag/v1.1.2
+https://github.com/ultravideo/kvazaar/releases/tag/v2.3.2
+Exact archive URLs, hashes, selected source paths and toolchain versions are
+recorded in sources/heic/sources.lock.json. Library code is unmodified.
+
+The MIT application, bridge.cpp, Worker adapter, build.py, export-sources.py,
+package.py and relink.mjs are Copyright (c) 2026 Ilya Barilo.
+The bridge decodes the primary image to RGBA8 using libde265, and encodes
+8-bit HEVC 4:2:0 HEIC using Kvazaar, with optional auxiliary alpha.
+Quality 100 is not a lossless RGB mode; alpha can also be lossy.
+
+Corresponding source and recombination materials:
+- vendor/heic-sources.zip in the repository;
+- the ZIP is supplied separately, not embedded in the standalone HTML;
+  its exact SHA-256 and configured download URL are shown in Licenses;
+  a local build without a source URL must be configured before public release;
+- the original HTML supplies the Corresponding Application Code for relink.mjs.
+The ZIP contains library source archives, the bridge, exact build configuration,
+instructions, modification export helper and replacement tool. Rebuild modified
+libraries and combine them with the HTML using the supplied instructions.
+Modification and reverse engineering for debugging such modifications are
+permitted. No signatures or service access restrict replacement. Preserve this
+notice, LGPL/GPL texts and corresponding sources when distributing the bundle.
+For online distribution, offer the exact corresponding ZIP alongside the HTML
+with equivalent access at no additional charge, and clear download directions
+next to the HTML and in Licenses (LGPLv3 4(d)(0), GPLv3 6(d)). Keep sources
+available for as long as required for the distributed object code. Merely
+planning a future upload or linking to a moving upstream branch is insufficient.
+relink.mjs leaves sources separate and clears the previous source URL unless
+--source-url specifies the location of the modified corresponding package.
+
+Generated runtime:
+- Emscripten 6.0.9 glue and emmalloc: MIT or NCSA, Emscripten contributors;
+  emmalloc Copyright (c) 2018 The Emscripten Authors.
+- musl portions: MIT and individual permissive terms, Rich Felker et al.
+- libc++, libc++abi, compiler-rt and LLVM libc portions: Apache-2.0 WITH
+  LLVM-exception and retained legacy notices as detailed in their license files.
+Full texts: Emscripten-LICENSE, Emscripten-AUTHORS, musl-COPYRIGHT,
+libcxx-LICENSE, libcxxabi-LICENSE, compiler-rt-LICENSE, compiler-rt-CREDITS,
+llvm-libc-LICENSE, HEIC-RUNTIME-NOTICE.
+The runtime sources are part of the pinned Emscripten SDK. No libunwind or
+external filesystem/network codec fallback is linked in this configuration.
+
+This integration preserves component licenses. It does not represent the entire
+project or every included third-party component as MIT-only.

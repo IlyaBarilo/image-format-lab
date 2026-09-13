@@ -1,0 +1,450 @@
+Runtime notices from Emscripten 6.0.9 used by HEIC.
+Full license texts and authors are supplied as separate files.
+The following are verbatim leading comments from linked math/runtime files.
+
+system/lib/emmalloc.c
+/*
+ * Copyright 2018 The Emscripten Authors.  All rights reserved.
+ * Emscripten is available under two separate licenses, the MIT license and the
+ * University of Illinois/NCSA Open Source License.  Both these licenses can be
+ * found in the LICENSE file.
+ *
+ * Simple minimalistic but efficient sbrk()-based malloc/free that works in
+ * singlethreaded and multithreaded builds.
+ *
+ * Assumptions:
+ *
+ *  - sbrk() is used to claim new memory (sbrk handles geometric/linear
+ *  - overallocation growth)
+ *  - sbrk() can also be called by other code, not reserved to emmalloc only.
+ *  - sbrk() is very fast in most cases (internal wasm call).
+ *  - sbrk() returns pointers with an alignment of alignof(max_align_t)
+ *
+ * Invariants:
+ *
+ *  - Per-allocation header overhead is 8 bytes, smallest allocated payload
+ *    amount is 8 bytes, and a multiple of 4 bytes.
+ *  - Acquired memory blocks are subdivided into disjoint regions that lie
+ *    next to each other.
+ *  - A region is either in use or free.
+ *    Used regions may be adjacent, and a used and unused region
+ *    may be adjacent, but not two unused ones - they would be
+ *    merged.
+ *  - Memory allocation takes constant time, unless the alloc needs to sbrk()
+ *    or memory is very close to being exhausted.
+ *  - Free and used regions are managed inside "root regions", which are slabs
+ *    of memory acquired via calls to sbrk().
+ *
+ * Debugging:
+ *
+ *  - If not NDEBUG, runtime assert()s are in use.
+ *  - If EMMALLOC_MEMVALIDATE is defined, a large amount of extra checks are done.
+ *  - If EMMALLOC_VERBOSE is defined, a lot of operations are logged using
+ *    `out`, in addition to EMMALLOC_MEMVALIDATE.
+ *  - Debugging and logging directly uses `out` and `err` via EM_ASM, not
+ *    printf etc., to minimize any risk of debugging or logging depending on
+ *    malloc.
+ *
+ * Exporting:
+ *
+ *  - By default we declare not only emmalloc_malloc, emmalloc_free, etc. but
+ *    also the standard library methods like malloc, free, and some aliases.
+ *    You can override this by defining EMMALLOC_NO_STD_EXPORTS, in which case
+ *    we only declare the emalloc_* ones but not the standard ones.
+ */
+
+system/lib/libc/musl/src/math/__cos.c
+/* origin: FreeBSD /usr/src/lib/msun/src/k_cos.c */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunSoft, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+ */
+/*
+ * __cos( x,  y )
+ * kernel cos function on [-pi/4, pi/4], pi/4 ~ 0.785398164
+ * Input x is assumed to be bounded by ~pi/4 in magnitude.
+ * Input y is the tail of x.
+ *
+ * Algorithm
+ *      1. Since cos(-x) = cos(x), we need only to consider positive x.
+ *      2. if x < 2^-27 (hx<0x3e400000 0), return 1 with inexact if x!=0.
+ *      3. cos(x) is approximated by a polynomial of degree 14 on
+ *         [0,pi/4]
+ *                                       4            14
+ *              cos(x) ~ 1 - x*x/2 + C1*x + ... + C6*x
+ *         where the remez error is
+ *
+ *      |              2     4     6     8     10    12     14 |     -58
+ *      |cos(x)-(1-.5*x +C1*x +C2*x +C3*x +C4*x +C5*x  +C6*x  )| <= 2
+ *      |                                                      |
+ *
+ *                     4     6     8     10    12     14
+ *      4. let r = C1*x +C2*x +C3*x +C4*x +C5*x  +C6*x  , then
+ *             cos(x) ~ 1 - x*x/2 + r
+ *         since cos(x+y) ~ cos(x) - sin(x)*y
+ *                        ~ cos(x) - x*y,
+ *         a correction term is necessary in cos(x) and hence
+ *              cos(x+y) = 1 - (x*x/2 - (r - x*y))
+ *         For better accuracy, rearrange to
+ *              cos(x+y) ~ w + (tmp + (r-x*y))
+ *         where w = 1 - x*x/2 and tmp is a tiny correction term
+ *         (1 - x*x/2 == w + tmp exactly in infinite precision).
+ *         The exactness of w + tmp in infinite precision depends on w
+ *         and tmp having the same precision as x.  If they have extra
+ *         precision due to compiler bugs, then the extra precision is
+ *         only good provided it is retained in all terms of the final
+ *         expression for cos().  Retention happens in all cases tested
+ *         under FreeBSD, so don't pessimize things by forcibly clipping
+ *         any extra precision in w.
+ */
+
+system/lib/libc/musl/src/math/__rem_pio2.c
+/* origin: FreeBSD /usr/src/lib/msun/src/e_rem_pio2.c */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunSoft, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+ *
+ * Optimized by Bruce D. Evans.
+ */
+/* __rem_pio2(x,y)
+ *
+ * return the remainder of x rem pi/2 in y[0]+y[1]
+ * use __rem_pio2_large() for large x
+ */
+
+system/lib/libc/musl/src/math/__rem_pio2_large.c
+/* origin: FreeBSD /usr/src/lib/msun/src/k_rem_pio2.c */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunSoft, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+ */
+/*
+ * __rem_pio2_large(x,y,e0,nx,prec)
+ * double x[],y[]; int e0,nx,prec;
+ *
+ * __rem_pio2_large return the last three digits of N with
+ *              y = x - N*pi/2
+ * so that |y| < pi/2.
+ *
+ * The method is to compute the integer (mod 8) and fraction parts of
+ * (2/pi)*x without doing the full multiplication. In general we
+ * skip the part of the product that are known to be a huge integer (
+ * more accurately, = 0 mod 8 ). Thus the number of operations are
+ * independent of the exponent of the input.
+ *
+ * (2/pi) is represented by an array of 24-bit integers in ipio2[].
+ *
+ * Input parameters:
+ *      x[]     The input value (must be positive) is broken into nx
+ *              pieces of 24-bit integers in double precision format.
+ *              x[i] will be the i-th 24 bit of x. The scaled exponent
+ *              of x[0] is given in input parameter e0 (i.e., x[0]*2^e0
+ *              match x's up to 24 bits.
+ *
+ *              Example of breaking a double positive z into x[0]+x[1]+x[2]:
+ *                      e0 = ilogb(z)-23
+ *                      z  = scalbn(z,-e0)
+ *              for i = 0,1,2
+ *                      x[i] = floor(z)
+ *                      z    = (z-x[i])*2**24
+ *
+ *
+ *      y[]     ouput result in an array of double precision numbers.
+ *              The dimension of y[] is:
+ *                      24-bit  precision       1
+ *                      53-bit  precision       2
+ *                      64-bit  precision       2
+ *                      113-bit precision       3
+ *              The actual value is the sum of them. Thus for 113-bit
+ *              precison, one may have to do something like:
+ *
+ *              long double t,w,r_head, r_tail;
+ *              t = (long double)y[2] + (long double)y[1];
+ *              w = (long double)y[0];
+ *              r_head = t+w;
+ *              r_tail = w - (r_head - t);
+ *
+ *      e0      The exponent of x[0]. Must be <= 16360 or you need to
+ *              expand the ipio2 table.
+ *
+ *      nx      dimension of x[]
+ *
+ *      prec    an integer indicating the precision:
+ *                      0       24  bits (single)
+ *                      1       53  bits (double)
+ *                      2       64  bits (extended)
+ *                      3       113 bits (quad)
+ *
+ * External function:
+ *      double scalbn(), floor();
+ *
+ *
+ * Here is the description of some local variables:
+ *
+ *      jk      jk+1 is the initial number of terms of ipio2[] needed
+ *              in the computation. The minimum and recommended value
+ *              for jk is 3,4,4,6 for single, double, extended, and quad.
+ *              jk+1 must be 2 larger than you might expect so that our
+ *              recomputation test works. (Up to 24 bits in the integer
+ *              part (the 24 bits of it that we compute) and 23 bits in
+ *              the fraction part may be lost to cancelation before we
+ *              recompute.)
+ *
+ *      jz      local integer variable indicating the number of
+ *              terms of ipio2[] used.
+ *
+ *      jx      nx - 1
+ *
+ *      jv      index for pointing to the suitable ipio2[] for the
+ *              computation. In general, we want
+ *                      ( 2^e0*x[0] * ipio2[jv-1]*2^(-24jv) )/8
+ *              is an integer. Thus
+ *                      e0-3-24*jv >= 0 or (e0-3)/24 >= jv
+ *              Hence jv = max(0,(e0-3)/24).
+ *
+ *      jp      jp+1 is the number of terms in PIo2[] needed, jp = jk.
+ *
+ *      q[]     double array with integral value, representing the
+ *              24-bits chunk of the product of x and 2/pi.
+ *
+ *      q0      the corresponding exponent of q[0]. Note that the
+ *              exponent for q[i] would be q0-24*i.
+ *
+ *      PIo2[]  double precision array, obtained by cutting pi/2
+ *              into 24 bits chunks.
+ *
+ *      f[]     ipio2[] in floating point
+ *
+ *      iq[]    integer array by breaking up q[] in 24-bits chunk.
+ *
+ *      fq[]    final product of x*(2/pi) in fq[0],..,fq[jk]
+ *
+ *      ih      integer. If >0 it indicates q[] is >= 0.5, hence
+ *              it also indicates the *sign* of the result.
+ *
+ */
+/*
+ * Constants:
+ * The hexadecimal values are the intended ones for the following
+ * constants. The decimal values may be used, provided that the
+ * compiler will convert from decimal to binary accurately enough
+ * to produce the hexadecimal values shown.
+ */
+
+system/lib/libc/musl/src/math/__sin.c
+/* origin: FreeBSD /usr/src/lib/msun/src/k_sin.c */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunSoft, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+ */
+/* __sin( x, y, iy)
+ * kernel sin function on ~[-pi/4, pi/4] (except on -0), pi/4 ~ 0.7854
+ * Input x is assumed to be bounded by ~pi/4 in magnitude.
+ * Input y is the tail of x.
+ * Input iy indicates whether y is 0. (if iy=0, y assume to be 0).
+ *
+ * Algorithm
+ *      1. Since sin(-x) = -sin(x), we need only to consider positive x.
+ *      2. Callers must return sin(-0) = -0 without calling here since our
+ *         odd polynomial is not evaluated in a way that preserves -0.
+ *         Callers may do the optimization sin(x) ~ x for tiny x.
+ *      3. sin(x) is approximated by a polynomial of degree 13 on
+ *         [0,pi/4]
+ *                               3            13
+ *              sin(x) ~ x + S1*x + ... + S6*x
+ *         where
+ *
+ *      |sin(x)         2     4     6     8     10     12  |     -58
+ *      |----- - (1+S1*x +S2*x +S3*x +S4*x +S5*x  +S6*x   )| <= 2
+ *      |  x                                               |
+ *
+ *      4. sin(x+y) = sin(x) + sin'(x')*y
+ *                  ~ sin(x) + (1-x*x/2)*y
+ *         For better accuracy, let
+ *                   3      2      2      2      2
+ *              r = x *(S2+x *(S3+x *(S4+x *(S5+x *S6))))
+ *         then                   3    2
+ *              sin(x) = x + (S1*x + (x *(r-y/2)+y))
+ */
+
+system/lib/libc/musl/src/math/cos.c
+/* origin: FreeBSD /usr/src/lib/msun/src/s_cos.c */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunPro, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+ */
+/* cos(x)
+ * Return cosine function of x.
+ *
+ * kernel function:
+ *      __sin           ... sine function on [-pi/4,pi/4]
+ *      __cos           ... cosine function on [-pi/4,pi/4]
+ *      __rem_pio2      ... argument reduction routine
+ *
+ * Method.
+ *      Let S,C and T denote the sin, cos and tan respectively on
+ *      [-PI/4, +PI/4]. Reduce the argument x to y1+y2 = x-k*pi/2
+ *      in [-pi/4 , +pi/4], and let n = k mod 4.
+ *      We have
+ *
+ *          n        sin(x)      cos(x)        tan(x)
+ *     ----------------------------------------------------------
+ *          0          S           C             T
+ *          1          C          -S            -1/T
+ *          2         -S          -C             T
+ *          3         -C           S            -1/T
+ *     ----------------------------------------------------------
+ *
+ * Special cases:
+ *      Let trig be any of sin, cos, or tan.
+ *      trig(+-INF)  is NaN, with signals;
+ *      trig(NaN)    is that NaN;
+ *
+ * Accuracy:
+ *      TRIG(x) returns trig(x) nearly rounded
+ */
+
+system/lib/libc/musl/src/math/exp.c
+/*
+ * Double-precision e^x function.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/exp2.c
+/*
+ * Double-precision 2^x function.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/exp_data.c
+/*
+ * Shared data between exp, exp2 and pow.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/log.c
+/*
+ * Double-precision log(x) function.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/log2.c
+/*
+ * Double-precision log2(x) function.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/log2_data.c
+/*
+ * Data for log2.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/log_data.c
+/*
+ * Data for log.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/pow.c
+/*
+ * Double-precision x^y function.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/musl/src/math/pow_data.c
+/*
+ * Data for the log part of pow.
+ *
+ * Copyright (c) 2018, Arm Limited.
+ * SPDX-License-Identifier: MIT
+ */
+
+system/lib/libc/emscripten_memcpy.c
+/*
+ * A simple memcpy optimized for wasm.
+ */
+
+libde265-1.1.2/libde265/md5.cc
+/*
+ * This is an OpenSSL-compatible implementation of the RSA Data Security, Inc.
+ * MD5 Message-Digest Algorithm (RFC 1321).
+ *
+ * Homepage:
+ * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
+ *
+ * Author:
+ * Alexander Peslyak, better known as Solar Designer <solar at openwall.com>
+ *
+ * This software was written by Alexander Peslyak in 2001.  No copyright is
+ * claimed, and the software is hereby placed in the public domain.
+ * In case this attempt to disclaim copyright and place the software in the
+ * public domain is deemed null and void, then the software is
+ * Copyright (c) 2001 Alexander Peslyak and it is hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * (This is a heavily cut-down "BSD license".)
+ *
+ * This differs from Colin Plumb's older public domain implementation in that
+ * no exactly 32-bit integer data type is required (any 32-bit or wider
+ * unsigned integer data type will do), there's no compile-time endianness
+ * configuration, and the function prototypes match OpenSSL's.  No code from
+ * Colin Plumb's implementation has been reused; this comment merely compares
+ * the properties of the two independent implementations.
+ *
+ * The primary goals of this implementation are portability and ease of use.
+ * It is meant to be fast, but not as fast as possible.  Some known
+ * optimizations are not included to reduce source code size and avoid
+ * compile-time configuration.
+ */

@@ -1,0 +1,413 @@
+{
+  "version": 1,
+  "releaseStatus": "documented",
+  "summary": "Собственный код, документация и значки — MIT. Сторонние компоненты сохраняют свои лицензии и уведомления; полные тексты доступны ниже без интернета. Соответствующие исходники gifenc и HEIC/AVIF предоставляются отдельными комплектами вместе с выпуском.",
+  "components": [
+    {
+      "id": "viewer",
+      "name": "Image Format Lab",
+      "version": "1.0.0",
+      "scope": "Приложение и собственные SVG-значки",
+      "license": "MIT",
+      "licenseFiles": [
+        "LICENSE",
+        "ASSETS.md"
+      ],
+      "status": "documented",
+      "notes": "Автор: Илья Барило (Ilya Barilo), https://barilo.ru/. Условия сторонних библиотек сохраняются.",
+      "sources": [
+        {
+          "label": "Репозиторий Image Format Lab",
+          "url": "https://github.com/IlyaBarilo/image-format-lab"
+        }
+      ]
+    },
+    {
+      "id": "pako",
+      "name": "pako / zlib",
+      "version": "2.1.0",
+      "scope": "Сжатие PNG и TIFF Deflate",
+      "license": "MIT AND Zlib",
+      "licenseFiles": [
+        "pako-LICENSE",
+        "pako-ZLIB-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Vitaly Puzrin, Andrei Tuputcyn; порт zlib — Jean-loup Gailly, Mark Adler.",
+      "sources": [
+        {
+          "label": "pako 2.1.0",
+          "url": "https://github.com/nodeca/pako/tree/2.1.0"
+        }
+      ]
+    },
+    {
+      "id": "upng",
+      "name": "UPNG.js",
+      "version": "2.1.0",
+      "scope": "PNG opt",
+      "license": "MIT",
+      "licenseFiles": [
+        "UPNG-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Photopea, 2017.",
+      "sources": [
+        {
+          "label": "Пакет 2.1.0",
+          "url": "https://www.npmjs.com/package/upng-js/v/2.1.0"
+        }
+      ]
+    },
+    {
+      "id": "utif",
+      "name": "UTIF.js · адаптированная TIFF-часть",
+      "version": "3.1.0 / viewer-1",
+      "scope": "Открытие TIFF",
+      "license": "MIT",
+      "licenseFiles": [
+        "UTIF-LICENSE",
+        "UTIF-JPEG-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Photopea, 2017. Адаптация Ильи Барило: TIFF использует отдельный libjpeg-turbo для JPEG, проверяет тип сжатых полос и поддерживает непрозрачный CMYK. Адаптированный исходник и описание изменений предоставлены в репозитории.",
+      "sources": [
+        {
+          "label": "Исходники UTIF 3.1.0",
+          "url": "https://github.com/photopea/UTIF.js/tree/27f1098a67c3cfd4348c9b8fd887fcd8cd171095"
+        }
+      ]
+    },
+    {
+      "id": "libjpeg-turbo",
+      "name": "libjpeg-turbo",
+      "version": "3.2.0",
+      "scope": "Открытие JPEG внутри TIFF, включая lossless",
+      "license": "IJG; BSD-3-Clause для сборочных частей",
+      "licenseFiles": [
+        "libjpeg-turbo-README.ijg",
+        "libjpeg-turbo-LICENSE",
+        "JPEG-NOTICE",
+        "JPEG-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "This software is based in part on the work of the Independent JPEG Group. Собственная WASM-сборка libjpeg API и MIT-адаптер; официальные исходники и сборщик закреплены в репозитории. Личное и коммерческое использование разрешено при сохранении применимых уведомлений.",
+      "sources": [
+        {
+          "label": "Официальный выпуск 3.2.0",
+          "url": "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/tag/3.2.0"
+        }
+      ]
+    },
+    {
+      "id": "gifenc",
+      "name": "gifenc",
+      "version": "1.0.3",
+      "scope": "GIF gifenc",
+      "license": "MIT; PnnQuant — MPL-2.0",
+      "licenseFiles": [
+        "gifenc-LICENSE",
+        "gifenc-NOTICE",
+        "PnnQuant-MPL-2.0",
+        "gif-js-LICENSE",
+        "gif-codec-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Matt DesLauriers и предшествующие авторы перечислены в уведомлениях. Читаемые исходники, включая покрытые MPL части PnnQuant, предоставляются отдельным ZIP вместе с лицензиями и средствами сборки.",
+      "sources": [
+        {
+          "label": "Исходная ревизия gifenc",
+          "url": "https://github.com/mattdesl/gifenc/tree/15e2c3e65ed03c977b42fec48de59b05ee9b9f54"
+        },
+        {
+          "label": "Лицензия PnnQuant",
+          "url": "https://github.com/takase1121/PnnQuant.js/blob/1a8577ad21bcd3871dc5c90a6d880ae0074c5389/LICENSE"
+        }
+      ]
+    },
+    {
+      "id": "libheif",
+      "name": "libheif",
+      "version": "1.23.4",
+      "scope": "Контейнеры HEIC/AVIF, кодирование и декодирование",
+      "license": "LGPL-3.0-or-later",
+      "licenseFiles": [
+        "libheif-COPYING",
+        "HEIC-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Соответствующие исходники, собственный MIT-адаптер, сборщик и инструмент замены библиотеки включены в отдельный комплект HEIC/AVIF. Библиотека сохраняет LGPL-3.0-or-later; разрешены её изменение и замена в приложении.",
+      "sources": [
+        {
+          "label": "libheif 1.23.4",
+          "url": "https://github.com/strukturag/libheif/tree/v1.23.4"
+        }
+      ]
+    },
+    {
+      "id": "libde265",
+      "name": "libde265",
+      "version": "1.1.2",
+      "scope": "Чтение HEVC внутри HEIC",
+      "license": "LGPL-3.0-or-later",
+      "licenseFiles": [
+        "libde265-COPYING",
+        "HEIC-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Соответствующие исходники, собственный MIT-адаптер, сборщик и инструмент замены библиотеки включены в отдельный комплект HEIC/AVIF. Библиотека сохраняет LGPL-3.0-or-later; разрешены её изменение и замена в приложении.",
+      "sources": [
+        {
+          "label": "libde265 1.1.2",
+          "url": "https://github.com/strukturag/libde265/tree/v1.1.2"
+        }
+      ]
+    },
+    {
+      "id": "kvazaar",
+      "name": "Kvazaar",
+      "version": "2.3.2",
+      "scope": "Сохранение HEIC со сжатием HEVC",
+      "license": "BSD-3-Clause; MD5 — public domain",
+      "licenseFiles": [
+        "kvazaar-LICENSE",
+        "kvazaar-CREDITS",
+        "kvazaar-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Ultra Video Group и участники проекта. Исходники точной ревизии включены в комплект HEIC. Собственный адаптер — MIT; x265 не поставляется.",
+      "sources": [
+        {
+          "label": "Kvazaar 2.3.2",
+          "url": "https://github.com/ultravideo/kvazaar/tree/v2.3.2"
+        }
+      ]
+    },
+    {
+      "id": "emscripten",
+      "name": "Emscripten / emmalloc",
+      "version": "6.0.9",
+      "scope": "Связующий JS и память HEIC/JPEG",
+      "license": "MIT OR NCSA",
+      "licenseFiles": [
+        "Emscripten-LICENSE",
+        "Emscripten-AUTHORS",
+        "HEIC-RUNTIME-NOTICE",
+        "JPEG-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Лицензионные тексты из точной SDK-сборки; заголовок лицензии сохранён в сгенерированном JS.",
+      "sources": [
+        {
+          "label": "Emscripten 6.0.9",
+          "url": "https://github.com/emscripten-core/emscripten/tree/6.0.9"
+        }
+      ]
+    },
+    {
+      "id": "musl",
+      "name": "musl",
+      "version": "из Emscripten 6.0.9",
+      "scope": "C runtime HEIC/JPEG",
+      "license": "MIT и отдельные разрешительные условия",
+      "licenseFiles": [
+        "musl-COPYRIGHT",
+        "HEIC-RUNTIME-NOTICE",
+        "JPEG-RUNTIME-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Сохранены COPYRIGHT и дополнительные уведомления математических функций, найденных в карте линковки.",
+      "sources": [
+        {
+          "label": "musl в SDK",
+          "url": "https://github.com/emscripten-core/emscripten/tree/6.0.9/system/lib/libc/musl"
+        }
+      ]
+    },
+    {
+      "id": "llvm-runtime",
+      "name": "LLVM C/C++ runtime",
+      "version": "из Emscripten 6.0.9",
+      "scope": "libc++, libc++abi, compiler-rt и части LLVM libc",
+      "license": "Apache-2.0 WITH LLVM-exception; сохранённые legacy-уведомления",
+      "licenseFiles": [
+        "libcxx-LICENSE",
+        "libcxxabi-LICENSE",
+        "compiler-rt-LICENSE",
+        "compiler-rt-CREDITS",
+        "llvm-libc-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Сохранены применимые лицензионные тексты из используемой версии SDK; libunwind не входит в поставляемый runtime.",
+      "sources": [
+        {
+          "label": "Runtime в SDK",
+          "url": "https://github.com/emscripten-core/emscripten/tree/6.0.9/system/lib"
+        }
+      ]
+    },
+    {
+      "id": "esbuild",
+      "name": "esbuild",
+      "version": "0.28.2",
+      "scope": "Инструмент сборки, не исполняется внутри HTML",
+      "license": "MIT",
+      "licenseFiles": [
+        "docs/licenses/esbuild-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Evan Wallace.",
+      "sources": [
+        {
+          "label": "esbuild 0.28.2",
+          "url": "https://github.com/evanw/esbuild/tree/v0.28.2"
+        }
+      ]
+    },
+    {
+      "id": "acorn",
+      "name": "Acorn",
+      "version": "8.18.0",
+      "scope": "Инструмент проверок, не исполняется внутри HTML",
+      "license": "MIT",
+      "licenseFiles": [
+        "docs/licenses/acorn-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Участники проекта Acorn.",
+      "sources": [
+        {
+          "label": "Acorn 8.18.0",
+          "url": "https://github.com/acornjs/acorn/tree/8.18.0"
+        }
+      ]
+    },
+    {
+      "id": "aom",
+      "name": "libaom",
+      "version": "3.15.0",
+      "scope": "AVIF: чтение и сохранение",
+      "license": "BSD-2-Clause AND AOM Patent License 1.0",
+      "licenseFiles": [
+        "modern-aom-LICENSE",
+        "modern-aom-PATENTS",
+        "modern-aom-AUTHORS",
+        "modern-aom-third_party-fastfeat-LICENSE",
+        "modern-aom-third_party-highway-LICENSE-BSD3",
+        "modern-aom-third_party-vector-LICENSE",
+        "modern-aom-third_party-x86inc-LICENSE",
+        "MODERN-NOTICE",
+        "Apache-2.0-LICENSE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия de4c1d1edc49723a78954d30a83690aa1937422f. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://aomedia.googlesource.com/aom/+archive/refs/tags/v3.15.0.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "webp",
+      "name": "libwebp / libsharpyuv",
+      "version": "1.6.0",
+      "scope": "WebP lossless, декодирование WebP",
+      "license": "BSD-3-Clause",
+      "licenseFiles": [
+        "modern-webp-COPYING",
+        "modern-webp-PATENTS",
+        "modern-webp-AUTHORS",
+        "MODERN-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия 4fa21912338357f89e4fd51cf2368325b59e9bd9. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "jxl",
+      "name": "libjxl",
+      "version": "0.12.0",
+      "scope": "JPEG XL: чтение, сохранение lossy/lossless",
+      "license": "BSD-3-Clause AND Apache-2.0 (build scripts)",
+      "licenseFiles": [
+        "modern-jxl-LICENSE",
+        "modern-jxl-PATENTS",
+        "modern-jxl-AUTHORS",
+        "Apache-2.0-LICENSE",
+        "MODERN-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия a7a9c787341cf703dede03c2009fa460cae5e5df. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.12.0.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "brotli",
+      "name": "Brotli",
+      "version": "028fb5a",
+      "scope": "Зависимость JPEG XL",
+      "license": "MIT",
+      "licenseFiles": [
+        "modern-brotli-LICENSE",
+        "MODERN-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия 028fb5a23661f123017c060daa546b55cf4bde29. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "highway",
+      "name": "Highway",
+      "version": "457c891",
+      "scope": "Зависимость JPEG XL (scalar)",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "licenseFiles": [
+        "modern-highway-LICENSE",
+        "modern-highway-LICENSE-BSD3",
+        "MODERN-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия 457c891775a7397bdb0376bb1031e6e027af1c48. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://github.com/google/highway/archive/457c891775a7397bdb0376bb1031e6e027af1c48.tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "skcms",
+      "name": "skcms",
+      "version": "96d9171",
+      "scope": "Цветовые преобразования JPEG XL",
+      "license": "BSD-3-Clause",
+      "licenseFiles": [
+        "modern-skcms-LICENSE",
+        "MODERN-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Закреплённая ревизия 96d9171c94b937a1b5f0293de7309ac16311b722. Сборка из закреплённых исходников; применяются указанные лицензии и патентные условия.",
+      "sources": [
+        {
+          "label": "Закреплённый upstream",
+          "url": "https://skia.googlesource.com/skcms/+archive/96d9171c94b937a1b5f0293de7309ac16311b722.tar.gz"
+        }
+      ]
+    }
+  ]
+}

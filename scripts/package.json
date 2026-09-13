@@ -1,0 +1,32 @@
+{
+  "name": "image-format-lab",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Ilya Barilo",
+    "url": "https://barilo.ru/"
+  },
+  "description": "Image Format Lab: image format comparison, analysis and batch conversion in one offline HTML file",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:release": "node build.mjs --release",
+    "dev": "node build.mjs --watch",
+    "test:build": "node ../tests/run.cjs build-regressions",
+    "test:sources": "node ../tests/run.cjs source-packages",
+    "test:codecs": "node ../tests/run.cjs codec-compression",
+    "test": "node ../tests/run.cjs"
+  },
+  "devDependencies": {
+    "acorn": "8.18.0",
+    "esbuild": "0.28.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IlyaBarilo/image-format-lab.git"
+  },
+  "homepage": "https://github.com/IlyaBarilo/image-format-lab#readme",
+  "bugs": {
+    "url": "https://github.com/IlyaBarilo/image-format-lab/discussions/categories/q-a"
+  }
+}

@@ -1,0 +1,20 @@
+body:
+  - type: textarea
+    id: question-or-problem
+    attributes:
+      label: Вопрос или проблема
+      description: Задайте вопрос. Если что-то не работает, опишите свои действия и результат; при необходимости уточните, чего ожидали.
+      placeholder: Что вы хотели сделать и что получилось?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Браузер и устройство (по возможности)
+      description: Можно добавить версию приложения, если она видна. Для локальной сборки искать тег или хеш не нужно.
+      placeholder: Например, Firefox на Windows или Safari на iPhone
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: Если нужен пример, подойдёт встроенный образец или файл, который можно публиковать. Об уязвимостях сообщайте приватно по [инструкции SECURITY.md](https://github.com/IlyaBarilo/image-format-lab/blob/main/SECURITY.md).

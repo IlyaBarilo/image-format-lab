@@ -1,0 +1,9 @@
+{
+  "name": "viewer-gifenc-sources",
+  "version": "1.0.3",
+  "private": true,
+  "type": "module",
+  "license": "(MIT AND MPL-2.0)",
+  "scripts": { "build": "node build.cjs" },
+  "devDependencies": { "esbuild": "0.28.2" }
+}
