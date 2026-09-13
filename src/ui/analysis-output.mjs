@@ -1,5 +1,5 @@
 // Own analysis display/export controls, MIT. Modules are wired by application.
-import {analysisJSON,tradeoffData,ANALYSIS_CHANNELS} from '../core/analysis-output.mjs';
+import {analysisJSON,tradeoffData,analysisMaximum,ANALYSIS_CHANNELS} from '../core/analysis-output.mjs';
 import {profileBinAt} from '../core/line-profile.mjs';
 import {analysisDelta,deltaAt,DELTA_TYPES} from '../core/analysis-delta.mjs';
 const NAMES=['R','G','B','α','Y′'];
@@ -127,14 +127,22 @@ export function createAnalysisOutput({app},deps){
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
     const method=wrap(ctx,snapshot.method,1152);
-    const charts=shared?[{canvas,title:[...legend.children].map(s=>s.textContent).join(' · '),details:selected.map(i=>`${i.label}${i.data?` · ${i.data.width}×${i.data.height}`:''}${i.message?': '+i.message:''}`).join('; ')+(note.textContent?'. '+note.textContent:'')}]:selected.map(item=>({canvas:item.data?document.querySelectorAll('.analysis-card canvas')[item.cell-1]:null,title:item.label,details:item.message||document.querySelectorAll('.analysis-card canvas')[item.cell-1].getAttribute('aria-label')}));
+    const charts=shared?[{available:selected.some(i=>i.data),title:[...legend.children].map(s=>s.textContent).join(' · '),details:selected.map(i=>`${i.label}${i.data?` · ${i.data.width}×${i.data.height}`:''}${i.message?': '+i.message:''}`).join('; ')+(note.textContent?'. '+note.textContent:'')}]:selected.map(item=>({item,available:Boolean(item.data),title:item.label,details:item.message||document.querySelectorAll('.analysis-card canvas')[item.cell-1].getAttribute('aria-label')}));
     const columns=shared?1:2,chartWidth=(1152-(columns-1)*20)/columns,rows=[];
+    const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type,selected,s.channel);
     for(let i=0;i<charts.length;i+=columns){const row=charts.slice(i,i+columns).map(c=>({...c,head:wrap(ctx,c.title,chartWidth),tail:wrap(ctx,c.details||'',chartWidth)}));rows.push({items:row,height:Math.max(...row.map(c=>c.head.length*22+300+c.tail.length*22+20))});}
     output.height=100+(header.length+settings.length+method.length)*22+rows.reduce((s,r)=>s+r.height,0);
     ctx=output.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,output.width,output.height);ctx.fillStyle='#17212b';ctx.textBaseline='top';ctx.font='bold 24px "Segoe UI",sans-serif';ctx.fillText(title,24,22);ctx.font='16px "Segoe UI",sans-serif';
     let y=60;for(const line of [...header,...settings]){ctx.fillText(line,24,y);y+=22;}y+=12;
     for(const row of rows){row.items.forEach((c,i)=>{const x=24+i*(chartWidth+20);let cy=y;for(const line of c.head){ctx.fillText(line,x,cy);cy+=22;}
-      if(c.canvas&&!c.canvas.hidden){const scale=Math.min(chartWidth/c.canvas.width,280/c.canvas.height),w=c.canvas.width*scale,h=c.canvas.height*scale;ctx.fillStyle='#101923';ctx.fillRect(x,cy,chartWidth,280);ctx.drawImage(c.canvas,x+(chartWidth-w)/2,cy+(280-h)/2,w,h);ctx.fillStyle='#17212b';}
+      if(c.available){
+        const chart=document.createElement('canvas');
+        if(!shared)deps.renderAnalysisChart(chart,c.item,s,maximum,outputSize);
+        else if(s.display==='delta')deps.renderAnalysisDelta(chart,snapshot.delta||deltaModel(selected,s),s,outputSize);
+        else if(s.display==='overlay')deps.renderAnalysisOverlay(chart,selected,s,outputSize);
+        else deps.renderAnalysisTradeoff(chart,tradeoffData(selected,s.metric,snapshot.source),outputSize);
+        ctx.drawImage(chart,x,cy);
+      }
       cy+=300;for(const line of c.tail){ctx.fillText(line,x,cy);cy+=22;}});y+=row.height;}
     y+=12;for(const line of method){ctx.fillText(line,24,y);y+=22;}return output;
   }

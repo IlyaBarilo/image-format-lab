@@ -530,6 +530,8 @@ select:disabled {
 
 .quality-wrap,
 .gif-wrap,
+.bmp-depth-wrap,
+.tiff-compression-wrap,
 .matte-wrap {
   display: inline-flex;
   align-items: center;
@@ -558,6 +560,34 @@ select:disabled {
   width: 66px;
   min-width: 66px;
 }
+
+.bmp-depth-wrap,
+.tiff-compression-wrap,
+.tiff-level-wrap,
+.tiff-predictor-wrap {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cell-head .tiff-compression {
+  flex: 0 0 auto;
+  min-width: 132px;
+  width: 132px;
+}
+
+.cell-head .bmp-depth {
+  flex: 0 0 auto;
+  min-width: 152px;
+  width: 152px;
+}
+
+.tiff-level {
+  width: 72px;
+  margin-inline: 0;
+  accent-color: var(--accent);
+}
+
+.tiff-level-value { min-width: 1ch; }
 
 .canvas-shell {
   position: relative;

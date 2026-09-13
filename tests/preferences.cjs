@@ -13,6 +13,9 @@ function events() {
   const {createStudy}=await import('../src/ui/study.mjs');
   const {createPreferences}=await import('../src/ui/preferences.mjs');
   const defaults=defaultPreferences(),custom=defaultPreferences();
+  assert.equal(defaults.analysis.scope,'viewport');
+  assert.equal(normalizePreferences({version:1,analysis:{scope:'full'}}).analysis.scope,'full','preserve an explicitly saved full-image scope');
+  assert.equal(normalizePreferences({version:1,analysis:{}}).analysis.scope,'viewport','missing scope uses the current default');
   custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=true;
   custom.comparison.metadataPolicy='none';custom.comparison.variants[1].quality=37;custom.comparison.variants[3].format='avif';
   custom.filesVisible=false;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};

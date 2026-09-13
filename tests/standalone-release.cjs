@@ -38,6 +38,7 @@ async function dimensions(page, bytes) {
     assert.equal(await page.locator('#analysisToggle').count(), 0);
     assert.equal(await page.locator('#analysisPanel').isVisible(), true);
     assert.equal(await page.locator('#analysisBody').isVisible(), true);
+    assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
     const payload = await page.evaluate(() => JSON.parse(document.getElementById('embedded-codecs').textContent));
     assertEmbeddedPayload(payload, root);
     assert.equal(await page.locator('#analysisScope').inputValue(), 'viewport');
@@ -275,7 +276,7 @@ async function dimensions(page, bytes) {
     assert.equal(await page.locator('#analysisScope').inputValue(),'viewport');
     assert.deepEqual(await page.evaluate(()=>['image-format-viewer.preferences.v1','image-format-viewer.theme.v1','image-format-viewer.batch-settings.v1'].map(key=>localStorage.getItem(key))),[null,null,null]);
     assert.equal(await page.evaluate(()=>localStorage.getItem('image-format-viewer.comparison-profiles.v1')),profiles);
-    assert.equal(await page.locator('html').getAttribute('data-theme'),await page.evaluate(()=>matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+    assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
     report.checks.push('public preferences restore on reload and reset preserves loaded files and named profiles');
     await page.reload(); await page.locator('#fileInput').setInputFiles({ name: 'known.tiff', mimeType: 'image/tiff', buffer: Buffer.from(tiff) });
     assert.deepEqual(await dimensions(page, await downloadFrom(page, page.locator('.cell').nth(1).locator('button[title="Скачать вариант"]'))), [37, 23]);

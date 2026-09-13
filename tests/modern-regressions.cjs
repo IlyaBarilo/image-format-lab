@@ -75,16 +75,19 @@ async function download(page, button) {
     }
     report.checks.push('all six selectors, appropriate quality visibility, current comparison preview and downloads');
     await cell.locator('.format-select').selectOption('tiff');
-    await cell.locator('button[title="Сжатие TIFF"]').click();
-    await page.locator('#tiffCompression').selectOption('lzw');
+    await cell.locator('.tiff-compression').selectOption('lzw');
     await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='lzw'&&isVariantReady(app.variants[1]));
-    assert.equal(await page.locator('#tiffLevelField').isVisible(),false);
-    await page.locator('#tiffCompression').selectOption('deflate');
-    await page.locator('#tiffLevel').press('End');
-    await page.locator('#tiffPredictor').uncheck();
+    assert.equal(await cell.locator('.tiff-level-wrap').isVisible(),false);
+    await cell.locator('.tiff-compression').selectOption('deflate');
+    await cell.locator('.tiff-level').press('End');
+    await cell.locator('.tiff-predictor').uncheck();
     await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='deflate'&&app.variants[1].resultConfig?.tiffLevel===9&&app.variants[1].resultConfig?.tiffPredictor===false&&isVariantReady(app.variants[1]));
-    await page.locator('#tiffSettingsDialog button').click();
-    report.checks.push('TIFF dialog automatically updates comparison; compression-dependent controls, Deflate level and predictor reach actual output');
+    assert.equal(await page.locator('#tiffSettingsDialog').isVisible(),false);
+    await cell.locator('.tiff-compression').selectOption('none');
+    await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='none'&&isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.tiff-level-wrap').isVisible(),false);
+    assert.equal(await cell.locator('.tiff-predictor-wrap').isVisible(),false);
+    report.checks.push('Inline TIFF controls automatically update comparison without a dialog; compression-dependent fields, Deflate level and predictor reach actual output');
     await page.locator('#convertAll').click();
     await page.locator('#batchResizeMode').selectOption('limit');await page.locator('#batchDialogWidth').fill('37');
     for(const format of formats) {

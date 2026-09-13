@@ -21,7 +21,7 @@ export function defaultPreferences() {
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
       displays:{histogram:'overlay',waveform:'separate',parade:'separate',vectorscope:'separate',profile:'overlay'},
-      pair:[1,2],metric:'psnrRGB',scope:'full',region:null,line:{...DEFAULT_ANALYSIS_LINE}}
+      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE}}
   };
 }
 const record = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -55,10 +55,9 @@ export function normalizePreferences(value) {
     }
     if(Array.isArray(a.pair)&&a.pair.length===2&&a.pair.every(n=>Number.isInteger(n)&&n>=1&&n<=result.comparison.layout)&&a.pair[0]<a.pair[1])result.analysis.pair=[...a.pair];
     if(['psnrRGB','alphaErrorPercent','processingMs'].includes(a.metric))result.analysis.metric=a.metric;
-    if(['full','viewport','region'].includes(a.scope))result.analysis.scope=a.scope;
     result.analysis.region=geometry(a.region,true);
     result.analysis.line=geometry(a.line,false)||result.analysis.line;
-    if(result.analysis.scope==='region'&&!result.analysis.region)result.analysis.scope='full';
+    if(['full','viewport'].includes(a.scope)||(a.scope==='region'&&result.analysis.region))result.analysis.scope=a.scope;
   }
   return result;
 }

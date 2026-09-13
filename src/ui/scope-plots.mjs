@@ -2,16 +2,16 @@
 import { chromaCoordinates } from '../core/vectorscope.mjs';
 const COLORS=['#fb7185','#4ade80','#60a5fa','#e2e8f0','#facc15'];
 const NAMES=['R','G','B','α','Y′'];
-function prepare(canvas) {
-  const rect=canvas.getBoundingClientRect(),width=rect.width,height=rect.height,dpr=Math.max(1,Math.min(2.5,devicePixelRatio||1));
+function prepare(canvas, outputSize) {
+  const rect=outputSize||canvas.getBoundingClientRect(),width=rect.width,height=rect.height,dpr=outputSize?1:Math.max(1,Math.min(2.5,devicePixelRatio||1));
   canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
   const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#101923';ctx.fillRect(0,0,width,height);
   ctx.font='11px "Segoe UI",sans-serif';ctx.textBaseline='middle';
   return {ctx,width,height,dpr};
 }
 export function createScopePlots() {
-  function plotVectorscope(canvas,data,maximum) {
-    const {ctx,width,height,dpr}=prepare(canvas),size=Math.max(24,Math.min(width-76,height-46));
+  function plotVectorscope(canvas,data,maximum,outputSize) {
+    const {ctx,width,height,dpr}=prepare(canvas,outputSize),size=Math.max(24,Math.min(width-76,height-46));
     const cx=width/2,cy=26+size/2,left=cx-size/2,top=cy-size/2;
     ctx.strokeStyle='#334155';ctx.lineWidth=1;
     for(const radius of [size/4,size/2]){ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.stroke();}
@@ -34,8 +34,8 @@ export function createScopePlots() {
     ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText('Cb →',left+size+7,cy+28);
     ctx.textAlign='center';ctx.fillText('Cr ↑',cx,10);ctx.fillText('0',cx,cy+11);
   }
-  function plotLineProfile(canvas,data,indices,position) {
-    const {ctx,width,height}=prepare(canvas),left=36,right=width-16,top=28,bottom=height-25;
+  function plotLineProfile(canvas,data,indices,position,outputSize) {
+    const {ctx,width,height}=prepare(canvas,outputSize),left=36,right=width-16,top=28,bottom=height-25;
     const x=bin=>data.bins===1?(left+right)/2:left+bin/(data.bins-1)*(right-left),y=value=>bottom-value/255*(bottom-top);
     ctx.strokeStyle='#334155';ctx.lineWidth=1;
     for(const value of [0,128,255]){ctx.beginPath();ctx.moveTo(left,y(value));ctx.lineTo(right,y(value));ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(String(value),left-5,y(value));}

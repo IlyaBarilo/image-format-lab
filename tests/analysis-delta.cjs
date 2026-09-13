@@ -101,7 +101,7 @@ function recordingCanvas(width=600,height=300) {
   const app={layout:4};get('analysisType').value='histogram';get('analysisPair').value='1,2';
   let redraws=0,resizing=false,renders=[],downloads=[],snapshot;
   const ui=createAnalysisOutput({app},{isAnalysisResizing:()=>resizing,redrawAnalysis(){redraws++;},renderAnalysisOverlay(){},
-    renderAnalysisDelta(canvas,model,s){renders.push({model,settings:s});},getAnalysisSnapshot:()=>snapshot,downloadBlob(blob,name){downloads.push({blob,name});}});
+    renderAnalysisDelta(canvas,model,s,outputSize){renders.push({model,settings:s,outputSize});},getAnalysisSnapshot:()=>snapshot,downloadBlob(blob,name){downloads.push({blob,name});}});
   ui.attachAnalysisOutputEvents();ui.attachAnalysisOutputEvents();
   const choose=async value=>{
     for(const [v,id] of [['separate','Separate'],['overlay','Overlay'],['delta','Delta']])get('analysisDisplay'+id).checked=v===value;
@@ -125,7 +125,8 @@ function recordingCanvas(width=600,height=300) {
   await get('analysisJSON').fire('click');
   const json=JSON.parse(await downloads[0].blob.text());assert.deepEqual(json.items.map(i=>i.cell),[3,4]);assert.deepEqual(json.delta.pair,[3,4]);
   assert.equal(json.delta.operation,'second-minus-first');assert.equal(json.delta.channels[0].values[0],-25);assert.equal(json.delta.unit,'percentage-points');
-  await get('analysisPNG').fire('click');assert.equal(get('analysisSaveStatus').textContent,'');assert.ok(created.at(-1).ops.some(op=>op.kind==='text'&&op.text.includes('Разница ячеек 4 − 3')));
+  await get('analysisPNG').fire('click');assert.equal(get('analysisSaveStatus').textContent,'');assert.ok(created.find(c=>c.width===1200).ops.some(op=>op.kind==='text'&&op.text.includes('Разница ячеек 4 − 3')));
+  assert.deepEqual(renders.find(r=>r.outputSize).outputSize,{width:1152,height:280});
   delayedPNG=true;const saving=get('analysisPNG').fire('click');assert.ok(pngCallback);
   snapshot={...snapshot,settings:{...snapshot.settings,pair:[1,2]}};pngCallback(new Blob(['late']));await saving;
   assert.equal(downloads.length,2,'changed pair rejects delayed PNG');

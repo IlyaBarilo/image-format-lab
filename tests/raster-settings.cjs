@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 class Element {
   constructor(){this.value='';this.checked=false;this.hidden=false;this.open=false;this.style={};this.listeners={};this.children=[];this.classList={contains:()=>false,toggle(){}};this.validity={valid:true};}
+  set innerHTML(value){this.children=[];}
   append(...items){this.children.push(...items);}
   replaceChildren(...items){this.children=items;}
   setAttribute(name,value){this[name]=value;}
@@ -32,12 +33,55 @@ class Element {
   dialog.close();const closed=result;dialog.emit('input');assert.equal(result,closed,'Closing releases callback');
   const {createControls}=await import('../src/ui/controls.mjs');let dirty=0;
   const deps={...settings,markDirty(){dirty++;}};
-  const controls=createControls({els:{},app:{}},deps);deps.syncControlsVisibility=controls.syncControlsVisibility;
+  const controlsApp={variants:[],codecs:{},support:new Map()};
+  const controls=createControls({els:{batchDialog:get('batchDialog')},app:controlsApp},deps);deps.syncControlsVisibility=controls.syncControlsVisibility;
   const variant={index:1,head:new Element(),config:{...comparison.variants[1]}};
-  controls.buildCellControls(variant);controls.syncControlsVisibility(variant);assert.equal(variant.controls.tiffSettings.hidden,false);
-  variant.controls.tiffSettings.emit('click');get('tiffCompression').value='deflate';get('tiffLevel').value='7';dialog.emit('input');
-  assert.equal(variant.config.tiffLevel,7);assert.equal(dirty,1,'A codec option invalidates and schedules comparison');dialog.close();
-  variant.config.format='png';controls.syncControlsVisibility(variant);assert.equal(variant.controls.tiffSettings.hidden,true);
+  controls.buildCellControls(variant);controls.syncControlsVisibility(variant);
+  const c=variant.controls;
+  assert.equal(c.tiffCompressionWrap.hidden,false);assert.equal(c.tiffCompression.value,'lzw');
+  assert.equal(c.tiffLevelWrap.hidden,true);assert.equal(c.tiffPredictorWrap.hidden,false);assert.equal(c.tiffPredictor.checked,false);
+  c.tiffCompression.value='deflate';c.tiffCompression.emit('change');assert.equal(c.tiffLevelWrap.hidden,false);
+  c.tiffLevel.value='7';c.tiffLevel.emit('input');assert.equal(c.tiffLevelValue.textContent,'7');
+  c.tiffPredictor.checked=true;c.tiffPredictor.emit('change');
+  assert.equal(variant.config.tiffLevel,7);assert.equal(variant.config.tiffPredictor,true);assert.equal(dirty,3,'Each inline codec option invalidates and schedules comparison');
+  assert.equal(dialog.open,false,'Comparison options do not open a dialog');
+  c.tiffCompression.value='none';c.tiffCompression.emit('change');
+  assert.equal(c.tiffLevelWrap.hidden,true);assert.equal(c.tiffPredictorWrap.hidden,true);
+  variant.config.format='png';controls.syncControlsVisibility(variant);assert.equal(c.tiffCompressionWrap.hidden,true);
+  variant.config.format='tiff';c.tiffCompression.value='deflate';c.tiffCompression.emit('change');
+  assert.equal(c.tiffLevel.value,'7');assert.equal(c.tiffPredictor.checked,true,'Hidden settings survive format/compression changes');
+  controls.buildCellControls(variant);controls.syncControlsVisibility(variant);
+  assert.equal(variant.controls.tiffLevel.value,'7','Rebuilt controls restore saved settings');
+  const other={index:2,head:new Element(),config:{...DEFAULT_VARIANTS[2]}};
+  controls.buildCellControls(other);assert.equal(other.controls.tiffCompressionWrap.hidden,true);
+  other.config.format='tiff';controls.syncControlsVisibility(other);
+  assert.equal(other.controls.tiffCompression.value,'deflate');assert.equal(other.controls.tiffLevel.value,'6','Cells keep independent settings');
+
+  const bmpSettings=structuredClone(comparison);
+  bmpSettings.variants[0].format='bmp24';bmpSettings.variants[1].format='bmp32';
+  const restored=parseProfiles({version:1,profiles:[{name:'BMP',settings:bmpSettings}]})[0].settings;
+  controlsApp.variants=restored.variants.map((config,index)=>({index,head:new Element(),config}));
+  controlsApp.variants.forEach(controls.buildCellControls);controls.updateFormatOptions();
+  const [bmp24,bmp32]=controlsApp.variants;
+  for(const v of [bmp24,bmp32]){
+    assert.equal(v.controls.select.value,'bmp');
+    assert.deepEqual(v.controls.select.children.filter(o=>o.textContent.startsWith('BMP')).map(o=>o.value),['bmp']);
+    assert.equal(v.controls.bmpDepthWrap.hidden,false);assert.equal(v.controls.qualityWrap.style.display,'none');
+  }
+  assert.equal(bmp24.controls.bmpDepth.value,'24');assert.equal(bmp24.controls.matteWrap.style.display,'');
+  assert.equal(bmp32.controls.bmpDepth.value,'32');assert.equal(bmp32.controls.matteWrap.style.display,'none');
+  const dirtyBefore=dirty;
+  bmp24.controls.bmpDepth.value='32';bmp24.controls.bmpDepth.emit('change');
+  assert.equal(bmp24.config.format,'bmp32');assert.equal(bmp24.controls.matteWrap.style.display,'none');assert.equal(dirty,dirtyBefore+1);
+  bmp24.controls.select.value='png';bmp24.controls.select.emit('change');assert.equal(bmp24.controls.bmpDepthWrap.hidden,true);
+  bmp24.controls.select.value='bmp';bmp24.controls.select.emit('change');assert.equal(bmp24.config.format,'bmp32','Returning to BMP retains the depth in this cell');
+  bmp24.controls.bmpDepth.value='24';bmp24.controls.bmpDepth.emit('change');assert.equal(bmp24.config.format,'bmp24');
+  assert.equal(bmp32.config.format,'bmp32','Depth changes remain independent between comparison cells');
+  const {normalizePreferences}=await import('../src/core/preferences.mjs');
+  const roundtrip=normalizePreferences({version:1,comparison:{...restored,variants:controlsApp.variants.map(v=>v.config)}});
+  assert.deepEqual(roundtrip.comparison.variants.slice(0,2).map(v=>v.format),['bmp24','bmp32']);
+  assert.equal(normalizeBatchSettings({...DEFAULT_EXPORT_CONFIG,format:'bmp32'}).format,'bmp32');
+  controls.updateFormatOptions();assert.equal(bmp32.controls.bmpDepth.value,'32','Codec availability refresh preserves depth');
 
   const {createBatchDialog}=await import('../src/ui/batch-dialog.mjs');
   const app={files:[{name:'source.png'}],exportConfig:{...DEFAULT_EXPORT_CONFIG,format:'tiff',...options},storageWarning:false};
@@ -52,6 +96,22 @@ class Element {
   els.batchDialog.close();batchDeps.openBatchDialog();assert.equal(batchDeps.readBatchDialogConfig().tiffCompression,'lzw','Cancel drops the draft');
   get('batchTiffSettings').onclick();get('tiffLevel').value='2';get('tiffCompression').value='deflate';dialog.emit('input');dialog.close();
   batchDeps.commitBatchDialog(false);assert.equal(persisted,1);assert.equal(app.exportConfig.tiffLevel,2);assert.ok(previews>=3);
+  els.batchDialog.close();app.exportConfig.format='bmp32';batchDeps.openBatchDialog();
+  assert.equal(els.batchFormat.value,'bmp');assert.equal(get('batchBmpDepth').value,'32');assert.equal(get('batchBmpField').hidden,false);
+  assert.deepEqual(els.batchFormat.children.filter(o=>o.textContent==='BMP').map(o=>o.value),['bmp']);
+  assert.equal(els.batchMatteField.hidden,true);assert.equal(els.batchQualityField.hidden,true);
+  const previewBefore=previews;
+  get('batchBmpDepth').value='24';batchDeps.updateBatchDialog();
+  assert.equal(batchDeps.readBatchDialogConfig().format,'bmp24');assert.equal(els.batchMatteField.hidden,false);assert.equal(previews,previewBefore+1);
+  assert.equal(app.exportConfig.format,'bmp32','Editing batch depth does not change saved settings');
+  els.batchDialog.close();batchDeps.openBatchDialog();assert.equal(get('batchBmpDepth').value,'32','Cancel restores saved depth');
+  get('batchBmpDepth').value='24';batchDeps.commitBatchDialog(false);assert.equal(app.exportConfig.format,'bmp24');
+  assert.equal(bmp32.config.format,'bmp32','Saving batch depth leaves comparison settings intact');
+  els.batchFormat.value='png';batchDeps.updateBatchDialog();assert.equal(get('batchBmpField').hidden,true);
+  els.batchFormat.value='bmp';batchDeps.updateBatchDialogFormats();batchDeps.updateBatchDialog();
+  assert.equal(batchDeps.readBatchDialogConfig().format,'bmp24','Format refresh keeps the current draft depth');
+  els.batchDialog.close();
+  console.log('PASS single BMP choice, saved 24/32 profiles/preferences, automatic depth changes, matte visibility, independent cells and batch draft/cancel/save');
   console.log('PASS TIFF profiles, normalization, automatic comparison, conditional controls, batch draft/cancel/save and preview invalidation');
   delete global.document;
 })().catch(error=>{console.error(error);process.exitCode=1;});

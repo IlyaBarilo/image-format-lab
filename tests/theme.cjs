@@ -39,17 +39,17 @@ function environment({ saved = null, dark = false, denied = false, noMedia = fal
   const { applyInitialTheme, createTheme, THEME_STORAGE_KEY } = await import('../src/ui/theme.mjs');
   const use = options => { const env = environment(options); global.window = env.window; global.document = env.document; return env; };
   for (const [options, expected] of [
-    [{}, 'light'], [{ dark: true }, 'dark'], [{ saved: 'light', dark: true }, 'light'],
-    [{ saved: 'dark' }, 'dark'], [{ saved: 'invalid', dark: true }, 'dark'],
-    [{ denied: true, dark: true }, 'dark'], [{ noMedia: true }, 'light'],
+    [{}, 'dark'], [{ dark: true }, 'dark'], [{ saved: 'light', dark: true }, 'light'],
+    [{ saved: 'dark' }, 'dark'], [{ saved: 'invalid' }, 'dark'],
+    [{ denied: true }, 'dark'], [{ noMedia: true }, 'dark'],
     [{ noMedia: true, saved: 'dark' }, 'dark']
   ]) {
     const env = use({ ...options, beforeBody: true });
     applyInitialTheme();
     assert.equal(env.document.documentElement.dataset.theme, expected);
-    assert.equal(env.writes.length, 0, 'system defaults must not become a saved preference');
+    assert.equal(env.writes.length, 0, 'the default must not become a saved preference');
   }
-  console.log('PASS first paint: saved choice, system default, corrupt/unavailable storage and media fallback');
+  console.log('PASS first paint: dark default independent of system theme, saved choice and corrupt/unavailable storage');
 
   let env = use({ dark: true });
   const controller = createTheme();
@@ -58,21 +58,22 @@ function environment({ saved = null, dark = false, denied = false, noMedia = fal
   assert.equal(env.button.attrs['aria-pressed'], 'true');
   assert.equal(env.button.title, 'Включить светлую тему');
   env.media.matches = false; env.media.emit('change');
-  assert.equal(env.document.documentElement.dataset.theme, 'light');
+  assert.equal(env.document.documentElement.dataset.theme, 'dark', 'system changes must not change the default theme');
+  assert.equal(env.media.count('change'), 0);
   assert.equal(env.writes.length, 0);
   env.button.emit('click');
-  assert.equal(env.document.documentElement.dataset.theme, 'dark');
-  assert.deepEqual(env.writes, [[THEME_STORAGE_KEY, 'dark']]);
+  assert.equal(env.document.documentElement.dataset.theme, 'light');
+  assert.deepEqual(env.writes, [[THEME_STORAGE_KEY, 'light']]);
   env.media.emit('change');
-  assert.equal(env.document.documentElement.dataset.theme, 'dark', 'explicit choice overrides later system changes');
+  assert.equal(env.document.documentElement.dataset.theme, 'light', 'explicit choice overrides later system changes');
   env.button.emit('click');
-  assert.equal(env.button.attrs['aria-pressed'], 'false');
-  assert.equal(env.button.title, 'Включить тёмную тему');
-  assert.deepEqual(env.writes[1], [THEME_STORAGE_KEY, 'light']);
+  assert.equal(env.button.attrs['aria-pressed'], 'true');
+  assert.equal(env.button.title, 'Включить светлую тему');
+  assert.deepEqual(env.writes[1], [THEME_STORAGE_KEY, 'dark']);
   const saved = env.values.get(THEME_STORAGE_KEY);
-  const reopened = use({ saved, dark: true });
+  const reopened = use({ saved, dark: false });
   createTheme().attachThemeEvents();
-  assert.equal(reopened.document.documentElement.dataset.theme, 'light', 'new session restores the saved choice');
+  assert.equal(reopened.document.documentElement.dataset.theme, 'dark', 'new session restores the saved choice');
   console.log('PASS toggle, accessible state, isolated preference, persistence and system-change priority');
 
   env = use({ dark: true }); createTheme().attachThemeEvents();
@@ -85,25 +86,26 @@ function environment({ saved = null, dark = false, denied = false, noMedia = fal
   assert.equal(env.document.documentElement.dataset.theme, 'dark');
   env.values.set(THEME_STORAGE_KEY, 'invalid'); env.media.matches = false;
   env.window.emit('storage', { key: THEME_STORAGE_KEY });
-  assert.equal(env.document.documentElement.dataset.theme, 'light');
+  assert.equal(env.document.documentElement.dataset.theme, 'dark');
   env = use({ denied: true }); createTheme().attachThemeEvents(); env.button.emit('click');
   env.media.emit('change');
-  assert.equal(env.document.documentElement.dataset.theme, 'dark');
-  assert.equal(env.button.attrs['aria-pressed'], 'true');
+  assert.equal(env.document.documentElement.dataset.theme, 'light');
+  assert.equal(env.button.attrs['aria-pressed'], 'false');
+  assert.equal(env.button.title, 'Включить тёмную тему');
   console.log('PASS storage synchronization, clearing, unrelated keys and session-only fallback');
 
-  env=use({saved:'light',dark:true});const resettable=createTheme();resettable.attachThemeEvents();
+  env=use({saved:'light',dark:false});const resettable=createTheme();resettable.attachThemeEvents();
   assert.equal(resettable.resetTheme(),true);assert.equal(env.document.documentElement.dataset.theme,'dark');
   assert.equal(env.values.has(THEME_STORAGE_KEY),false);assert.equal(env.button.attrs['aria-pressed'],'true');
-  env.media.matches=false;env.media.emit('change');assert.equal(env.document.documentElement.dataset.theme,'light');
+  env.media.matches=false;env.media.emit('change');assert.equal(env.document.documentElement.dataset.theme,'dark');
   env=use({denied:true});const blockedReset=createTheme();blockedReset.attachThemeEvents();env.button.emit('click');
-  assert.equal(blockedReset.resetTheme(),false);assert.equal(env.document.documentElement.dataset.theme,'light');
-  console.log('PASS reset restores the system theme, removes only its key and works on screen if storage is denied');
+  assert.equal(blockedReset.resetTheme(),false);assert.equal(env.document.documentElement.dataset.theme,'dark');
+  console.log('PASS reset restores dark, removes only its key and works on screen if storage is denied');
 
   const html = fs.readFileSync(path.join(__dirname, '../image-format-lab.html'), 'utf8');
   const startup = html.match(/<script id="viewer-theme">([\s\S]*?)<\/script>/);
   assert.ok(startup && startup.index < html.indexOf('<style>') && startup.index < html.indexOf('<body>'));
-  for (const [options, expected] of [[{ saved: 'dark' }, 'dark'], [{ saved: 'light', dark: true }, 'light'], [{ saved: 'invalid', dark: true }, 'dark'], [{ denied: true, dark: true }, 'dark'], [{ denied: true, noMedia: true }, 'light']]) {
+  for (const [options, expected] of [[{}, 'dark'], [{ saved: 'dark' }, 'dark'], [{ saved: 'light', dark: true }, 'light'], [{ saved: 'invalid' }, 'dark'], [{ denied: true }, 'dark'], [{ denied: true, noMedia: true }, 'dark']]) {
     const { window, document } = environment({ ...options, beforeBody: true });
     vm.runInNewContext(startup[1], { window, document });
     assert.equal(document.documentElement.dataset.theme, expected);

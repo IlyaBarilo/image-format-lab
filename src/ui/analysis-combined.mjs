@@ -6,8 +6,8 @@ const FILL_COLORS=['#e8b4bc','#afd6ba','#b2c8e8','#c9d1db','#e4dbaf'];
 const CELL_COLORS=['#38bdf8','#fb923c','#c084fc','#4ade80'];
 const fmt=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 const deltaFmt=n=>n!==0&&Math.abs(n)<.001?n.toExponential(2):n.toLocaleString('ru-RU',{maximumSignificantDigits:3});
-function prepare(canvas){
-  const rect=canvas.getBoundingClientRect(),width=rect.width,height=rect.height,dpr=Math.min(2.5,Math.max(1,devicePixelRatio||1));
+function prepare(canvas, outputSize){
+  const rect=outputSize||canvas.getBoundingClientRect(),width=rect.width,height=rect.height,dpr=outputSize?1:Math.min(2.5,Math.max(1,devicePixelRatio||1));
   canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
   const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#101923';ctx.fillRect(0,0,width,height);ctx.font='11px "Segoe UI",sans-serif';ctx.textBaseline='middle';
   return {ctx,width,height,dpr};
@@ -57,8 +57,8 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom},filled){
   ctx.restore();
 }
 export function createAnalysisCombined(){
-  function renderAnalysisDelta(canvas,model,settings){
-    const {ctx,width,height,dpr}=prepare(canvas),left=72,right=width-18,top=32,bottom=height-28;
+  function renderAnalysisDelta(canvas,model,settings,outputSize){
+    const {ctx,width,height,dpr}=prepare(canvas,outputSize),left=72,right=width-18,top=32,bottom=height-28;
     const limit=model.maximum||1,profile=model.type==='profile',spatial=Boolean(model.columns);
     canvas.dataset.kind=model.type;canvas.dataset.mode='delta';canvas.dataset.maxAbs=String(model.maximum);
     canvas.dataset.unit=model.unit;canvas.dataset.yMax=String(spatial?255:limit);canvas.dataset.yMin=String(spatial?0:-limit);
@@ -109,8 +109,8 @@ export function createAnalysisCombined(){
       ctx.textAlign='right';model.channels.slice().reverse().forEach(({index},i)=>{ctx.fillStyle=COLORS[index];ctx.fillText(NAMES[index],right-i*22,13);});
     }
   }
-  function renderAnalysisOverlay(canvas,items,settings){
-    const {ctx,width,height,dpr}=prepare(canvas),kind=settings.type,profile=kind==='profile',hist=kind==='histogram';
+  function renderAnalysisOverlay(canvas,items,settings,outputSize){
+    const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',hist=kind==='histogram';
     const channel=profile?settings.profileChannel:settings.channel,indices=ANALYSIS_CHANNELS[channel];
     const maximum=analysisMaximum(kind,items,channel),left=56,right=width-18,top=30,bottom=height-28;
     canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:255);canvas.dataset.densityMax=String(maximum);
@@ -137,8 +137,8 @@ export function createAnalysisCombined(){
       });
     }
   }
-  function renderAnalysisTradeoff(canvas,model){
-    const {ctx,width,height}=prepare(canvas),left=62,right=width-26,top=model.hasInfinity?66:34,bottom=height-35;
+  function renderAnalysisTradeoff(canvas,model,outputSize){
+    const {ctx,width,height}=prepare(canvas,outputSize),left=62,right=width-26,top=model.hasInfinity?66:34,bottom=height-35;
     canvas.dataset.kind='tradeoff';canvas.dataset.mode='metrics';canvas.dataset.metric=model.metric;canvas.dataset.xMax=String(model.xMax);canvas.dataset.yMax=String(model.yMax);canvas.dataset.points=JSON.stringify(model.points.map(({cell,bytes,value})=>({cell,bytes,value:value===Infinity?'Infinity':value})));
     grid(ctx,left,right,top,bottom,model.yMax);
     ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText(model.label,left,12);

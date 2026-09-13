@@ -1,26 +1,29 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { FORMAT_DEFS } from "./../core/config.mjs";
+import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createBatchDialog({els, app}, deps) {
   function updateBatchDialogFormats(current = els.batchFormat.value) {
     els.batchFormat.replaceChildren();
-    for (const [key, def] of Object.entries(FORMAT_DEFS)) {
+    for (const {format: key, value, label} of FORMAT_OPTIONS) {
       if (key === "original") continue;
+      const def = FORMAT_DEFS[key];
       const option = document.createElement("option");
-      option.value = key;
+      option.value = value;
       const reason = deps.formatUnavailableReason(key);
       option.disabled = Boolean(reason);
-      option.textContent = def.label + (reason ? def.codec ? " — кодек не готов" : " — недоступен" : "");
+      option.textContent = label + (reason ? def.codec ? " — кодек не готов" : " — недоступен" : "");
       els.batchFormat.append(option);
     }
     // Keep an unavailable saved choice visible; never silently change the requested format.
-    els.batchFormat.value = current;
+    els.batchFormat.value = formatOptionValue(current);
   }
   
   function openBatchDialog() {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
+    document.getElementById("batchBmpDepth").value = config.format === "bmp32" ? "32" : "24";
     app.batchTiffDraft = normalizeTiffOptions(config);
     document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
       app.batchTiffDraft = options;
@@ -45,7 +48,7 @@ export function createBatchDialog({els, app}, deps) {
   }
   
   function readBatchDialogConfig() {
-    const format = els.batchFormat.value;
+    const format = formatFromOption(els.batchFormat.value, document.getElementById("batchBmpDepth").value);
     const def = FORMAT_DEFS[format];
     const limited = els.batchResizeMode.value === "limit";
     const quality = Number(els.batchQualityNumber.value);
@@ -82,6 +85,7 @@ export function createBatchDialog({els, app}, deps) {
     const config = deps.readBatchDialogConfig();
     const def = FORMAT_DEFS[config.format];
     const gif = config.format === "gif" || config.format === "gifenc";
+    document.getElementById("batchBmpField").hidden = !isBmpFormat(config.format);
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;

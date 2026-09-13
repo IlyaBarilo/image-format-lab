@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -78,7 +78,7 @@
       </div>
       <div class="toolbar-preferences">
         <button class="text-btn" id="resetPreferences" type="button" title="Сбросить тему, панели, сравнение, анализ и параметры пакета. Файлы и именованные наборы останутся.">Сброс настроек</button>
-        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Тёмная тема" aria-pressed="false" title="Включить тёмную тему">
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Тёмная тема" aria-pressed="true" title="Включить светлую тему">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg>
         </button>
       </div>
@@ -208,7 +208,7 @@
           </div>
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
-          <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport">Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
+          <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport" selected>Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField">Уровень <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
@@ -302,6 +302,10 @@
       <div class="batch-dialog-fields">
         <label class="batch-field" for="batchFormat">Выходной формат
           <select class="select" id="batchFormat" autofocus></select>
+        </label>
+        <label class="batch-field" id="batchBmpField" for="batchBmpDepth" hidden>Разрядность BMP
+          <select class="select" id="batchBmpDepth"><option value="24">24 бита · RGB</option><option value="32">32 бита · RGBA</option></select>
+          <span class="batch-note">Без сжатия. 24 бита — цвет с заливкой прозрачности; 32 бита — цвет и альфа-канал.</span>
         </label>
         <div class="batch-field" id="batchTiffField" hidden><span>Сжатие TIFF</span><button class="text-btn" id="batchTiffSettings" type="button" aria-haspopup="dialog" aria-controls="tiffSettingsDialog">Настройки…</button></div>
         <div class="batch-field" id="batchQualityField">

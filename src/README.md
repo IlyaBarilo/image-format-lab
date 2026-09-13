@@ -190,6 +190,7 @@ libjpeg-turbo описаны в [инструкции](../vendor/sources/jpeg/RE
 явный исходник и общую очередь кодирования; пиксели исходника не передаются с потерей владения.
 
 Параметры TIFF `tiffCompression`, `tiffLevel`, `tiffPredictor` проверяются
-в `core/raster-codecs.mjs`. `ui/format-settings.mjs` получает конфигурацию
-и callback от композиционного корня; настройки варианта и черновика пакета
+в `core/raster-codecs.mjs`. `ui/controls.mjs` показывает параметры прямо над
+изображением; `ui/format-settings.mjs` открывает их для черновика пакета.
+Настройки варианта и черновика пакета
 не смешиваются. Параметры входят в профили, localStorage и CSV/JSON-отчёты.

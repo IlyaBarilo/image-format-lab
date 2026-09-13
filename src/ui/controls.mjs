@@ -1,4 +1,6 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
+import { normalizeTiffOptions } from "./../core/raster-codecs.mjs";
+import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createControls({els, app}, deps) {
@@ -37,6 +39,22 @@ export function createControls({els, app}, deps) {
     select.className = "select format-select";
     select.title = "Формат варианта";
     head.append(select);
+
+    const bmpDepthWrap = document.createElement("label");
+    bmpDepthWrap.className = "bmp-depth-wrap";
+    bmpDepthWrap.hidden = !isBmpFormat(variant.config.format);
+    bmpDepthWrap.title = "BMP без сжатия: 24 бита — цвет с заливкой прозрачности; 32 бита — цвет и альфа-канал.";
+    const bmpDepth = document.createElement("select");
+    bmpDepth.className = "select bmp-depth";
+    for (const [value, label] of [["24", "24 бита · RGB"], ["32", "32 бита · RGBA"]]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      bmpDepth.append(option);
+    }
+    bmpDepth.value = variant.config.format === "bmp32" ? "32" : "24";
+    bmpDepthWrap.append(document.createTextNode("Разрядность"), bmpDepth);
+    head.append(bmpDepthWrap);
   
     const qualityWrap = document.createElement("label");
     qualityWrap.className = "quality-wrap";
@@ -101,20 +119,59 @@ export function createControls({els, app}, deps) {
     matteWrap.append(matte);
     head.append(matteWrap);
   
-    const tiffSettings = document.createElement("button");
-    tiffSettings.className = "text-btn";
-    tiffSettings.type = "button";
-    tiffSettings.textContent = "Настройки…";
-    tiffSettings.title = "Сжатие TIFF";
-    tiffSettings.setAttribute("aria-haspopup", "dialog");
-    tiffSettings.setAttribute("aria-controls", "tiffSettingsDialog");
-    tiffSettings.addEventListener("click", () => deps.openTiffSettings(variant.config, options => {
-      Object.assign(variant.config, options);
-      deps.markDirty(variant);
-    }));
-    head.append(tiffSettings);
+    const tiffOptions = normalizeTiffOptions(variant.config);
+    const tiffCompressionWrap = document.createElement("label");
+    tiffCompressionWrap.className = "tiff-compression-wrap";
+    tiffCompressionWrap.hidden = variant.config.format !== "tiff";
+    tiffCompressionWrap.title = "Сжатие TIFF без потерь";
+    const tiffCompression = document.createElement("select");
+    tiffCompression.className = "select tiff-compression";
+    for (const [value, label] of [["none", "Без сжатия"], ["deflate", "Deflate"], ["lzw", "LZW"]]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      tiffCompression.append(option);
+    }
+    tiffCompression.value = tiffOptions.tiffCompression;
+    tiffCompressionWrap.append(document.createTextNode("Сжатие"), tiffCompression);
+
+    const tiffLevelWrap = document.createElement("label");
+    tiffLevelWrap.className = "quality-wrap tiff-level-wrap";
+    tiffLevelWrap.hidden = variant.config.format !== "tiff" || tiffOptions.tiffCompression !== "deflate";
+    tiffLevelWrap.title = "Уровень Deflate: 1–9. Влияет на размер файла и время обработки; пиксели сохраняются без потерь.";
+    const tiffLevel = document.createElement("input");
+    tiffLevel.className = "tiff-level";
+    tiffLevel.type = "range";
+    tiffLevel.min = "1";
+    tiffLevel.max = "9";
+    tiffLevel.step = "1";
+    tiffLevel.value = String(tiffOptions.tiffLevel);
+    tiffLevel.setAttribute("aria-label", "Уровень Deflate");
+    const tiffLevelValue = document.createElement("span");
+    tiffLevelValue.className = "quality-value tiff-level-value";
+    tiffLevelValue.textContent = tiffLevel.value;
+    tiffLevelWrap.append(document.createTextNode("Уровень"), tiffLevel, tiffLevelValue);
+
+    const tiffPredictorWrap = document.createElement("label");
+    tiffPredictorWrap.className = "switch tiff-predictor-wrap";
+    tiffPredictorWrap.hidden = variant.config.format !== "tiff" || tiffOptions.tiffCompression === "none";
+    tiffPredictorWrap.title = "Предиктор по соседним пикселям для Deflate и LZW: может уменьшить файл без изменения пикселей.";
+    const tiffPredictor = document.createElement("input");
+    tiffPredictor.className = "tiff-predictor";
+    tiffPredictor.type = "checkbox";
+    tiffPredictor.checked = tiffOptions.tiffPredictor;
+    tiffPredictorWrap.append(tiffPredictor, document.createTextNode("Предиктор"));
+    head.append(tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
     variant.controls = {
-      tiffSettings,
+      bmpDepthWrap,
+      bmpDepth,
+      tiffCompressionWrap,
+      tiffCompression,
+      tiffLevelWrap,
+      tiffLevel,
+      tiffLevelValue,
+      tiffPredictorWrap,
+      tiffPredictor,
       select,
       qualityWrap,
       quality,
@@ -126,9 +183,26 @@ export function createControls({els, app}, deps) {
       matteWrap,
       matte
     };
+
+    function updateTiffSettings() {
+      Object.assign(variant.config, normalizeTiffOptions({tiffCompression: tiffCompression.value,
+        tiffLevel: Number(tiffLevel.value), tiffPredictor: tiffPredictor.checked}));
+      deps.syncControlsVisibility(variant);
+      deps.markDirty(variant);
+    }
+    tiffCompression.addEventListener("change", updateTiffSettings);
+    tiffLevel.addEventListener("input", updateTiffSettings);
+    tiffPredictor.addEventListener("change", updateTiffSettings);
   
     select.addEventListener("change", () => {
-      variant.config.format = select.value;
+      variant.config.format = formatFromOption(select.value, bmpDepth.value);
+      deps.syncControlsVisibility(variant);
+      deps.markDirty(variant);
+    });
+
+    bmpDepth.addEventListener("change", () => {
+      if (!isBmpFormat(variant.config.format)) return;
+      variant.config.format = formatFromOption("bmp", bmpDepth.value);
       deps.syncControlsVisibility(variant);
       deps.markDirty(variant);
     });
@@ -164,11 +238,11 @@ export function createControls({els, app}, deps) {
       const current = variant.config.format;
       select.innerHTML = "";
   
-      for (const key of Object.keys(FORMAT_DEFS)) {
+      for (const {format: key, value, label} of FORMAT_OPTIONS) {
         const def = FORMAT_DEFS[key];
         const option = document.createElement("option");
-        option.value = key;
-        option.textContent = def.label;
+        option.value = value;
+        option.textContent = label;
         if (def.codec && !app.codecs[def.codec]) {
           option.disabled = true;
           option.textContent = `${def.label} — кодек не готов`;
@@ -179,7 +253,7 @@ export function createControls({els, app}, deps) {
         }
         select.append(option);
       }
-      select.value = current;
+      select.value = formatOptionValue(current);
   
       deps.syncControlsVisibility(variant);
     }
@@ -192,8 +266,23 @@ export function createControls({els, app}, deps) {
     const isQuality = Boolean(def.lossy);
     const isGif = format === "gif" || format === "gifenc";
     const needsMatte = def.alpha === "none";
+
+    if (variant.controls.bmpDepthWrap) {
+      variant.controls.bmpDepthWrap.hidden = !isBmpFormat(format);
+      if (isBmpFormat(format)) variant.controls.bmpDepth.value = format === "bmp32" ? "32" : "24";
+      variant.controls.select.value = formatOptionValue(format);
+    }
   
-    if (variant.controls.tiffSettings) variant.controls.tiffSettings.hidden = format !== "tiff";
+    if (variant.controls.tiffCompressionWrap) {
+      const options = normalizeTiffOptions(variant.config);
+      variant.controls.tiffCompressionWrap.hidden = format !== "tiff";
+      variant.controls.tiffLevelWrap.hidden = format !== "tiff" || options.tiffCompression !== "deflate";
+      variant.controls.tiffPredictorWrap.hidden = format !== "tiff" || options.tiffCompression === "none";
+      variant.controls.tiffCompression.value = options.tiffCompression;
+      variant.controls.tiffLevel.value = String(options.tiffLevel);
+      variant.controls.tiffLevelValue.textContent = String(options.tiffLevel);
+      variant.controls.tiffPredictor.checked = options.tiffPredictor;
+    }
     variant.controls.qualityWrap.style.display = isQuality ? "" : "none";
     variant.controls.gifWrap.style.display = isGif ? "" : "none";
     variant.controls.ditherLabel.style.display = format === "gif" ? "" : "none";
@@ -297,7 +386,7 @@ export function createControls({els, app}, deps) {
   
   function updateFormatHelp() {
     const read = {heic:"Встроенные libheif / libde265",avif:"Встроенный libheif / libaom",jxl:"Встроенный libjxl",jxlLossless:"Встроенный libjxl",bmp24:"Встроенный libnsbmp",bmp32:"Встроенный libnsbmp",tiff:"Встроенные libtiff / UTIF / libjpeg-turbo; первая страница",ico:"PNG — браузер; BMP — libnsbmp"};
-    const rows=Object.entries(FORMAT_DEFS).filter(([key])=>key!=="original").map(([key,def])=>[def.label,read[key]||"Через браузер",deps.formatUnavailableReason(key)||("Доступно · "+deps.codecLabel(key))]);
+    const rows=FORMAT_OPTIONS.filter(({format})=>format!=="original").map(({format, label})=>[label,read[format]||"Через браузер",deps.formatUnavailableReason(format)||("Доступно · "+deps.codecLabel(format)+(isBmpFormat(format)?" · 24/32 бита, без сжатия":""))]);
     document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");for(const text of row){const td=document.createElement("td");td.textContent=text;tr.append(td);}return tr;}));
   }
 

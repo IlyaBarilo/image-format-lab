@@ -342,23 +342,27 @@ export function createAnalysis({ app }, deps) {
       const summary=`Средняя разность ${number(data.means[index])}; максимум ${data.maxima[index]}; отличаются ${number(data.changed[index]/data.pixelCount*100)}% пикселей.`;
       const label=`${item.label}. Различия с исходником. ${description}. ${summary} Усиление ×${amplification}.`;
       card.canvas.setAttribute('aria-label',label);card.badge.title=label;lines.push(label);
-      const canvas=card.canvas, rect=canvas.getBoundingClientRect(), dpr=Math.max(1,Math.min(2.5,devicePixelRatio||1));
-      canvas.width=Math.max(1,Math.round(rect.width*dpr));canvas.height=Math.max(1,Math.round(rect.height*dpr));
-      const ctx=canvas.getContext('2d');ctx.fillStyle='#101923';ctx.fillRect(0,0,canvas.width,canvas.height);
-      const scale=Math.min((canvas.width-16*dpr)/data.bounds.width,(canvas.height-30*dpr)/data.bounds.height);
-      const width=Math.max(1,Math.round(data.bounds.width*scale)),height=Math.max(1,Math.round(data.bounds.height*scale));
-      const cols=Math.min(data.mapWidth,width),rows=Math.min(data.mapHeight,height), pooled=new Uint8Array(cols*rows);
-      for(let y=0;y<data.mapHeight;y++)for(let x=0;x<data.mapWidth;x++){
-        const p=Math.floor(y*rows/data.mapHeight)*cols+Math.floor(x*cols/data.mapWidth);
-        pooled[p]=Math.max(pooled[p],data.maps[index][y*data.mapWidth+x]);
-      }
-      const raster=document.createElement('canvas');raster.width=cols;raster.height=rows;
-      const rc=raster.getContext('2d'),pixels=rc.createImageData(cols,rows);
-      for(let i=0;i<pooled.length;i++){pixels.data.set(palette[pooled[i]],i*4);pixels.data[i*4+3]=255;}
-      rc.putImageData(pixels,0,0);ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(raster,(canvas.width-width)/2,26*dpr+(canvas.height-30*dpr-height)/2,width,height);
+      plotDifference(card.canvas,data,index,palette);
     });
     details.textContent=lines.join('\n');status.textContent='';
+  }
+
+  function plotDifference(canvas,data,index,palette,outputSize) {
+    const rect=outputSize||canvas.getBoundingClientRect(), dpr=outputSize?1:Math.max(1,Math.min(2.5,devicePixelRatio||1));
+    canvas.width=Math.max(1,Math.round(rect.width*dpr));canvas.height=Math.max(1,Math.round(rect.height*dpr));
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#101923';ctx.fillRect(0,0,canvas.width,canvas.height);
+    const scale=Math.min((canvas.width-16*dpr)/data.bounds.width,(canvas.height-30*dpr)/data.bounds.height);
+    const width=Math.max(1,Math.round(data.bounds.width*scale)),height=Math.max(1,Math.round(data.bounds.height*scale));
+    const cols=Math.min(data.mapWidth,width),rows=Math.min(data.mapHeight,height), pooled=new Uint8Array(cols*rows);
+    for(let y=0;y<data.mapHeight;y++)for(let x=0;x<data.mapWidth;x++){
+      const p=Math.floor(y*rows/data.mapHeight)*cols+Math.floor(x*cols/data.mapWidth);
+      pooled[p]=Math.max(pooled[p],data.maps[index][y*data.mapWidth+x]);
+    }
+    const raster=document.createElement('canvas');raster.width=cols;raster.height=rows;
+    const rc=raster.getContext('2d'),pixels=rc.createImageData(cols,rows);
+    for(let i=0;i<pooled.length;i++){pixels.data.set(palette[pooled[i]],i*4);pixels.data[i*4+3]=255;}
+    rc.putImageData(pixels,0,0);ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(raster,(canvas.width-width)/2,26*dpr+(canvas.height-30*dpr-height)/2,width,height);
   }
 
   function drawSpatial() {
@@ -406,9 +410,9 @@ export function createAnalysis({ app }, deps) {
     updateSizeNote();
   }
 
-  function plotSpatial(canvas, data, indices, maximum) {
-    const rect = canvas.getBoundingClientRect(), width = rect.width, height = rect.height;
-    const dpr = Math.max(1, Math.min(2.5, devicePixelRatio || 1));
+  function plotSpatial(canvas, data, indices, maximum, outputSize) {
+    const rect = outputSize || canvas.getBoundingClientRect(), width = rect.width, height = rect.height;
+    const dpr = outputSize ? 1 : Math.max(1, Math.min(2.5, devicePixelRatio || 1));
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#101923'; ctx.fillRect(0, 0, width, height);
@@ -461,10 +465,10 @@ export function createAnalysis({ app }, deps) {
     });
   }
 
-  function plot(canvas, histogram, indices, maximum, bin) {
-    const rect = canvas.getBoundingClientRect();
+  function plot(canvas, histogram, indices, maximum, bin, outputSize) {
+    const rect = outputSize || canvas.getBoundingClientRect();
     const width = rect.width, height = rect.height;
-    const dpr = Math.max(1, Math.min(2.5, devicePixelRatio || 1));
+    const dpr = outputSize ? 1 : Math.max(1, Math.min(2.5, devicePixelRatio || 1));
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -497,6 +501,18 @@ export function createAnalysis({ app }, deps) {
     indices.slice().reverse().forEach((index, offset) => {
       ctx.fillStyle = COLORS[index]; ctx.fillText(NAMES[index], right - offset * 20, 3);
     });
+  }
+
+  // Report drawing uses the same plots with explicit data and output dimensions.
+  // It does not resize live canvases or recalculate the viewport/codec results.
+  function renderAnalysisChart(canvas, item, settings, maximum, outputSize) {
+    const data = item.data;
+    if (settings.type === 'histogram') plot(canvas, data, CHANNELS[settings.channel], maximum, settings.level, outputSize);
+    else if (settings.type === 'waveform' || settings.type === 'parade') plotSpatial(canvas, data, settings.type === 'parade' ? [0,1,2] : [3], maximum, outputSize);
+    else if (settings.type === 'vectorscope') deps.plotVectorscope(canvas, data, maximum, outputSize);
+    else if (settings.type === 'profile') deps.plotLineProfile(canvas, data, CHANNELS[settings.profileChannel], settings.position, outputSize);
+    else if (settings.type === 'difference') plotDifference(canvas, data, settings.differenceChannel === 'alpha' ? 1 : 0, Array.from({length:256},(_,value)=>differenceColor(value,settings.gain)), outputSize);
+    else throw new Error('Неизвестный вид графика отчёта.');
   }
 
   function setExpanded(open) {
@@ -555,6 +571,6 @@ export function createAnalysis({ app }, deps) {
     updateAnalysis();
   }
 
-  return { attachAnalysisEvents, updateAnalysis, updateAnalysisViewport, pauseAnalysisForResize, resumeAnalysisAfterResize, getAnalysisSnapshot, redrawAnalysis:drawAnalysis,
+  return { attachAnalysisEvents, updateAnalysis, updateAnalysisViewport, pauseAnalysisForResize, resumeAnalysisAfterResize, getAnalysisSnapshot, renderAnalysisChart, redrawAnalysis:drawAnalysis,
     expandAnalysis:() => setExpanded(true), collapseAnalysis:() => setExpanded(false) };
 }

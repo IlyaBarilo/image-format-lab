@@ -11,7 +11,9 @@ async function ready(page) {
 }
 async function settings(page, {format='jpeg', width='', height='', metadata='panorama'} = {}) {
   await page.locator('#convertAll').click();
-  await page.locator('#batchFormat').selectOption(format);
+  const bmp=format==='bmp24'||format==='bmp32';
+  await page.locator('#batchFormat').selectOption(bmp?'bmp':format);
+  if(bmp)await page.locator('#batchBmpDepth').selectOption(format==='bmp32'?'32':'24');
   await page.locator('#batchResizeMode').selectOption(width || height ? 'limit' : 'original');
   if(width || height) {
     await page.locator('#batchDialogWidth').fill(width);
