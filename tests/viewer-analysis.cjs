@@ -61,7 +61,9 @@ async function plots(page) {
       }, [...fixture.data]);
       assert.deepEqual(result.channels, white.channels.map(b => [...b])); assert.deepEqual(result.data, [...fixture.data]);
     });
-    await check('offline UI: exact ready images, shared axes, independent settings, cached views and DPR 2', async page => {
+    await check('offline UI: whole-image cache, exact ready images, shared axes, independent settings and DPR 2', async page => {
+      // Configure the collapsed fixture: zoom must not invalidate a whole-image histogram.
+      await page.locator('#analysisScope').selectOption('full', { force: true });
       await page.locator('#sampleImage').click(); await ready(page);
       const before = await page.evaluate(() => {
         window.analysisCalls = []; window.analysisEncodeCalls = 0;
@@ -165,7 +167,7 @@ async function plots(page) {
       await page.locator('.cell .format-select').nth(3).selectOption('gif'); await ready(page);
       await page.locator('.cell .gif-wrap input').nth(3).fill('2');
       await page.locator('.cell .gif-wrap input').nth(3).dispatchEvent('change');
-      await page.locator('.cell').nth(3).locator('input[type="checkbox"]').uncheck();
+      await page.locator('.cell').nth(3).getByRole('checkbox', { name: 'Dither', exact: true }).uncheck();
       await ready(page); await plots(page);
       assert.ok((await page.locator('.analysis-chart').nth(3).getAttribute('aria-label')).includes('2 цветов'));
       if (folder) {
@@ -222,7 +224,9 @@ async function plots(page) {
       await page.locator('#analysisCollapse').click(); await page.locator('button[data-analysis-size="compact"]').click(); await plots(page);
       assert.equal(await page.evaluate(() => app.variants.slice(0,2).every(isVariantReady)), true);
     });
-    await check('splitter drag, keyboard, cancellation, maximum and session restoration without encoding', async page => {
+    await check('whole-image splitter drag, keyboard, cancellation, maximum and session restoration without recomputing or encoding', async page => {
+      // A viewport histogram follows resized previews; this fixture checks whole-image reuse.
+      await page.locator('#analysisScope').selectOption('full', { force: true });
       await page.locator('#sampleImage').click(); await ready(page);
       await page.locator('button[data-analysis-size="compact"]').click(); await plots(page);
       await page.locator('#zoom100').click();
