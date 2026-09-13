@@ -100,7 +100,7 @@ async function finished(page) {
       await page.locator('#batchDialogHeight').fill('70');
       await page.locator('#batchMetadata').selectOption('none');
       await page.locator('#batchSaveSettings').click();
-      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40};
+      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true};
       assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),storageKey),{version:1,config:expected});
       assert.equal(await page.evaluate(()=>downloads.length),0);
       await page.reload();
@@ -174,9 +174,12 @@ async function finished(page) {
       assert.equal(await page.locator('#batchGifDither').isChecked(),true);
       assert.equal(await page.locator('#batchFormat option[value="gifenc"]').evaluate(el=>el.disabled),false);
       assert.equal(await page.locator('#batchFormat option[value="pngUpng"]').evaluate(el=>el.disabled),false);
-      await page.locator('#batchFormat').selectOption('bmp32');
+      await page.locator('#batchFormat').selectOption('bmp');
+      assert.equal(await page.locator('#batchBmpField').isVisible(),true);
+      await page.locator('#batchBmpDepth').selectOption('32');
       assert.equal(await page.locator('#batchGifField').isVisible(),false);
-      await page.locator('#batchFormat').selectOption('bmp24');
+      assert.equal(await page.locator('#batchMatteField').isVisible(),false);
+      await page.locator('#batchBmpDepth').selectOption('24');
       assert.equal(await page.locator('#batchMatteField').isVisible(),true);
     });
 
@@ -220,9 +223,9 @@ async function finished(page) {
     });
 
     await check('invalid stored fields are sanitized individually and extra data never reaches saved settings', async page => {
-      await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({version:1,config:{format:'__proto__',quality:101,gifColors:1,gifDither:'false',matte:'__proto__',metadataPolicy:'all',resizeWidth:'-2',resizeHeight:80,files:['private.png'],unexpected:'ignored'}})),storageKey);
+      await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({version:1,config:{format:'__proto__',quality:101,gifColors:1,gifDither:'false',matte:'__proto__',metadataPolicy:'all',resizeWidth:'-2',resizeHeight:80,tiffCompression:'unknown',tiffLevel:100,tiffPredictor:'false',files:['private.png'],unexpected:'ignored'}})),storageKey);
       await page.reload();
-      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40});
+      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true});
       await page.locator('#fileInput').setInputFiles(files[0]); await ready(page);
       await page.locator('#convertAll').click(); await page.locator('#batchSaveSettings').click();
       const stored=await page.evaluate(key=>localStorage.getItem(key),storageKey);
@@ -280,7 +283,7 @@ async function finished(page) {
         for(const [label,width,height] of [['desktop',1440,1100],['mobile',390,844]]) {
           await page.setViewportSize({width,height});
           await page.locator('#batchAdvanced summary').evaluate(el=>el.parentElement.open=false);
-          await page.locator('.batch-dialog-body').evaluate(el=>el.scrollTop=0);
+          await page.locator('#batchDialog .batch-dialog-body').evaluate(el=>el.scrollTop=0);
           await page.screenshot({path:path.join(out,`${artifacts.runId}-batch-dialog-${label}.png`)});
         }
       }

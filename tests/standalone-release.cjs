@@ -4,6 +4,7 @@ const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
 const artifacts = require('./support/artifacts.cjs');
 const codecProbe = require('./support/codec-probe.cjs');
+const { assertEmbeddedPayload, packedCodecNames } = require('./support/embedded-payload.cjs');
 const root = path.resolve(__dirname, '..');
 async function bytesOf(download) { const chunks = []; for await (const chunk of await download.createReadStream()) chunks.push(chunk); return Buffer.concat(chunks); }
 async function downloadFrom(page, button) {
@@ -37,8 +38,9 @@ async function dimensions(page, bytes) {
     assert.equal(await page.locator('#analysisToggle').count(), 0);
     assert.equal(await page.locator('#analysisPanel').isVisible(), true);
     assert.equal(await page.locator('#analysisBody').isVisible(), true);
-    assert.equal(await page.evaluate(() => Object.values(JSON.parse(document.getElementById('embedded-codecs').textContent).scripts)
-      .filter(entry => entry?.encoding === 'gzip-base64').length), 3);
+    const payload = await page.evaluate(() => JSON.parse(document.getElementById('embedded-codecs').textContent));
+    assertEmbeddedPayload(payload, root);
+    assert.equal(await page.locator('#analysisScope').inputValue(), 'viewport');
     assert.equal(await page.evaluate(() => 'encodeFromSource' in globalThis || 'app' in globalThis), false);
     await page.waitForFunction(() => document.getElementById('codecStatus').dataset.state === 'ready');
     assert.equal(await page.locator('#codecNotice').isVisible(), false);
@@ -47,13 +49,16 @@ async function dimensions(page, bytes) {
     assert.equal(await page.locator('.cell button[title="Скачать вариант"]:enabled').count(), 0);
     assert.equal(await page.evaluate(() => codecProbe.scripts.length), 3);
     assert.equal(await page.evaluate(() => codecProbe.scripts.every(url => codecProbe.revoked.includes(url))), true);
-    report.checks.push('three gzip-packed modules and four plain scripts: all codecs start automatically once, without a load button or network');
+    report.checks.push(`${packedCodecNames.length} gzip-packed modules and ${Object.keys(payload.scripts).length - packedCodecNames.length} plain scripts: all codecs start automatically once, without a load button or network`);
     await page.locator('#licensesOpen').click();
     assert.equal(await page.locator('#licensesDialog').isVisible(), true);
-    assert.equal(await page.locator('#licensesContent .license-component').count(), 20);
     assert.equal(await page.locator('#licensesError').textContent(), '');
-    const releaseTag = await page.evaluate(() => JSON.parse(document.getElementById('embedded-codecs').textContent).releaseTag);
-    assert.equal(await page.locator('#licensesContent .license-component h3').first().textContent(), 'Image Format Lab' + (releaseTag ? ' · ' + releaseTag : ''));
+    const releaseTag = payload.releaseTag;
+    const componentTitles = payload.components.components.map(item => {
+      const version = item.id === 'viewer' ? releaseTag : item.version;
+      return item.name + (version ? ' · ' + version : '');
+    });
+    assert.deepEqual(await page.locator('#licensesContent .license-component h3').allTextContents(), componentTitles, 'show every component from the verified registry');
     if (process.env.IMAGE_TEST_SCREENSHOTS) {
       const out = artifacts.folder(process.env.IMAGE_TEST_SCREENSHOTS); fs.mkdirSync(out, { recursive: true });
       await page.screenshot({ path: path.join(out, artifacts.runId + '-licenses-desktop.png') });
@@ -179,10 +184,15 @@ async function dimensions(page, bytes) {
     await page.locator('#analysisCollapse').click();
     report.checks.push('public offline overlay, size/metric scatter, JSON arrays/Infinity and PNG analysis download');
     for (const format of ['jpeg', 'png', 'gif', 'bmp24', 'bmp32', 'webp']) {
-      const option = cell.locator(`.format-select option[value="${format}"]`);
+      const bmp=format==='bmp24'||format==='bmp32';
+      const choice=bmp?'bmp':format;
+      const option = cell.locator(`.format-select option[value="${choice}"]`);
       if (await option.isDisabled()) continue;
-      await cell.locator('.format-select').selectOption(format);
-      assert.deepEqual(await dimensions(page, await downloadFrom(page, save)), [960, 640]);
+      await cell.locator('.format-select').selectOption(choice);
+      if(bmp)await cell.locator('.bmp-depth').selectOption(format==='bmp32'?'32':'24');
+      const bytes=await downloadFrom(page, save);
+      assert.deepEqual(await dimensions(page, bytes), [960, 640]);
+      if(bmp)assert.equal(bytes.readUInt16LE(28),format==='bmp32'?32:24,'Selected depth reaches the saved BMP header');
       report.checks.push('public UI export ' + format);
     }
     for (const format of ['pngUpng', 'gifenc']) {
@@ -262,7 +272,7 @@ async function dimensions(page, bytes) {
     assert.equal(await page.locator('#backgroundSelect').inputValue(),'checker');
     assert.equal(await page.locator('button[data-analysis-size="compact"]').getAttribute('aria-pressed'),'true');
     assert.equal(await page.locator('#analysisType').inputValue(),'histogram');assert.equal(await page.locator('#analysisDisplayOverlay').isChecked(),true);
-    assert.equal(await page.locator('#analysisScope').inputValue(),'full');
+    assert.equal(await page.locator('#analysisScope').inputValue(),'viewport');
     assert.deepEqual(await page.evaluate(()=>['image-format-viewer.preferences.v1','image-format-viewer.theme.v1','image-format-viewer.batch-settings.v1'].map(key=>localStorage.getItem(key))),[null,null,null]);
     assert.equal(await page.evaluate(()=>localStorage.getItem('image-format-viewer.comparison-profiles.v1')),profiles);
     assert.equal(await page.locator('html').getAttribute('data-theme'),await page.evaluate(()=>matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));

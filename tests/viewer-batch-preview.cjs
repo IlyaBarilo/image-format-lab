@@ -187,7 +187,7 @@ async function limit(page,width,height='') {
       for(const [width,height] of [[1440,1000],[768,900],[390,844],[320,568]]) {
         await page.setViewportSize({width,height});
         await page.locator('#batchPreviewAfter').scrollIntoViewIfNeeded();
-        assert.equal(await page.locator('.batch-dialog-body').evaluate(el=>el.scrollWidth>el.clientWidth),false,'overflow '+width);
+        assert.equal(await page.locator('#batchDialog .batch-dialog-body').evaluate(el=>el.scrollWidth>el.clientWidth),false,'overflow '+width);
         assert.ok((await page.locator('#batchPreviewAfter').boundingBox()).width>100);
         const button=await page.locator('#batchStart').boundingBox();assert.ok(button.y>=0&&button.y+button.height<=height);
       }

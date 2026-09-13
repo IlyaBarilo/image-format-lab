@@ -7,7 +7,7 @@ const { createRequire } = require('node:module');
 const { pathToFileURL } = require('node:url');
 const requireBuildTool = createRequire(path.join(__dirname, '../scripts/package.json'));
 const { parse } = requireBuildTool('acorn');
-const { decodeScript } = require('./support/codec-payload.cjs');
+const { assertEmbeddedPayload } = require('./support/embedded-payload.cjs');
 
 (async () => {
   const { buildViewer, root } = await import('../scripts/build.mjs');
@@ -83,25 +83,17 @@ const { decodeScript } = require('./support/codec-payload.cjs');
     assert.ok(first.watchFiles.includes('scripts/' + name));
     assert.ok(!first.watchFiles.includes(name));
   }
-  assert.equal(Object.keys(payload.scripts).length, 7);
-  assert.equal(Object.keys(payload.licenses).length, 48);
+  assertEmbeddedPayload(payload, root);
   assert.ok(!Object.keys(payload.scripts).some(name => /heic2any|gifshot/.test(name)));
   assert.equal(payload.scripts['vendor/UTIF-3.1.0.js'], fs.readFileSync(path.join(root,'vendor/sources/utif/UTIF.js'),'utf8'));
   assert.ok(!/UTIF\.(?:JpegDecoder|LosslessJpegDecode)\s*=|PDFJS\.JpegImage/.test(payload.scripts['vendor/UTIF-3.1.0.js']));
   assert.ok(payload.licenses['JPEG-NOTICE'].includes('Independent JPEG Group'));
   assert.ok(!Object.hasOwn(payload, 'sources') && !Object.hasOwn(payload, 'sourceArchives'));
   assert.deepEqual(Object.keys(payload.sourcePackages).sort(), ['gifenc', 'heic']);
-  assert.equal(Object.values(payload.scripts).filter(entry => entry?.encoding === 'gzip-base64').length, 3);
-  for (const entry of Object.values(payload.scripts)) if (entry?.encoding === 'gzip-base64') {
-    assert.equal(Buffer.from(entry.data, 'base64')[9], 255, 'gzip OS must be platform-neutral for Windows/Linux build parity');
-  }
-  for (const [name, source] of Object.entries(payload.scripts)) assert.equal(decodeScript(source), fs.readFileSync(path.join(root, name), 'utf8'));
-  for (const [name, license] of Object.entries(payload.licenses)) assert.equal(license, fs.readFileSync(path.join(root, 'vendor', name), 'utf8'));
   const notices = JSON.parse(first.html.match(/<script type="application\/json" id="embedded-notices">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(Object.keys(notices).sort(), ['ASSETS.md', 'LICENSE', 'NOTICE.md', 'docs/licenses/acorn-LICENSE', 'docs/licenses/esbuild-LICENSE']);
   for (const [name, notice] of Object.entries(notices)) assert.equal(notice, fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n?/g, '\n'));
   assert.ok(notices.LICENSE.includes('Copyright (c) 2026 Ilya Barilo'));
-  assert.deepEqual(payload.components, JSON.parse(fs.readFileSync(path.join(root, 'vendor/components.json'), 'utf8')));
   const { sourceNames } = require('../scripts/vendor-files.cjs');
   for (const name of sourceNames) assert.ok(first.watchFiles.includes('vendor/' + name));
   const { buildGifenc } = require('../vendor/sources/gifenc-1.0.3/build.cjs');
