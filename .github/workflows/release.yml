@@ -1,12 +1,8 @@
 name: Release
-run-name: Release ${{ inputs.tag }}
+run-name: Release ${{ github.event.release.tag_name }}
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing tag from main, for example v1, v0.1, v0.1.0 or v0.1.2.3
-        required: true
-        type: string
+  release:
+    types: [published]
 permissions:
   contents: read
 concurrency:
@@ -14,28 +10,33 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     outputs:
       commit: ${{ steps.commit.outputs.sha }}
       artifact: ${{ steps.assets.outputs.artifact-id }}
     env:
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
       IMAGE_TEST_PYTHON: python
       IMAGE_TEST_HEIC_NATIVE: '1'
       IMAGE_TEST_LOGS: test-results
       IMAGE_TEST_RUN_ID: release
     steps:
-      - name: Require main workflow branch
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "::error::Run Release from the main branch."
-          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: refs/tags/${{ inputs.tag }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Require a mutable release and a version from main
+        env:
+          RELEASE_IMMUTABLE: ${{ github.event.release.immutable }}
+        run: |
+          if [ "$RELEASE_IMMUTABLE" = "true" ]; then
+            echo "::error::Published immutable releases cannot accept assets."
+            exit 1
+          fi
+          node --input-type=module -e 'import { verifyReleaseCheckout } from "./scripts/build-version.mjs"; verifyReleaseCheckout(process.env.RELEASE_TAG, process.cwd());'
       - uses: ./.github/actions/setup-tests
       - name: Check publication paths and clean inputs
         run: |
@@ -75,7 +76,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Publication code comes from the workflow commit, not the selected tag.
+      # The release event identifies the commit used by the workflow.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
@@ -89,9 +90,10 @@ jobs:
           artifact-ids: ${{ needs.build.outputs.artifact }}
           merge-multiple: true
           path: dist/release/
-      - name: Upload, verify and publish
+      - name: Attach and verify release assets
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
+          RELEASE_ID: ${{ github.event.release.id }}
         run: node scripts/publish-release.mjs
