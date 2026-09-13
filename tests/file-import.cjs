@@ -31,7 +31,7 @@ const assert = require('node:assert/strict');
   const panel = new Element(doc), listRow = new Element(panel), stage = new Element(doc), canvas = new Element(stage);
   const els = {
     workspace: new Element(), toggleFiles: new Element(), filePanel: panel, fileInput: new Element(panel, true),
-    fileDropHint: new Element(), viewDropHint: new Element(), sourceInfo: new Element(), emptyState: new Element()
+    fileDropHint: new Element(), viewDropHint: new Element(), emptyState: new Element()
   };
   const statuses = [], rendered = [], opened = [];
   const decode = file => ({ file, name: file.name, width: 8, height: 4, size: file.size });

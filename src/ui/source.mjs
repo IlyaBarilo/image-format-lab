@@ -8,7 +8,6 @@ export function createSource({app, els}, deps) {
     deps.disposeSource();
     const generation = app.sourceGeneration;
     app.sourceLoading = true;
-    els.sourceInfo.textContent = "Открываю: " + (file.name || "image");
     deps.setEmptyState("Открываю изображение…", file.name || "image");
     deps.drawAll();
     if (announce) deps.showStatus("Загружаю исходное изображение...");
@@ -19,7 +18,6 @@ export function createSource({app, els}, deps) {
       source.fileId = fileId;
       
       els.emptyState.style.display = "none";
-      els.sourceInfo.textContent = source.name + " • " + source.width + "×" + source.height + " • " + deps.formatBytes(source.size) + (source.hasAlpha ? " • alpha" : "") + (source.panorama ? " • GPano" : source.panoramaError ? " • ошибка GPano" : "");
       deps.resetView();
       if (options.renderPreview !== false) await deps.renderVisibleVariants();
       else deps.drawAll();
@@ -31,7 +29,6 @@ export function createSource({app, els}, deps) {
       deps.disposeSource();
       app.sourceError = error.message || String(error);
       deps.setEmptyState("Не удалось открыть изображение", "Выберите другой файл или нажмите на этот файл в списке, чтобы повторить открытие.");
-      els.sourceInfo.textContent = "Не удалось открыть изображение";
       if (announce) deps.showStatus("Не удалось открыть файл: " + (error.message || error), true);
       deps.drawAll();
       return false;
@@ -57,7 +54,6 @@ export function createSource({app, els}, deps) {
       variant.dirty = false;
       deps.updateMetrics(variant);
     }
-    els.sourceInfo.textContent = "";
   }
   
   function createSampleFile() {

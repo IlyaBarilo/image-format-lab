@@ -104,7 +104,6 @@ export function collectElements() {
   retryCodecs: document.getElementById("retryCodecs"),
   codecStatus: document.getElementById("codecStatus"),
   codecNotice: document.getElementById("codecNotice"),
-  sourceInfo: document.getElementById("sourceInfo"),
   metadataPolicy: document.getElementById("metadataPolicy"),
   grid: document.getElementById("grid"),
   emptyState: document.getElementById("emptyState"),

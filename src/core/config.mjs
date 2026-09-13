@@ -52,7 +52,7 @@ export const FORMAT_DEFS = {
   webpLossless: { label: "WebP lossless", mime: "image/webp", ext: "webp", lossy: false, alpha: "full", native: false, codec: "modern" },
   jxl: { label: "JPEG XL", mime: "image/jxl", ext: "jxl", lossy: true, alpha: "full", native: false, codec: "modern" },
   jxlLossless: { label: "JPEG XL lossless", mime: "image/jxl", ext: "jxl", lossy: false, alpha: "full", native: false, codec: "modern" },
-  tiff: { label: "TIFF Deflate", mime: "image/tiff", ext: "tif", lossy: false, alpha: "full", native: false, codec: "utif" },
+  tiff: { label: "TIFF", mime: "image/tiff", ext: "tif", lossy: false, alpha: "full", native: false, codec: "utif" },
   ico: { label: "ICO · 7 размеров", mime: "image/x-icon", ext: "ico", lossy: false, alpha: "full", native: false },
   heic: {
     label: "HEIC",

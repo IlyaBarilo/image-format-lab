@@ -385,8 +385,38 @@ export function createControls({els, app}, deps) {
   }
   
   function updateFormatHelp() {
-    const read = {heic:"Встроенные libheif / libde265",avif:"Встроенный libheif / libaom",jxl:"Встроенный libjxl",jxlLossless:"Встроенный libjxl",bmp24:"Встроенный libnsbmp",bmp32:"Встроенный libnsbmp",tiff:"Встроенные libtiff / UTIF / libjpeg-turbo; первая страница",ico:"PNG — браузер; BMP — libnsbmp"};
-    const rows=FORMAT_OPTIONS.filter(({format})=>format!=="original").map(({format, label})=>[label,read[format]||"Через браузер",deps.formatUnavailableReason(format)||("Доступно · "+deps.codecLabel(format)+(isBmpFormat(format)?" · 24/32 бита, без сжатия":""))]);
+    const webpRead = "Браузер; при отказе — встроенный libwebp";
+    const read = {
+      original: "По правилам формата исходника",
+      webp: webpRead, webpLossless: webpRead,
+      heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
+      avif: "Встроенные libheif / libaom",
+      jxl: "Встроенный libjxl", jxlLossless: "Встроенный libjxl",
+      bmp24: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
+      tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; TIFF/BigTIFF, первая страница",
+      ico: "Наибольший PNG внутри ICO — браузер; BMP внутри ICO — встроенный libnsbmp"
+    };
+    const write = {
+      original: "Исходные байты без перекодирования; все метаданные сохраняются",
+      jpeg: "Браузер; качество 1–100, с потерями; прозрачность заменяется заливкой",
+      png: "Браузер; без потерь, полная прозрачность",
+      pngUpng: "Встроенные UPNG / pako; без потерь, полная прозрачность",
+      webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
+      webpLossless: "Встроенный libwebp; без потерь, полная прозрачность",
+      avif: "Встроенные libheif / libaom; качество 1–100, поддерживает прозрачность",
+      jxl: "Встроенный libjxl; качество 1–100, поддерживает прозрачность",
+      jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность",
+      tiff: "Встроенный libtiff; RGBA8 без потерь: без сжатия, Deflate или LZW; уровень Deflate 1–9 и предиктор",
+      ico: "7 PNG-размеров: 16, 24, 32, 48, 64, 128, 256 px; пропорции сохраняются, поля прозрачные; маленький исходник не растягивается",
+      heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",
+      gif: "Собственный кодировщик; один кадр, 2–256 цветов, переключаемый дизеринг, двоичная прозрачность",
+      gifenc: "Встроенный gifenc; один кадр, 2–256 цветов, без дизеринга, двоичная прозрачность",
+      bmp24: "Собственный кодировщик; без сжатия, выбор 24 бит RGB с заливкой или 32 бит RGBA с прозрачностью"
+    };
+    const rows = FORMAT_OPTIONS.map(({format, label}) => {
+      const unavailable = format === "original" ? "" : deps.formatUnavailableReason(format);
+      return [label, read[format] || "Через браузер", (unavailable ? unavailable + " · " : "") + write[format]];
+    });
     document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");for(const text of row){const td=document.createElement("td");td.textContent=text;tr.append(td);}return tr;}));
   }
 
