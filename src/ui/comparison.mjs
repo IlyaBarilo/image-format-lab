@@ -1,5 +1,6 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { webpBlockGrid } from '../core/webp-blocks.mjs';
+import { heifBlockGrid } from '../core/heif-blocks.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createComparison({app, els}, deps) {
@@ -47,7 +48,9 @@ export function createComparison({app, els}, deps) {
       if (format !== "original") { const unavailable=deps.formatUnavailableReason(format); if(unavailable) throw new Error(unavailable); }
       const encoded = await deps.encodeFromSource(config, source, current);
       if (!current()) return;
-      const blockGrid = format === 'webp' ? await webpBlockGrid(encoded.blob).catch(()=>null) : null;
+      const blockGrid = format === 'webp' ? await webpBlockGrid(encoded.blob).catch(()=>null)
+        : format === 'avif'||format === 'heic'
+          ? await heifBlockGrid(encoded.blob,format,encoded.width,encoded.height) : null;
       if (!current()) return;
       const decoded = encoded.previewOnly
         ? await deps.imageDataToPreview(encoded.previewImageData, encoded.sourcePixelBuffer?.bitDepth>8?encoded.sourcePixelBuffer:undefined)

@@ -497,7 +497,7 @@ export function createCanvas({app, els}, deps) {
   function syncGridModeUI(){
     els.pixelGrid?.setAttribute('aria-pressed',String(Boolean(app.pixelGrid)));
     els.pixelGrid?.classList.toggle('active',Boolean(app.pixelGrid));
-    if(els.pixelGrid)els.pixelGrid.title=app.gridMode==='codec-blocks'?'Блоки формата: JPEG/WebP — сплошные границы, AVIF/HEIC/JPEG XL — пунктирный ориентир':'Пиксели: показать или скрыть при большом увеличении';
+    if(els.pixelGrid)els.pixelGrid.title=app.gridMode==='codec-blocks'?'Блоки формата: JPEG/WebP/AVIF/HEIC — подтверждённые верхние блоки, JPEG XL — пунктирный ориентир':'Пиксели: показать или скрыть при большом увеличении';
     els.gridModePixels?.setAttribute('aria-checked',String(app.gridMode!=='codec-blocks'));
     els.gridModeCodec?.setAttribute('aria-checked',String(app.gridMode==='codec-blocks'));
   }

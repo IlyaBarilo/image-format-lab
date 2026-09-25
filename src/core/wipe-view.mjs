@@ -32,11 +32,14 @@ export function visibleCodecBlockLines(offset,scale,pixels,viewport,cssScale,blo
   return visibleGridLines(offset,blockSize*scale,Math.ceil(pixels/blockSize),viewport,blockSize*cssScale);
 }
 
-export function codecGridSpec(config,webpGrid){
+export function codecGridSpec(config,blockGrid){
   if(!config)return null;
   if(config.format==='jpeg')return {kind:'jpeg',step:8,...jpegBlockSize(config.jpegSubsampling)};
-  if(config.format==='webp'&&webpGrid?.kind==='webp-vp8')return {kind:'webp',step:16,width:16,height:16};
-  if(config.format==='avif'||config.format==='heic')return {kind:'guide',step:64,width:64,height:64};
+  if(config.format==='webp'&&blockGrid?.kind==='webp-vp8')return {kind:'webp',step:16,width:16,height:16};
+  if(config.format==='avif'&&blockGrid?.kind==='avif-superblock'&&[64,128].includes(blockGrid.width))
+    return {kind:'avif',step:blockGrid.width,width:blockGrid.width,height:blockGrid.width};
+  if(config.format==='heic'&&blockGrid?.kind==='heic-ctu'&&[16,32,64].includes(blockGrid.width))
+    return {kind:'heic',step:blockGrid.width,width:blockGrid.width,height:blockGrid.width};
   if(config.format==='jxl')return {kind:'guide',step:8,width:8,height:8};
   return null;
 }
