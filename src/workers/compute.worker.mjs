@@ -4,6 +4,7 @@ import { computePixelMetrics } from '../core/metrics.mjs';
 import { computeHistogram } from '../core/histogram.mjs';
 import { computeErrorHistogram } from '../core/error-histogram.mjs';
 import { computeWaveform } from '../core/waveform.mjs';
+import { computeSignalHistogram } from '../core/signal-scopes.mjs';
 import { computeDifference } from '../core/difference.mjs';
 import { computeVectorscope } from '../core/vectorscope.mjs';
 import { computeLineProfile } from '../core/line-profile.mjs';
@@ -16,6 +17,7 @@ self.onmessage = event => {
     else if (kind === 'histogram') result = computeHistogram(payload.pixelBuffer || payload.imageData, payload.matte, payload.region, payload.options);
     else if (kind === 'errorHistogram') result = computeErrorHistogram(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
     else if (kind === 'waveform') result = computeWaveform(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'signalHistogram') result = computeSignalHistogram(payload.imageData, payload.matte, payload.region);
     else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);
     else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);
     else if (kind === 'profile') result = computeLineProfile(payload.imageData, payload.matte, payload.region, payload.line);

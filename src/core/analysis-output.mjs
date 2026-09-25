@@ -1,5 +1,7 @@
 // Own analysis presentation data, MIT. No application or DOM state.
 export const ANALYSIS_CHANNELS={rgb:[0,1,2],r:[0],g:[1],b:[2],alpha:[3],y:[4]};
+export const SIGNAL_NAMES=['Y′','Cb','Cr'];
+export const spatialChannels=kind=>kind==='waveform'?[3]:kind==='rgbWaveform'||kind==='parade'?[0,1,2]:kind==='ycbcrParade'?[3,4,5]:[];
 export const ANALYSIS_METRICS={
   psnrRGB:{label:'PSNR RGB, dB',direction:'выше — меньше ошибка RGB'},
   alphaErrorPercent:{label:'Ошибка α, %',direction:'ниже — меньше ошибка прозрачности'},
@@ -9,9 +11,9 @@ export function analysisMaximum(kind,items,channel='rgb') {
   let maximum=0;
   for(const {data}of items){if(!data)continue;
     if(kind==='vectorscope'){for(const n of data.bins)maximum=Math.max(maximum,n/data.pixelCount);}
-    else if(kind==='histogram'){for(const c of ANALYSIS_CHANNELS[channel])for(const n of data.channels[c])maximum=Math.max(maximum,n/data.pixelCount*100);}
+    else if(kind==='histogram'||kind==='signalHistogram'){for(const c of kind==='signalHistogram'?[0,1,2]:ANALYSIS_CHANNELS[channel])for(const n of data.channels[c])maximum=Math.max(maximum,n/data.pixelCount*100);}
     else if(kind==='errorHistogram'){for(const n of data.channels[channel==='alpha'?1:0])maximum=Math.max(maximum,n/data.pixelCount*100);}
-    else if(kind==='waveform'||kind==='parade')for(const c of kind==='waveform'?[3]:[0,1,2])for(let x=0;x<data.columns;x++)for(let y=0;y<256;y++)maximum=Math.max(maximum,data.channels[c][x*256+y]/data.columnPixels[x]);
+    else if(spatialChannels(kind).length)for(const c of spatialChannels(kind))for(let x=0;x<data.columns;x++)for(let y=0;y<256;y++)maximum=Math.max(maximum,data.channels[c][x*256+y]/data.columnPixels[x]);
   }
   return maximum||1;
 }

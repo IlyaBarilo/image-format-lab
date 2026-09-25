@@ -75,7 +75,7 @@ export function histogramSummary(data, channel = 'rgb') {
 }
 
 export function groupHistogramDelta(model, maxBins) {
-  if (model.type !== 'histogram') return model;
+  if (model.type !== 'histogram' && model.type !== 'signalHistogram') return model;
   const bins = targetBins(model.bins, maxBins);
   if (bins === model.bins) return model;
   let maximum = 0;

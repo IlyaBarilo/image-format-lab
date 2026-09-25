@@ -1,9 +1,12 @@
 // Own combined scopes and size/metric scatter plot, MIT. Inputs are explicit.
-import {ANALYSIS_CHANNELS,analysisMaximum} from '../core/analysis-output.mjs';
+import {ANALYSIS_CHANNELS,analysisMaximum,spatialChannels,SIGNAL_NAMES} from '../core/analysis-output.mjs';
 import {histogramView,histogramTick,groupHistogramDelta} from '../core/histogram-view.mjs';
 import {chromaCoordinates} from '../core/vectorscope.mjs';
-const COLORS=['#ff4b55','#27e36c','#3594ff','#f1f5f9','#facc15'],NAMES=['R','G','B','α','Y′'];
-const FILL_COLORS=['#e8b4bc','#afd6ba','#b2c8e8','#c9d1db','#e4dbaf'];
+const COLORS=['#ff4b55','#27e36c','#3594ff','#f1f5f9','#facc15','#22d3ee','#f472b6'],NAMES=['R','G','B','α','Y′','Cb','Cr'];
+const FILL_COLORS=['#e8b4bc','#afd6ba','#b2c8e8','#c9d1db','#e4dbaf','#a1dce3','#e7b2d4'];
+const SIGNAL_COLORS=['#facc15','#22d3ee','#f472b6'],SIGNAL_FILLS=['#e4dbaf','#a1dce3','#e7b2d4'];
+const spatialName=index=>index===3?'Y′':index===4?'Cb':index===5?'Cr':NAMES[index];
+const spatialColor=index=>index>=3?COLORS[index+1]:COLORS[index];
 const CELL_COLORS=['#38bdf8','#fb923c','#c084fc','#4ade80'];
 const fmt=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 const deltaFmt=n=>n!==0&&Math.abs(n)<.001?n.toExponential(2):n.toLocaleString('ru-RU',{maximumSignificantDigits:3});
@@ -23,7 +26,8 @@ function density(ctx,columns,rows,getValue,maximum,color,left,top,width,height,d
   for(let i=0;i<pooled.length;i++)if(pooled[i]){pixels.data.set(color,i*4);pixels.data[i*4+3]=Math.round(255*Math.pow(pooled[i]/maximum,.25));}
   lc.putImageData(pixels,0,0);ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalCompositeOperation='lighter';ctx.drawImage(layer,left,top,width,height);ctx.restore();
 }
-function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false},filled){
+function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false,signal=false},filled){
+  const colors=signal?SIGNAL_COLORS:COLORS,fills=signal?SIGNAL_FILLS:FILL_COLORS;
   const series=indices.map(c=>{
     const values=hist?data.channels[c]:data.channels[c].mean;
     return {c,values,x:i=>left+(values.length===1?.5:i/(values.length-1))*(right-left),
@@ -35,13 +39,13 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false},
     // Paint all channel areas before any contours. The zero baseline is not a second signal.
     for(const s of series)if(s.values.length>1){
       trace(s);ctx.lineTo(s.x(s.values.length-1),bottom);ctx.lineTo(s.x(0),bottom);ctx.closePath();
-      ctx.fillStyle=FILL_COLORS[error&&s.c===1?3:s.c];ctx.globalAlpha=.32;ctx.fill();
+       ctx.fillStyle=fills[error&&s.c===1?3:s.c];ctx.globalAlpha=.32;ctx.fill();
     }
   }
   if(!hist){
     // Keep the original min/max range of every profile bin, including narrow peaks.
     ctx.globalAlpha=filled?.28:.5;ctx.lineWidth=filled?1:1.5;
-    for(const s of series){ctx.strokeStyle=filled?FILL_COLORS[s.c]:COLORS[s.c];ctx.beginPath();
+     for(const s of series){ctx.strokeStyle=filled?fills[s.c]:colors[s.c];ctx.beginPath();
       for(let i=0;i<data.bins;i++){ctx.moveTo(s.x(i),s.y(data.channels[s.c].min[i]));ctx.lineTo(s.x(i),s.y(data.channels[s.c].max[i]));}ctx.stroke();
     }
   }
@@ -53,7 +57,7 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false},
   ctx.globalAlpha=filled?.65:1;ctx.lineWidth=filled?1:2;
   for(const s of series){
     const color=error&&s.c===1?3:s.c;
-    ctx.strokeStyle=ctx.fillStyle=filled?FILL_COLORS[color]:COLORS[color];trace(s);ctx.stroke();
+     ctx.strokeStyle=ctx.fillStyle=filled?fills[color]:colors[color];trace(s);ctx.stroke();
     if(s.values.length===1){ctx.beginPath();ctx.arc(s.x(0),s.y(s.value(0)),filled?3:5,0,Math.PI*2);if(filled)ctx.fill();else ctx.stroke();}
   }
   ctx.restore();
@@ -67,7 +71,7 @@ export function createAnalysisCombined(){
     canvas.dataset.kind=model.type;canvas.dataset.mode='delta';canvas.dataset.maxAbs=String(model.maximum);
     canvas.dataset.unit=model.unit;canvas.dataset.yMax=String(spatial?255:limit);canvas.dataset.yMin=String(spatial?0:-limit);
     if(spatial){
-      const gap=14,span=(right-left-gap*(model.channels.length-1))/model.channels.length;
+       const gap=14,span=(right-left-gap*(model.channels.length-1))/model.channels.length;
       grid(ctx,left,right,top,bottom,255);
       model.channels.forEach(({index,values},j)=>{
         const start=left+j*(span+gap),w=Math.min(model.columns,Math.max(1,Math.round(span*dpr))),h=Math.min(256,Math.max(1,Math.round((bottom-top)*dpr)));
@@ -84,7 +88,7 @@ export function createAnalysisCombined(){
           pixels.data[i*4+3]=Math.round(255*Math.pow(Math.min(1,Math.abs(pooled[i])/limit),.25));
         }
         lc.putImageData(pixels,0,0);ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(layer,start,top,span,bottom-top);ctx.restore();
-        ctx.fillStyle=index===3?'#facc15':COLORS[index];ctx.textAlign='center';ctx.fillText(index===3?'Y′':NAMES[index],start+span/2,13);
+         ctx.fillStyle=spatialColor(index);ctx.textAlign='center';ctx.fillText(spatialName(index),start+span/2,13);
         ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);
       });
     }else{
@@ -98,35 +102,35 @@ export function createAnalysisCombined(){
       if(model.maximum){
         ctx.save();
         const trace=values=>{ctx.beginPath();values.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));};
-        if(model.bins>1)for(const {index,values} of model.channels){
-          trace(values);ctx.lineTo(x(model.bins-1),zero);ctx.lineTo(x(0),zero);ctx.closePath();ctx.fillStyle=FILL_COLORS[index];ctx.globalAlpha=.18;ctx.fill();
+         if(model.bins>1)for(const {index,values} of model.channels){
+           trace(values);ctx.lineTo(x(model.bins-1),zero);ctx.lineTo(x(0),zero);ctx.closePath();ctx.fillStyle=model.type==='signalHistogram'?SIGNAL_FILLS[index]:FILL_COLORS[index];ctx.globalAlpha=.18;ctx.fill();
         }
         ctx.globalAlpha=1;ctx.lineWidth=2;
         for(const {index,values} of model.channels){
-          ctx.strokeStyle=COLORS[index];trace(values);ctx.stroke();
-          if(model.bins===1){ctx.beginPath();ctx.arc(x(0),y(values[0]),4,0,Math.PI*2);ctx.fillStyle=COLORS[index];ctx.fill();}
+           ctx.strokeStyle=model.type==='signalHistogram'?SIGNAL_COLORS[index]:COLORS[index];trace(values);ctx.stroke();
+           if(model.bins===1){ctx.beginPath();ctx.arc(x(0),y(values[0]),4,0,Math.PI*2);ctx.fillStyle=model.type==='signalHistogram'?SIGNAL_COLORS[index]:COLORS[index];ctx.fill();}
         }
         ctx.restore();
       }
       for(const ratio of [0,.5,1]){ctx.fillStyle='#cbd5e1';ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:histogramTick(model.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);
-      ctx.textAlign='right';model.channels.slice().reverse().forEach(({index},i)=>{ctx.fillStyle=COLORS[index];ctx.fillText(NAMES[index],right-i*22,13);});
+       ctx.textAlign='right';model.channels.slice().reverse().forEach(({index},i)=>{ctx.fillStyle=model.type==='signalHistogram'?SIGNAL_COLORS[index]:COLORS[index];ctx.fillText(model.type==='signalHistogram'?SIGNAL_NAMES[index]:NAMES[index],right-i*(model.type==='signalHistogram'?28:22),13);});
     }
   }
   function renderAnalysisOverlay(canvas,items,settings,outputSize){
-    const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',hist=kind==='histogram'||error;
-    const view=kind==='histogram'?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
+     const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',signal=kind==='signalHistogram',hist=kind==='histogram'||signal||error;
+     const view=kind==='histogram'||signal?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}
     const channel=profile?settings.profileChannel:error?settings.errorChannel:settings.channel,indices=error?[channel==='alpha'?1:0]:ANALYSIS_CHANNELS[channel];
     const maximum=analysisMaximum(kind,items,channel),left=56,right=width-18,top=30,bottom=height-28;
     canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:255);canvas.dataset.densityMax=String(maximum);
     if(hist||profile){
       const limit=hist?maximum:255;grid(ctx,left,right,top,bottom,limit,hist);
-      items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error},layer===0));
+       items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error,signal},layer===0));
       ctx.setLineDash([]);ctx.fillStyle='#cbd5e1';
       for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile||error?`${ratio*100}%`:histogramTick(view.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);
-      ctx.textAlign='right';indices.slice().reverse().forEach((c,i)=>{ctx.fillStyle=COLORS[error&&c===1?3:c];ctx.fillText(error?(c===1?'α':'RGB'):NAMES[c],right-i*22,12);});
+       ctx.textAlign='right';indices.slice().reverse().forEach((c,i)=>{ctx.fillStyle=signal?SIGNAL_COLORS[c]:COLORS[error&&c===1?3:c];ctx.fillText(error?(c===1?'α':'RGB'):signal?SIGNAL_NAMES[c]:NAMES[c],right-i*(signal?28:22),12);});
       if(error){canvas.dataset.xMin='0';canvas.dataset.xMax='100';canvas.dataset.bins='256';}
     }else if(kind==='vectorscope'){
       const size=Math.min(width-88,height-50),cx=width/2,cy=27+size/2,x0=cx-size/2,y0=cy-size/2;
@@ -136,12 +140,13 @@ export function createAnalysisCombined(){
       for(const [name,r,g,b]of [['R',255,0,0],['M',255,0,255],['B',0,0,255],['C',0,255,255],['G',0,255,0],['Y',255,255,0]]){const {cb,cr}=chromaCoordinates(r,g,b),x=cx+cb*size,y=cy-cr*size;ctx.strokeStyle='#94a3b8';ctx.strokeRect(x-2,y-2,4,4);ctx.fillStyle='#cbd5e1';ctx.textAlign=cb>0?'left':'right';ctx.fillText(name,x+(cb>0?6:-6),y);}
       ctx.fillStyle='#cbd5e1';ctx.textAlign='center';ctx.fillText('Cr ↑',cx,11);ctx.textAlign='left';ctx.fillText('Cb →',x0+size+6,cy+28);
     }else{
-      const channels=kind==='waveform'?[3]:[0,1,2],gap=14,span=(right-left-gap*(channels.length-1))/channels.length;
-      grid(ctx,left,right,top,bottom,255);
-      channels.forEach((c,j)=>{const start=left+j*(span+gap);
-        items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>data.channels[c][x*256+255-y]/data.columnPixels[x],maximum,i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
-        ctx.fillStyle='#cbd5e1';ctx.textAlign='center';ctx.fillText(c===3?'Y′':NAMES[c],start+span/2,12);ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);
-      });
+       const channels=spatialChannels(kind),combinedRGB=kind==='rgbWaveform',gap=14,span=combinedRGB?right-left:(right-left-gap*(channels.length-1))/channels.length;
+       grid(ctx,left,right,top,bottom,255);
+       channels.forEach((c,j)=>{const start=combinedRGB?left:left+j*(span+gap);
+         items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>data.channels[c][x*256+255-y]/data.columnPixels[x],maximum,combinedRGB?[[220,105,115],[76,198,100],[90,145,235]][c].map(n=>Math.min(255,Math.round(n*(i?1.15:.6)))):i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
+         ctx.fillStyle=combinedRGB?COLORS[c]:spatialColor(c);ctx.textAlign='center';ctx.fillText(spatialName(c),combinedRGB?right-(2-j)*22:start+span/2,12);
+         if(!combinedRGB||j===0){ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);}
+       });
     }
   }
   function renderAnalysisTradeoff(canvas,model,outputSize){

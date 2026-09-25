@@ -64,11 +64,16 @@ function recordingCanvas(width=600,height=300) {
   for(let x=0;x<spatial.columns;x++)assert.equal(spatial.channels[0].values.slice(x*256,(x+1)*256).reduce((a,b)=>a+b),0);
   const parade=analysisDelta(pair(wave([0],1),computeWaveform({width:1,height:1,data:Uint8ClampedArray.from([255,0,0,255])})),{type:'parade'});
   assert.equal(parade.channels[0].values[255],100);assert.ok(parade.channels.slice(1).every(c=>c.values.every(v=>v===0)));
+  const chroma=analysisDelta(pair(wave([0],1),computeWaveform({width:1,height:1,data:Uint8ClampedArray.from([255,0,0,255])})),{type:'ycbcrParade'});
+  assert.deepEqual(chroma.channels.map(c=>c.index),[3,4,5]);
   assert.throws(()=>analysisDelta(items,{type:'vectorscope'}));assert.throws(()=>analysisDelta([items[0]],settings));
   console.log('PASS Waveform/Parade signed densities, common scale, unequal grids, channel isolation and unsupported modes');
 
   global.document={createElement:()=>recordingCanvas()};
   const {renderAnalysisDelta}=createAnalysisCombined();
+  global.devicePixelRatio=1;
+  const chromaCanvas=recordingCanvas();renderAnalysisDelta(chromaCanvas,chroma,{type:'ycbcrParade'});
+  assert.deepEqual(chromaCanvas.ops.filter(op=>op.kind==='text'&&['Y′','Cb','Cr'].includes(op.text)).map(op=>op.text),['Y′','Cb','Cr']);
   for(const dpr of [1,2]){
     global.devicePixelRatio=dpr;
     const c=recordingCanvas();renderAnalysisDelta(c,changed,settings);

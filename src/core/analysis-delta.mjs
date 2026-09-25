@@ -1,8 +1,8 @@
 // Own signed differences of computed scopes, MIT. No pixels or UI state are changed.
-import { ANALYSIS_CHANNELS } from './analysis-output.mjs';
+import { ANALYSIS_CHANNELS, spatialChannels } from './analysis-output.mjs';
 import { histogramView } from './histogram-view.mjs';
 
-export const DELTA_TYPES = Object.freeze(['histogram', 'waveform', 'parade', 'profile']);
+export const DELTA_TYPES = Object.freeze(['histogram', 'signalHistogram', 'waveform', 'parade', 'rgbWaveform', 'ycbcrParade', 'profile']);
 const clean = value => Math.abs(value) < 1e-10 ? 0 : value;
 
 export function deltaAt(values, position) {
@@ -28,9 +28,9 @@ export function analysisDelta(items, settings) {
   if (!DELTA_TYPES.includes(type) || items.length !== 2 || items.some(item => !item.data)) {
     throw new Error('Для разницы нужны два готовых графика поддерживаемого вида.');
   }
-  const histogram = type === 'histogram' ? histogramView(items, settings.channel, 65536, { allowUnknownColorSpace: true }) : null;
-  const [a, b] = (histogram?.items || items).map(item => item.data), density = type === 'waveform' || type === 'parade';
-  const indices = density ? (type === 'waveform' ? [3] : [0, 1, 2]) : ANALYSIS_CHANNELS[type === 'profile' ? settings.profileChannel : settings.channel];
+  const histogram = ['histogram','signalHistogram'].includes(type) ? histogramView(items, type==='signalHistogram'?'rgb':settings.channel, 65536, { allowUnknownColorSpace: true }) : null;
+  const [a, b] = (histogram?.items || items).map(item => item.data), density = spatialChannels(type).length>0;
+  const indices = density ? spatialChannels(type) : type==='signalHistogram'?[0,1,2]:ANALYSIS_CHANNELS[type === 'profile' ? settings.profileChannel : settings.channel];
   if (!indices) throw new Error('Неизвестный канал разницы графиков.');
   const bins = histogram ? histogram.scale.bins : type === 'profile' ? Math.max(a.bins, b.bins) : Math.max(a.columns, b.columns);
   if (!Number.isInteger(bins) || bins < 1 || bins > (histogram ? 65536 : type === 'profile' ? 1024 : 256)) throw new Error('Некорректная сетка графика.');
@@ -48,7 +48,7 @@ export function analysisDelta(items, settings) {
   } else {
     for (const { index, values } of channels) for (let i = 0; i < bins; i++) {
       const t = bins === 1 ? 0 : i / (bins - 1);
-      values[i] = clean(type === 'histogram'
+      values[i] = clean(histogram
         ? (b.channels[index][i] / b.pixelCount - a.channels[index][i] / a.pixelCount) * 100
         : deltaAt(b.channels[index].mean, t) - deltaAt(a.channels[index].mean, t));
     }
@@ -57,7 +57,7 @@ export function analysisDelta(items, settings) {
   for (const { values } of channels) for (const value of values) maximum = Math.max(maximum, Math.abs(value));
   return { type, operation: 'second-minus-first', pair: items.map(item => item.cell),
     unit: type === 'profile' ? 'code-values' : 'percentage-points',
-    alignment: type === 'histogram' ? (histogram.scale.normalized ? 'normalized-nearest-level' : 'same-level') : density ? 'relative-column-area' : 'relative-position-linear-means',
+    alignment: histogram ? (histogram.scale.normalized ? 'normalized-nearest-level' : 'same-level') : density ? 'relative-column-area' : 'relative-position-linear-means',
     bins, ...(histogram ? { scale: histogram.scale, outside: indices.map(index => ({ index,
       below: ((b.underflow?.[index] || 0) / b.pixelCount - (a.underflow?.[index] || 0) / a.pixelCount) * 100,
       above: ((b.overflow?.[index] || 0) / b.pixelCount - (a.overflow?.[index] || 0) / a.pixelCount) * 100 })) } : {}),

@@ -22,7 +22,7 @@ function events() {
   custom.filesVisible=false;custom.pixelGrid=true;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
   Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
-     displays:{histogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',vectorscope:'overlay',profile:'separate'}});
+      displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
    assert.deepEqual(normalizePreferences(custom),custom);
    const invalidErrorMode=structuredClone(custom);invalidErrorMode.analysis.displays.errorHistogram='delta';
    assert.equal(normalizePreferences(invalidErrorMode).analysis.displays.errorHistogram,'overlay');

@@ -8,6 +8,7 @@ tests.push('raster-worker', 'analysis-report', 'pixel-buffer', 'pixel-metrics', 
 tests.push('wipe-view', 'viewer-wipe-view');
 tests.push('analysis-guides');
 tests.push('crop-source');
+tests.push('signal-scopes');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;
