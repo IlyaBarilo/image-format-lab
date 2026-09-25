@@ -100,7 +100,7 @@ async function finished(page) {
       await page.locator('#batchDialogHeight').fill('70');
       await page.locator('#batchMetadata').selectOption('none');
       await page.locator('#batchSaveSettings').click();
-      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto',jpegSubsampling:'420',jpegProgressive:false};
+      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,bmpColors:256,bmpCompression:'none',matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto',jpegSubsampling:'420',jpegProgressive:false};
       assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),storageKey),{version:1,config:expected});
       assert.equal(await page.evaluate(()=>downloads.length),0);
       await page.reload();
@@ -248,7 +248,7 @@ async function finished(page) {
     await check('invalid stored fields are sanitized individually and extra data never reaches saved settings', async page => {
       await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({version:1,config:{format:'__proto__',quality:101,gifColors:1,gifDither:'false',matte:'__proto__',metadataPolicy:'all',resizeWidth:'-2',resizeHeight:80,tiffCompression:'unknown',tiffLevel:100,tiffPredictor:'false',files:['private.png'],unexpected:'ignored'}})),storageKey);
       await page.reload();
-      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto',jpegSubsampling:'420',jpegProgressive:false});
+      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,bmpColors:256,bmpCompression:'none',matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto',jpegSubsampling:'420',jpegProgressive:false});
       await page.locator('#fileInput').setInputFiles(files[0]); await ready(page);
       await page.locator('#convertAll').click(); await page.locator('#batchSaveSettings').click();
       const stored=await page.evaluate(key=>localStorage.getItem(key),storageKey);
@@ -260,7 +260,8 @@ async function finished(page) {
       await page.addInitScript(codecProbe,{failAll:true});
       await page.reload();
       await page.waitForFunction(()=>document.getElementById('codecStatus').dataset.state==='error');
-      await page.locator('#fileInput').setInputFiles(files[0]); await ready(page);
+      await page.locator('#fileInput').setInputFiles(files[0]);
+      await page.waitForFunction(()=>app.source && !app.sourceLoading);
       assert.equal(await page.evaluate(()=>app.exportConfig.format),'pngUpng');
       await page.locator('#convertAll').click();
       assert.equal(await page.locator('#batchFormat').inputValue(),'pngUpng');

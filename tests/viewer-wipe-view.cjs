@@ -61,7 +61,7 @@ const artifacts=require('./support/artifacts.cjs');
     const jpegWithoutGrid=await checksum();
     await page.locator('#pixelGrid').click();
     assert.notEqual(await checksum(),jpegWithoutGrid,'ready JPEG on the right receives its block grid');
-    assert.match(await page.locator('#gridModeHint').textContent(),/пунктирный ориентир/);
+    assert.match(await page.locator('#gridModeHint').textContent(),/подтверждённые границы блоков/);
     await page.locator('.cell[data-index="1"] .format-select').selectOption('webp');
     await page.waitForFunction(()=>app.variants[1].resultConfig?.format==='webp'&&!app.variants[1].processing);
     assert.equal(await page.evaluate(()=>app.variants[1].blockGrid?.kind),'webp-vp8');

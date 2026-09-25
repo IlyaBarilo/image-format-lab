@@ -69,7 +69,7 @@ async function sample(page){await page.locator('#sampleImage').click();await rea
    await sample(page);const batch=await page.evaluate(()=>({...app.exportConfig}));
    await page.locator('#studyOpen').click();await page.locator('#experimentSelect').selectOption('palette');await page.locator('#experimentApply').click();
    await ready(page);assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),batch);
-   assert.deepEqual(await page.evaluate(()=>app.variants.map(v=>[v.config.format,v.config.gifColors,v.config.gifDither])),[['original',16,true],['gif',16,false],['gif',16,true],['gif',256,true]]);
+   assert.deepEqual(await page.evaluate(()=>app.variants.map(v=>[v.config.format,v.config.gifColors,v.config.gifDither])),[['original',16,false],['gif',16,false],['pngIndexed',16,false],['pngIndexed',16,true]]);
    await page.locator('#profileName').fill('Палитра');await page.locator('#profileSave').click();
    const state=await page.evaluate(()=>captureComparison());await page.reload();
    assert.equal(await page.evaluate(()=>app.profiles.length),1);assert.equal(await page.evaluate(()=>app.files.length),0);

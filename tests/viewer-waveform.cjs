@@ -39,7 +39,7 @@ async function plots(page, kind) {
   assert.equal(wide.columnPixels[0],6); assert.equal(wide.columnPixels[255],4);
   assert.equal(wide.columnPixels.reduce((a,b)=>a+b),1026);
   for (let x=0;x<256;x++) assert.equal(wide.channels[3][x*256+255]/wide.columnPixels[x],1);
-  assert.equal(wide.channels.reduce((n,c)=>n+c.byteLength,0),1048576);
+  assert.equal(wide.channels.reduce((n,c)=>n+c.byteLength,0),6*256*256*Uint32Array.BYTES_PER_ELEMENT);
   const tall = computeWaveform({width:1,height:120000,data:new Uint8ClampedArray(120000*4).fill(255)});
   assert.equal(tall.channels[3][255],120000);
   assert.throws(()=>computeWaveform({...fixture,width:4}));

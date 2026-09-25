@@ -288,7 +288,7 @@ async function dimensions(page, bytes) {
     await page.locator('#fileInput').setInputFiles({ name: 'viewer-export.heic', mimeType: 'image/heic', buffer: exportedHeic });
     assert.deepEqual(await dimensions(page, await downloadFrom(page, page.locator('.cell').nth(1).locator('button[title="Скачать вариант"]'))), [960, 640]);
     report.checks.push('public HEIC export reopens offline and converts back to JPEG at the original dimensions');
-    // Partial startup failure keeps basic formats usable; only failed scripts retry.
+    // Partial startup failure keeps the own BMP encoder usable; only failed scripts retry.
     const failureContext = await browser.newContext({ acceptDownloads: true });
     await failureContext.setOffline(true);
     await failureContext.addInitScript(codecProbe, { failFirst: true });
@@ -301,6 +301,11 @@ async function dimensions(page, bytes) {
     assert.equal(await failedPage.locator('#retryCodecs').isVisible(), true);
     assert.equal(await failedPage.locator('.cell button[title="Скачать вариант"]:enabled').count(), 0);
     await failedPage.locator('#sampleImage').click();
+    await failedPage.locator('.cell').nth(1).locator('.format-select').selectOption('bmp');
+    await failedPage.waitForFunction(() => {
+      const button = document.querySelectorAll('.cell')[1]?.querySelector('button[title="Скачать вариант"]');
+      return button && !button.disabled;
+    });
     assert.deepEqual(await dimensions(failedPage, await downloadFrom(failedPage, failedPage.locator('.cell').nth(1).locator('button[title="Скачать вариант"]'))), [960, 640]);
     await failedPage.locator('#retryCodecs').click();
     await failedPage.waitForFunction(() => document.getElementById('codecStatus').dataset.state === 'ready');
@@ -308,7 +313,7 @@ async function dimensions(page, bytes) {
     assert.equal(await failedPage.locator('#retryCodecs').isVisible(), false);
     assert.equal(await failedPage.evaluate(() => codecProbe.scripts.length), 4);
     assert.equal(await failedPage.evaluate(() => codecProbe.scripts.every(url => codecProbe.revoked.includes(url))), true);
-    report.checks.push('startup failure leaves JPEG usable; conditional retry recovers without restarting ready codecs');
+    report.checks.push('startup failure leaves own BMP encoder usable; conditional retry recovers without restarting ready codecs');
     await failureContext.close();
 
     // Slow startup does not block the main UI, and a saved format is never substituted.
