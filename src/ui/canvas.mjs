@@ -1,6 +1,6 @@
 import { BACKGROUNDS } from "./../core/config.mjs";
 import { visibleAnalysisRegion } from '../core/analysis-viewport.mjs';
-import { visibleGridLines, wipePair } from '../core/wipe-view.mjs';
+import { jpegBlockSize, visibleGridLines, visibleJpegBlockLines, wipePair } from '../core/wipe-view.mjs';
 import { analysisGuideGeometry } from '../core/analysis-guides.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -103,7 +103,10 @@ export function createCanvas({app, els}, deps) {
     }
   
     deps.drawImageFrame(ctx, x, y, sourceW * scale, sourceH * scale);
-    drawPixelGrid(ctx,canvas,x,y,sourceW,sourceH,scale);
+    if(app.pixelGrid){
+      if(app.gridMode==='jpeg-blocks')drawJpegGridForVariant(ctx,canvas,variant,x,y,scale);
+      else drawPixelGrid(ctx,canvas,x,y,sourceW,sourceH,scale);
+    }
     if(image&&deps.isVariantReady?.(variant))drawAnalysisGuides(ctx,canvas,variant.imageData,variant.index,x,y,scale);
     deps.drawPixelMarker?.(variant);
   }
@@ -173,6 +176,39 @@ export function createCanvas({app, els}, deps) {
     ctx.restore();
   }
 
+  function drawJpegGridForVariant(ctx,canvas,variant,x,y,scale){
+    if(variant.resultConfig?.format!=='jpeg'||!deps.isVariantReady(variant)||!variant.bitmap)return;
+    const {width,height}=variant.bitmap;
+    if(!Number.isInteger(width)||!Number.isInteger(height))return;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width)return;
+    const cssScale=scale*rect.width/canvas.width;
+    const columns=visibleJpegBlockLines(x,scale,width,canvas.width,cssScale);
+    const rows=visibleJpegBlockLines(y,scale,height,canvas.height,cssScale);
+    if(!columns||!rows)return;
+    const block=jpegBlockSize(variant.resultConfig.jpegSubsampling);
+    ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
+    for(const major of [false,true]){
+      ctx.beginPath();
+      for(let i=columns.first;i<=columns.last;i++){
+        const pixel=i*8;
+        if(pixel<=0||pixel>=width||(pixel%block.width===0)!==major)continue;
+        const gx=Math.floor(x+pixel*scale)+.5;
+        ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);
+      }
+      for(let i=rows.first;i<=rows.last;i++){
+        const pixel=i*8;
+        if(pixel<=0||pixel>=height||(pixel%block.height===0)!==major)continue;
+        const gy=Math.floor(y+pixel*scale)+.5;
+        ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);
+      }
+      ctx.strokeStyle=major?'rgba(64,82,94,.88)':'rgba(112,120,128,.65)';
+      ctx.lineWidth=major?2:1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawWipe(){
     if(!app.wipe?.active||!wipeContext||!els.wipeCanvas||!els.wipeCanvas.width)return;
     const canvas=els.wipeCanvas,ctx=wipeContext,[first,second]=app.variants;
@@ -191,7 +227,14 @@ export function createCanvas({app, els}, deps) {
     ctx.save();ctx.beginPath();ctx.rect(divider,0,canvas.width-divider,canvas.height);ctx.clip();
     ctx.drawImage(second.bitmap,x,y,width*scale,height*scale);ctx.restore();
     deps.drawImageFrame(ctx,x,y,width*scale,height*scale);
-    drawPixelGrid(ctx,canvas,x,y,width,height,scale);
+    if(app.pixelGrid){
+      if(app.gridMode==='jpeg-blocks'){
+        ctx.save();ctx.beginPath();ctx.rect(0,0,divider,canvas.height);ctx.clip();
+        drawJpegGridForVariant(ctx,canvas,first,x,y,scale);ctx.restore();
+        ctx.save();ctx.beginPath();ctx.rect(divider,0,canvas.width-divider,canvas.height);ctx.clip();
+        drawJpegGridForVariant(ctx,canvas,second,x,y,scale);ctx.restore();
+      }else drawPixelGrid(ctx,canvas,x,y,width,height,scale);
+    }
     drawAnalysisGuides(ctx,canvas,first.imageData,0,x,y,scale);
   }
   
@@ -394,10 +437,28 @@ export function createCanvas({app, els}, deps) {
     els.wipeMode.addEventListener('click',()=>setWipeMode(!app.wipe.active));
     els.pixelGrid.addEventListener('click',()=>{
       app.pixelGrid=!app.pixelGrid;
-      els.pixelGrid.setAttribute('aria-pressed',String(app.pixelGrid));
-      els.pixelGrid.classList.toggle('active',app.pixelGrid);
+      syncGridModeUI();
       deps.drawAll();
     });
+    const menu=els.gridModeMenu,toggle=els.gridModeToggle;
+    if(menu&&toggle){
+      const close=(focus=false)=>{menu.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus();};
+      const open=()=>{menu.hidden=false;toggle.setAttribute('aria-expanded','true');(app.gridMode==='jpeg-blocks'?els.gridModeJpeg:els.gridModePixels).focus();};
+      toggle.addEventListener('click',()=>menu.hidden?open():close());
+      toggle.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();open();}});
+      toggle.parentElement.addEventListener('focusout',event=>{if(!toggle.parentElement.contains(event.relatedTarget))close();});
+      for(const [item,mode] of [[els.gridModePixels,'pixels'],[els.gridModeJpeg,'jpeg-blocks']]){
+        item.addEventListener('click',()=>{app.gridMode=mode;app.pixelGrid=true;syncGridModeUI();close(true);deps.drawAll();});
+        item.addEventListener('keydown',event=>{
+          if(event.key==='Escape'){event.preventDefault();close(true);}
+          if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+            event.preventDefault();(item===els.gridModePixels?els.gridModeJpeg:els.gridModePixels).focus();
+          }
+        });
+      }
+      document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!toggle.parentElement.contains(event.target))close();});
+    }
+    syncGridModeUI();
     deps.attachCanvasEvents(els.wipeCanvas,{inspect:false});
     const handle=els.wipeHandle,canvas=els.wipeCanvas;
     let pointer=null;
@@ -425,6 +486,14 @@ export function createCanvas({app, els}, deps) {
     });
     setWipePosition(app.wipe.position);
   }
+
+  function syncGridModeUI(){
+    els.pixelGrid?.setAttribute('aria-pressed',String(Boolean(app.pixelGrid)));
+    els.pixelGrid?.classList.toggle('active',Boolean(app.pixelGrid));
+    if(els.pixelGrid)els.pixelGrid.title=app.gridMode==='jpeg-blocks'?'Блоки JPEG: показать или скрыть на готовых JPEG при увеличении':'Пиксели: показать или скрыть при большом увеличении';
+    els.gridModePixels?.setAttribute('aria-checked',String(app.gridMode!=='jpeg-blocks'));
+    els.gridModeJpeg?.setAttribute('aria-checked',String(app.gridMode==='jpeg-blocks'));
+  }
   
   function comparisonScale() {
     if (!app.source) return 1;
@@ -436,5 +505,5 @@ export function createCanvas({app, els}, deps) {
   
   function setComparisonScale(scale) { if(!app.source)return;app.view.absoluteScale=deps.clamp(scale,0.01,128);deps.drawAll(); }
 
-  return { resizeCanvases, drawAll, redrawPreviews, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, attachWipeEvents, setWipeMode, setWipePosition, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
+  return { resizeCanvases, drawAll, redrawPreviews, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, attachWipeEvents, syncGridModeUI, setWipeMode, setWipePosition, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
 }

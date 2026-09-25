@@ -7,15 +7,17 @@ export function createPreferences({app,els},deps){
   let enabled=false,restoring=false,timer=null,lastSaved='',warned=false,readFailed=false;
   function captureUserPreferences(){
     const fields=Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[id,fallback]])=>[key,typeof fallback==='number'?Number(get(id).value):get(id).value]));
-    return normalizePreferences({version:1,comparison:deps.captureComparison(),filesVisible:!els.workspace.classList.contains('files-hidden'),pixelGrid:app.pixelGrid,
+    return normalizePreferences({version:1,comparison:deps.captureComparison(),filesVisible:!els.workspace.classList.contains('files-hidden'),pixelGrid:app.pixelGrid,gridMode:app.gridMode,
       panels:deps.captureAnalysisLayoutPreferences(),analysis:{...fields,...deps.captureAnalysisOutputPreferences(),...deps.captureAnalysisRegionPreferences()}});
   }
   function applyInterface(value){
     els.workspace.classList.toggle('files-hidden',!value.filesVisible);
     els.toggleFiles.setAttribute('aria-expanded',String(value.filesVisible));
     app.pixelGrid=value.pixelGrid;
+    app.gridMode=value.gridMode;
     els.pixelGrid.setAttribute('aria-pressed',String(app.pixelGrid));
     els.pixelGrid.classList.toggle('active',app.pixelGrid);
+    deps.syncGridModeUI?.();
     for(const [key,[id]] of Object.entries(ANALYSIS_PREFERENCE_FIELDS))get(id).value=String(value.analysis[key]);
     get('analysisLevelValue').textContent=String(value.analysis.level);
     get('analysisPositionValue').textContent=(value.analysis.position/10).toLocaleString('ru-RU')+'%';

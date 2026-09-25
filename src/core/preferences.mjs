@@ -19,6 +19,7 @@ export function defaultPreferences() {
     comparison:{layout:2,background:'checker',autoApply:true,metadataPolicy:'panorama',variants:DEFAULT_VARIANTS.map(v=>({...v}))},
     filesVisible:true,
     pixelGrid:false,
+    gridMode:'pixels',
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
        displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',profile:'overlay',errorProfile:'separate',ssim:'separate'},
@@ -38,6 +39,7 @@ export function normalizePreferences(value) {
   try { result.comparison=validateComparison(value.comparison); } catch { /* Keep the default comparison. */ }
   if(typeof value.filesVisible==='boolean')result.filesVisible=value.filesVisible;
   if(typeof value.pixelGrid==='boolean')result.pixelGrid=value.pixelGrid;
+  if(['pixels','jpeg-blocks'].includes(value.gridMode))result.gridMode=value.gridMode;
   const p=value.panels;
   if(record(p)){
     if(['compact','balance','max'].includes(p.size))result.panels.size=p.size;

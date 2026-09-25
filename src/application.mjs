@@ -102,7 +102,7 @@ export function createApplication() {
   Object.assign(actions, createPreferences(context, dependencies([
     "captureComparison", "applyComparison", "captureAnalysisLayoutPreferences", "applyAnalysisLayoutPreferences",
     "captureAnalysisOutputPreferences", "applyAnalysisOutputPreferences", "captureAnalysisRegionPreferences", "applyAnalysisRegionPreferences",
-    "isAnalysisResizing", "resetTheme", "showStatus", "updateBatchUI", "updateAnalysis", "drawAll"
+    "isAnalysisResizing", "resetTheme", "showStatus", "updateBatchUI", "updateAnalysis", "drawAll", "syncGridModeUI"
   ])));
   Object.assign(actions, createLicenses(context, dependencies(["downloadBlob"])));
   Object.assign(actions, createFileDrop(context, dependencies(["addFiles"])));

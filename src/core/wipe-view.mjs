@@ -15,3 +15,14 @@ export function visibleGridLines(offset,step,count,viewport,cssStep){
   const last=Math.min(count,Math.floor((viewport-offset)/step));
   return last<first||last-first>300?null:{first,last};
 }
+
+export function jpegBlockSize(subsampling){
+  if(subsampling==='444')return {width:8,height:8};
+  if(subsampling==='422')return {width:16,height:8};
+  return {width:16,height:16};
+}
+
+export function visibleJpegBlockLines(offset,scale,pixels,viewport,cssScale){
+  if(!Number.isFinite(pixels)||pixels<=0||!Number.isFinite(cssScale)||8*cssScale<24)return null;
+  return visibleGridLines(offset,8*scale,Math.ceil(pixels/8),viewport,8*cssScale);
+}

@@ -30,14 +30,21 @@
         <button class="text-btn primary" id="convertAll" type="button" aria-haspopup="dialog" aria-controls="batchDialog" disabled>Пакетное конвертирование…</button>
       </div>
 
-      <div class="toolbar-group" title="Количество вариантов сравнения">
+      <div class="toolbar-group">
         <span class="toolbar-label">Вид</span>
         <div class="segmented" role="group" aria-label="Режим сравнения">
           <button id="wipeMode" type="button" aria-pressed="false" title="Совместить варианты 1 и 2 в одном окне с подвижной границей">Совмещение</button>
           <button id="layout2" class="active" type="button" aria-pressed="true">2</button>
           <button id="layout4" type="button" aria-pressed="false">4</button>
         </div>
-        <button class="text-btn" id="pixelGrid" type="button" aria-pressed="false" title="Показать границы пикселей при большом увеличении">Сетка</button>
+        <div class="grid-switch">
+          <button class="text-btn" id="pixelGrid" type="button" aria-pressed="false" title="Включить или выключить выбранную сетку">Сетка</button>
+          <button class="text-btn grid-mode-toggle" id="gridModeToggle" type="button" aria-label="Выбрать вид сетки" aria-haspopup="menu" aria-expanded="false" aria-controls="gridModeMenu" title="Выбрать вид сетки">▾</button>
+          <div class="grid-mode-menu" id="gridModeMenu" role="menu" aria-label="Вид сетки" hidden>
+            <button id="gridModePixels" type="button" role="menuitemradio" aria-checked="true">Пиксели</button>
+            <button id="gridModeJpeg" type="button" role="menuitemradio" aria-checked="false">Блоки JPEG</button>
+          </div>
+        </div>
       </div>
 
       <div class="toolbar-group toolbar-zoom" aria-label="Масштаб сравнения">
