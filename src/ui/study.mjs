@@ -10,6 +10,7 @@ export function createStudy({app, els}, deps) {
   
   function applyComparison(value) {
     const settings = deps.validateComparison(value);
+    deps.setWipeMode?.(false,false);
     // Invalidate all old results first; updateLayout below starts one rendering pass.
     els.metadataPolicy.value = settings.metadataPolicy;
     els.backgroundSelect.value = app.background = settings.background;
@@ -105,17 +106,20 @@ export function createStudy({app, els}, deps) {
     action("zoom100",()=>deps.setComparisonScale(1));
     action("batchSelectAll",()=>deps.setBatchSelection(true)); action("batchSelectNone",()=>deps.setBatchSelection(false));
     action("retryBatch",()=>deps.retryBatchErrors());
-    for(const v of app.variants) {
-      v.canvas.tabIndex=0;v.canvas.setAttribute("aria-label",`Вариант ${v.index+1}. Плюс/минус — масштаб, 0 — вписать, 1 — 100%, стрелки — перемещение.`);
-      v.canvas.addEventListener("keydown",event=>{
+    const navigateCanvas=event=>{
         if(!app.source) return;
         if(["+","=","-","0","1","ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))event.preventDefault();else return;
         if(event.key==="+"||event.key==="=")deps.setComparisonScale(deps.comparisonScale()*1.25);
         else if(event.key==="-")deps.setComparisonScale(deps.comparisonScale()/1.25);
         else if(event.key==="0"){deps.resetView();deps.drawAll();}else if(event.key==="1")deps.setComparisonScale(1);
         else {const step=40/deps.comparisonScale();app.view.centerX+=event.key==="ArrowRight"?step:event.key==="ArrowLeft"?-step:0;app.view.centerY+=event.key==="ArrowDown"?step:event.key==="ArrowUp"?-step:0;deps.drawAll();}
-      });
+    };
+    for(const v of app.variants) {
+      v.canvas.tabIndex=0;v.canvas.setAttribute("aria-label",`Вариант ${v.index+1}. Плюс/минус — масштаб, 0 — вписать, 1 — 100%, стрелки — перемещение.`);
+      v.canvas.addEventListener("keydown",navigateCanvas);
     }
+    const wipeCanvas=$('wipeCanvas');
+    if(wipeCanvas){wipeCanvas.tabIndex=0;wipeCanvas.addEventListener('keydown',navigateCanvas);}
   }
 
   return { captureComparison, applyComparison, studyNotice, saveProfiles, updateProfiles, attachStudyEvents };

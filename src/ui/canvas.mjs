@@ -1,9 +1,11 @@
 import { BACKGROUNDS } from "./../core/config.mjs";
 import { visibleAnalysisRegion } from '../core/analysis-viewport.mjs';
+import { visibleGridLines, wipePair } from '../core/wipe-view.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createCanvas({app, els}, deps) {
   const lastViewport = new WeakMap();
+  const wipeContext=els.wipeCanvas?.getContext('2d',{alpha:false});
   function resizeCanvases() {
     if (deps.isAnalysisResizing()) return;
     const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
@@ -19,10 +21,20 @@ export function createCanvas({app, els}, deps) {
         variant.canvas.height = height;
       }
     }
+    if(app.wipe?.active&&els.wipeCanvas){
+      const rect=els.wipeCanvas.getBoundingClientRect();
+      if(rect.width&&rect.height){
+        lastViewport.set(els.wipeCanvas,{width:rect.width,height:rect.height});
+        const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
+        if(els.wipeCanvas.width!==width)els.wipeCanvas.width=width;
+        if(els.wipeCanvas.height!==height)els.wipeCanvas.height=height;
+      }
+    }
   }
   
   function drawAll() {
     if (deps.isAnalysisResizing()) return;
+    if(els.wipeMode)els.wipeMode.disabled=!app.source&&!app.wipe?.active;
     deps.resizeCanvases();
     deps.updatePixelInspector?.();
     deps.updateFilePassport?.();
@@ -37,10 +49,14 @@ export function createCanvas({app, els}, deps) {
     for (const variant of app.variants) {
       if (!variant.cell.classList.contains("hidden") && variant.canvas.parentElement.getBoundingClientRect().height) deps.drawVariant(variant);
     }
+    drawWipe();
   }
 
   function getAnalysisViewport(side, image = app.variants[side]?.imageData) {
-    const canvas = app.variants[side]?.canvas;
+    const wipe=app.wipe?.active&&side<2;
+    if(wipe&&wipePair(app.variants[0],app.variants[1],deps.isVariantReady).message)
+      return {region:null,message:'В шторке нет двух готовых результатов одного размера.'};
+    const canvas = wipe?els.wipeCanvas:app.variants[side]?.canvas;
     if (!canvas || !app.source || !image) return { region: null, message: 'Нет изображения для анализа видимой части.' };
     const visible = canvas.getBoundingClientRect();
     // Maximum mode hides previews. Keep their last dimensions instead of switching to the full frame.
@@ -86,7 +102,46 @@ export function createCanvas({app, els}, deps) {
     }
   
     deps.drawImageFrame(ctx, x, y, sourceW * scale, sourceH * scale);
+    drawPixelGrid(ctx,canvas,x,y,sourceW,sourceH,scale);
     deps.drawPixelMarker?.(variant);
+  }
+
+  function drawPixelGrid(ctx,canvas,x,y,width,height,scale){
+    if(!app.pixelGrid||!scale||!Number.isFinite(scale))return;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width)return;
+    const columns=visibleGridLines(x,scale,width,canvas.width,scale*rect.width/canvas.width);
+    const rows=visibleGridLines(y,scale,height,canvas.height,scale*rect.height/canvas.height);
+    if(!columns||!rows)return;
+    ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
+    ctx.beginPath();
+    for(let i=columns.first;i<=columns.last;i++){const gx=x+i*scale;ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);}
+    for(let i=rows.first;i<=rows.last;i++){const gy=y+i*scale;ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);}
+    const deviceWidth=Math.max(1,canvas.width/rect.width);
+    ctx.strokeStyle='rgba(0,0,0,.58)';ctx.lineWidth=deviceWidth*2;ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=deviceWidth;ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawWipe(){
+    if(!app.wipe?.active||!wipeContext||!els.wipeCanvas||!els.wipeCanvas.width)return;
+    const canvas=els.wipeCanvas,ctx=wipeContext,[first,second]=app.variants;
+    deps.drawBackground(ctx,canvas.width,canvas.height);
+    if(!app.source){deps.drawOverlayMessage(ctx,canvas,'Откройте изображение');return;}
+    const pair=wipePair(first,second,deps.isVariantReady);
+    if(pair.message){deps.drawOverlayMessage(ctx,canvas,pair.message);return;}
+    const {width,height}=pair;
+    const scale=deps.getDrawScale(canvas);
+    const x=canvas.width/2-(app.view.centerX-(app.source.width-width)/2)*scale;
+    const y=canvas.height/2-(app.view.centerY-(app.source.height-height)/2)*scale;
+    const divider=Math.round(canvas.width*app.wipe.position);
+    ctx.imageSmoothingEnabled=scale<1;ctx.imageSmoothingQuality='high';
+    ctx.save();ctx.beginPath();ctx.rect(0,0,divider,canvas.height);ctx.clip();
+    ctx.drawImage(first.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(divider,0,canvas.width-divider,canvas.height);ctx.clip();
+    ctx.drawImage(second.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    deps.drawImageFrame(ctx,x,y,width*scale,height*scale);
+    drawPixelGrid(ctx,canvas,x,y,width,height,scale);
   }
   
   function drawBackground(ctx, width, height) {
@@ -148,10 +203,10 @@ export function createCanvas({app, els}, deps) {
     ctx.closePath();
   }
   
-  function attachCanvasEvents(canvas) {
+  function attachCanvasEvents(canvas,{inspect=true}={}) {
     canvas.addEventListener("wheel", (event) => {
       if (!app.source) return;
-      deps.cancelPixelPointer?.();
+      if(inspect)deps.cancelPixelPointer?.();
       event.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const dprX = canvas.width / rect.width;
@@ -172,7 +227,7 @@ export function createCanvas({app, els}, deps) {
   
     canvas.addEventListener("pointerdown", (event) => {
       if (!app.source) return;
-      deps.pixelPointerDown?.(event);
+      if(inspect)deps.pixelPointerDown?.(event);
       if (event.button !== 0 || event.isPrimary === false) return;
       app.pointer.active = true;
       app.pointer.id = event.pointerId;
@@ -183,7 +238,7 @@ export function createCanvas({app, els}, deps) {
     });
   
     canvas.addEventListener("pointermove", (event) => {
-      deps.pixelPointerMove?.(event);
+      if(inspect)deps.pixelPointerMove?.(event);
       if (!app.pointer.active || app.pointer.id !== event.pointerId || !app.source) return;
       const dx = event.clientX - app.pointer.lastX;
       const dy = event.clientY - app.pointer.lastY;
@@ -195,8 +250,8 @@ export function createCanvas({app, els}, deps) {
       deps.drawAll();
     });
   
-    canvas.addEventListener("pointerup", event => { deps.endPointer(event); deps.pixelPointerUp?.(event); });
-    const cancel = event => { deps.endPointer(event); deps.cancelPixelPointer?.(); };
+    canvas.addEventListener("pointerup", event => { deps.endPointer(event); if(inspect)deps.pixelPointerUp?.(event); });
+    const cancel = event => { deps.endPointer(event); if(inspect)deps.cancelPixelPointer?.(); };
     canvas.addEventListener("pointercancel", cancel);
     canvas.addEventListener("lostpointercapture", cancel);
   }
@@ -235,10 +290,15 @@ export function createCanvas({app, els}, deps) {
     app.layout = count;
     els.grid.classList.toggle("two", count === 2);
     els.grid.classList.toggle("four", count === 4);
-    els.layout2.classList.toggle("active", count === 2);
-    els.layout4.classList.toggle("active", count === 4);
-    els.layout2.setAttribute("aria-pressed", String(count === 2));
-    els.layout4.setAttribute("aria-pressed", String(count === 4));
+    const wipe=Boolean(app.wipe?.active);
+    els.grid.classList.toggle('wipe',wipe);
+    if(els.wipeOverlay)els.wipeOverlay.hidden=!wipe;
+    els.layout2.classList.toggle("active", count === 2&&!wipe);
+    els.layout4.classList.toggle("active", count === 4&&!wipe);
+    els.layout2.setAttribute("aria-pressed", String(count === 2&&!wipe));
+    els.layout4.setAttribute("aria-pressed", String(count === 4&&!wipe));
+    els.wipeMode?.classList.toggle('active',wipe);
+    els.wipeMode?.setAttribute('aria-pressed',String(wipe));
   
     for (const variant of app.variants) {
       variant.cell.classList.toggle("hidden", variant.index >= count);
@@ -249,16 +309,81 @@ export function createCanvas({app, els}, deps) {
     deps.drawAll();
     if (app.source) deps.renderVisibleVariants();
   }
+
+  function setWipeMode(enabled,restoreLayout=true){
+    if(!app.wipe||!els.wipeOverlay)return;
+    if(enabled&&!app.source)return;
+    if(Boolean(enabled)===app.wipe.active)return;
+    if(enabled){
+      app.wipe.previousLayout=app.layout;
+      app.wipe.active=true;
+      deps.updateLayout(2);
+    }else{
+      app.wipe.active=false;
+      const previous=app.wipe.previousLayout;
+      app.wipe.previousLayout=null;
+      if(restoreLayout)deps.updateLayout(previous===4?4:app.layout);
+    }
+  }
+
+  function setWipePosition(position){
+    if(!app.wipe)return;
+    app.wipe.position=deps.clamp(position,0,1);
+    if(els.wipeHandle){
+      const percent=Math.round(app.wipe.position*100);
+      els.wipeHandle.style.left=`${percent}%`;
+      els.wipeHandle.setAttribute('aria-valuenow',String(percent));
+      els.wipeHandle.setAttribute('aria-valuetext',`${percent}% варианта 1`);
+    }
+    drawWipe();
+  }
+
+  function attachWipeEvents(){
+    if(!els.wipeMode||!els.wipeHandle||!els.wipeCanvas)return;
+    els.wipeMode.addEventListener('click',()=>setWipeMode(!app.wipe.active));
+    els.pixelGrid.addEventListener('click',()=>{
+      app.pixelGrid=!app.pixelGrid;
+      els.pixelGrid.setAttribute('aria-pressed',String(app.pixelGrid));
+      els.pixelGrid.classList.toggle('active',app.pixelGrid);
+      deps.drawAll();
+    });
+    deps.attachCanvasEvents(els.wipeCanvas,{inspect:false});
+    const handle=els.wipeHandle,canvas=els.wipeCanvas;
+    let pointer=null;
+    const move=event=>{
+      const rect=canvas.getBoundingClientRect();
+      if(rect.width)setWipePosition((event.clientX-rect.left)/rect.width);
+    };
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.isPrimary===false)return;
+      event.preventDefault();pointer=event.pointerId;handle.setPointerCapture(pointer);move(event);
+    });
+    handle.addEventListener('pointermove',event=>{if(pointer===event.pointerId)move(event);});
+    const end=event=>{if(pointer===event.pointerId)pointer=null;};
+    handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);
+    handle.addEventListener('lostpointercapture',end);
+    handle.addEventListener('keydown',event=>{
+      const step=event.shiftKey?.1:.01;
+      let position=app.wipe.position;
+      if(event.key==='ArrowLeft'||event.key==='ArrowDown')position-=step;
+      else if(event.key==='ArrowRight'||event.key==='ArrowUp')position+=step;
+      else if(event.key==='Home')position=0;
+      else if(event.key==='End')position=1;
+      else return;
+      event.preventDefault();setWipePosition(position);
+    });
+    setWipePosition(app.wipe.position);
+  }
   
   function comparisonScale() {
     if (!app.source) return 1;
     if (app.view.absoluteScale) return app.view.absoluteScale;
-    const canvas = app.variants[0].canvas, visible = canvas.getBoundingClientRect();
+    const canvas = app.wipe?.active?els.wipeCanvas:app.variants[0].canvas, visible = canvas.getBoundingClientRect();
     const rect = visible.width && visible.height ? visible : lastViewport.get(canvas);
     return rect ? deps.getDrawScale(canvas) * rect.width / canvas.width : 1;
   }
   
   function setComparisonScale(scale) { if(!app.source)return;app.view.absoluteScale=deps.clamp(scale,0.01,128);deps.drawAll(); }
 
-  return { resizeCanvases, drawAll, redrawPreviews, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
+  return { resizeCanvases, drawAll, redrawPreviews, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, attachWipeEvents, setWipeMode, setWipePosition, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
 }

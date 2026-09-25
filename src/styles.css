@@ -1037,3 +1037,49 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
 
 .tiff-settings-dialog { width: min(460px, calc(100vw - 32px)); }
 .tiff-settings-dialog .batch-dialog-body { display: grid; gap: 16px; }
+
+/* A single aligned viewport keeps both sets of cell controls available. */
+#pixelGrid[aria-pressed="true"] { background: var(--selected-bg); border-color: var(--line-strong); }
+.stage.has-analysis .grid.wipe {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-rows: auto minmax(120px,1fr);
+}
+.grid.wipe .cell { grid-template-rows: auto auto; }
+.grid.wipe .cell .canvas-shell { display: none; }
+.grid.wipe .cell[data-index="0"] { grid-column: 1; grid-row: 1; }
+.grid.wipe .cell[data-index="1"] { grid-column: 2; grid-row: 1; }
+.grid.wipe .wipe-overlay { grid-column: 1 / -1; grid-row: 2; }
+.wipe-overlay {
+  position: relative;
+  min-width: 0;
+  min-height: 120px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--preview-surround);
+}
+.wipe-overlay[hidden] { display: none; }
+#wipeCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#wipeCanvas.dragging { cursor: grabbing; }
+.wipe-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 28px;
+  transform: translateX(-50%);
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 1;
+}
+.wipe-handle::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(50% - 1px); width: 2px; background: var(--accent); box-shadow: 0 0 0 1px var(--panel); }
+.wipe-handle::after { content: '↔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--panel); color: var(--text); font-weight: 700; }
+.wipe-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.stage.has-analysis[data-analysis-size="max"] .grid.wipe { grid-template-rows: auto; }
+.stage.has-analysis[data-analysis-size="max"] .wipe-overlay { display: none; }
+@media (max-width: 760px) {
+  .stage.has-analysis .grid.wipe { grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto minmax(180px,1fr); }
+  .grid.wipe .cell[data-index="0"] { grid-column: 1; grid-row: 1; }
+  .grid.wipe .cell[data-index="1"] { grid-column: 1; grid-row: 2; }
+  .grid.wipe .wipe-overlay { grid-column: 1; grid-row: 3; }
+}

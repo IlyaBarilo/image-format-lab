@@ -32,6 +32,7 @@ export function createBootstrap({app, els}, deps) {
     }
   
     deps.attachEvents();
+    deps.attachWipeEvents();
     deps.attachFileDropEvents();
     deps.attachBatchPreviewEvents();
     deps.attachStudyEvents();
@@ -114,8 +115,8 @@ export function createBootstrap({app, els}, deps) {
   
     els.retryCodecs.addEventListener("click", () => deps.loadAdditionalCodecs());
   
-    els.layout2.addEventListener("click", () => deps.updateLayout(2));
-    els.layout4.addEventListener("click", () => deps.updateLayout(4));
+    els.layout2.addEventListener("click", () => { deps.setWipeMode(false, false); deps.updateLayout(2); });
+    els.layout4.addEventListener("click", () => { deps.setWipeMode(false, false); deps.updateLayout(4); });
   
     els.backgroundSelect.addEventListener("change", () => {
       app.background = els.backgroundSelect.value;

@@ -35,7 +35,9 @@
         <div class="segmented" role="group" aria-label="Режим сравнения">
           <button id="layout2" class="active" type="button" aria-pressed="true">2</button>
           <button id="layout4" type="button" aria-pressed="false">4</button>
+          <button id="wipeMode" type="button" aria-pressed="false" title="Совместить варианты 1 и 2 в одном окне с подвижной границей">Шторка</button>
         </div>
+        <button class="text-btn" id="pixelGrid" type="button" aria-pressed="false" title="Показать границы пикселей при большом увеличении">Сетка</button>
       </div>
 
       <div class="toolbar-group toolbar-zoom" aria-label="Масштаб сравнения">
@@ -158,6 +160,10 @@
         </div>
         <div class="cell-foot"></div>
       </article>
+      <div class="wipe-overlay" id="wipeOverlay" hidden aria-label="Совмещённый просмотр вариантов 1 и 2">
+        <canvas id="wipeCanvas" aria-label="Шторка вариантов 1 и 2: перемещение и масштаб как в обычном просмотре"></canvas>
+        <div id="wipeHandle" class="wipe-handle" role="slider" tabindex="0" aria-label="Граница шторки: слева вариант 1, справа вариант 2" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="50% варианта 1" title="Перетащите границу. Стрелки — 1%, Shift — 10%, Home/End — края."></div>
+      </div>
       <div class="empty-state" id="emptyState">
         <div class="empty-box">
           <strong id="emptyTitle">Перетащите изображение сюда</strong>

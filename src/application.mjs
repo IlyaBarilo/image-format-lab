@@ -65,6 +65,7 @@ export function createApplication() {
     "addFiles",
     "attachBatchPreviewEvents",
     "attachCanvasEvents",
+    "attachWipeEvents",
     "attachEvents",
     "attachFileDropEvents",
     "attachStudyEvents",
@@ -88,6 +89,7 @@ export function createApplication() {
     "restoreBatchSettings",
     "selectAdjacentFile",
     "selectFile",
+    "setWipeMode",
     "showStatus",
     "updateBatchDialog",
     "updateBatchUI",
@@ -235,9 +237,11 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createCanvas(context, dependencies([
+    "attachCanvasEvents",
     "updateFilePassport",
     "updatePixelInspector", "drawPixelMarker", "pixelPointerDown", "pixelPointerMove", "pixelPointerUp", "cancelPixelPointer",
     "isAnalysisResizing",
+    "isVariantReady",
     "updateAnalysisViewport",
     "updateAnalysis",
     "clamp",
@@ -251,7 +255,8 @@ export function createApplication() {
     "getDrawScale",
     "renderVisibleVariants",
     "resizeCanvases",
-    "roundRect"
+    "roundRect",
+    "updateLayout"
   ])));
   Object.assign(actions, createStudy(context, dependencies([
     "addFiles",
@@ -275,6 +280,7 @@ export function createApplication() {
     "saveProfiles",
     "setBatchSelection",
     "setComparisonScale",
+    "setWipeMode",
     "studyNotice",
     "updateFormatHelp",
     "updateFormatOptions",

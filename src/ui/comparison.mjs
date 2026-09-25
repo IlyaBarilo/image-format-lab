@@ -17,7 +17,10 @@ export function createComparison({app, els}, deps) {
   async function renderVisibleVariants() {
     const visible = app.variants.filter((variant) => !variant.cell.classList.contains("hidden"));
     const generation = app.sourceGeneration;
-    for(const variant of visible) { if(generation!==app.sourceGeneration) return; await deps.renderVariant(variant); }
+    for(const variant of visible) {
+      if(generation!==app.sourceGeneration)return;
+      if(!variant.processing&&!deps.isVariantReady(variant))await deps.renderVariant(variant);
+    }
   }
   
   async function renderVariant(variant) {

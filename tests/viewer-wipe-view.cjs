@@ -1,0 +1,52 @@
+// Browser coverage runs in CI; this suite must not launch local Chromium during development.
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const {pathToFileURL}=require('node:url');
+const {chromium}=require('playwright');
+const artifacts=require('./support/artifacts.cjs');
+
+(async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:process.env.IMAGE_TEST_BROWSER||undefined});
+  const context=await browser.newContext({viewport:{width:1440,height:980}});
+  const page=await context.newPage(),errors=[],requests=[];
+  page.setDefaultTimeout(90000);
+  page.on('pageerror',error=>errors.push(error.message));
+  page.on('request',request=>{if(/^https?:/.test(request.url()))requests.push(request.url());});
+  try{
+    await context.setOffline(true);
+    await page.goto(pathToFileURL(require('./support/viewer-path.cjs')()).href);
+    await page.locator('#sampleImage').click();
+    await page.waitForFunction(()=>app.source&&!app.sourceLoading&&app.variants.slice(0,2).every(v=>v.bitmap&&!v.processing));
+    await page.locator('#wipeMode').click();
+    assert.equal(await page.locator('#grid').evaluate(node=>node.classList.contains('wipe')),true);
+    assert.equal(await page.locator('#wipeOverlay').isVisible(),true);
+    assert.equal(await page.locator('.cell[data-index="0"] .canvas-shell').isVisible(),false);
+    assert.equal(await page.locator('.cell[data-index="1"] .cell-head').isVisible(),true);
+    const handle=page.locator('#wipeHandle');
+    const checksum=()=>page.locator('#wipeCanvas').evaluate(canvas=>{
+      const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+      let hash=2166136261;for(let i=0;i<data.length;i+=31)hash=Math.imul(hash^data[i],16777619);
+      return hash>>>0;
+    });
+    await handle.focus();await page.keyboard.press('Home');
+    assert.equal(await handle.getAttribute('aria-valuenow'),'0');
+    const right=await checksum();
+    await page.keyboard.press('End');
+    assert.equal(await handle.getAttribute('aria-valuenow'),'100');
+    assert.notEqual(await checksum(),right,'the two ready images should differ');
+    await page.keyboard.press('Home');await page.keyboard.press('Shift+ArrowRight');
+    assert.equal(await handle.getAttribute('aria-valuenow'),'10');
+    await page.locator('#zoom100').click();
+    for(let i=0;i<10;i++)await page.locator('#zoomIn').click();
+    const withoutGrid=await checksum();
+    await page.locator('#pixelGrid').click();
+    assert.equal(await page.locator('#pixelGrid').getAttribute('aria-pressed'),'true');
+    assert.notEqual(await checksum(),withoutGrid,'pixel grid is visible at high zoom');
+    if(process.env.IMAGE_TEST_LOGS){const folder=artifacts.folder(process.env.IMAGE_TEST_LOGS);fs.mkdirSync(folder,{recursive:true});await page.screenshot({path:path.join(folder,artifacts.runId+'-wipe-view.png')});}
+    await page.locator('#layout4').click();
+    assert.equal(await page.locator('#grid').evaluate(node=>node.classList.contains('wipe')),false);
+    assert.equal(await page.locator('.cell[data-index="3"]').isVisible(),true);
+    assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
+    console.log('PASS offline wipe view, keyboard divider, pixel grid, four-cell restoration');
+  }finally{await context.close();await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

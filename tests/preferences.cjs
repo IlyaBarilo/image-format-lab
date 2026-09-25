@@ -13,12 +13,13 @@ function events() {
   const {createStudy}=await import('../src/ui/study.mjs');
   const {createPreferences}=await import('../src/ui/preferences.mjs');
   const defaults=defaultPreferences(),custom=defaultPreferences();
+  assert.equal(defaults.pixelGrid,false);
   assert.equal(defaults.analysis.scope,'viewport');
   assert.equal(normalizePreferences({version:1,analysis:{scope:'full'}}).analysis.scope,'full','preserve an explicitly saved full-image scope');
   assert.equal(normalizePreferences({version:1,analysis:{}}).analysis.scope,'viewport','missing scope uses the current default');
   custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=true;
   custom.comparison.metadataPolicy='none';custom.comparison.variants[1].quality=37;custom.comparison.variants[3].format='avif';
-  custom.filesVisible=false;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
+  custom.filesVisible=false;custom.pixelGrid=true;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
   Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
      displays:{histogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',vectorscope:'overlay',profile:'separate'}});
@@ -34,7 +35,7 @@ function events() {
   assert.equal(defaultPreferences().comparison.variants[1].quality,85);
   for(const value of [null,[],{version:2},'garbage'])assert.deepEqual(normalizePreferences(value),defaults);
   const invalid=structuredClone(custom);
-  invalid.comparison.variants[0].format='__proto__';invalid.filesVisible='false';
+  invalid.comparison.variants[0].format='__proto__';invalid.filesVisible='false';invalid.pixelGrid='true';
   invalid.panels={size:'bad',previous:'max',ratio:Infinity,collapsed:1,lastManual:{size:'max',ratio:.4}};
   invalid.analysis={type:'bad',channel:'toString',matte:'bad',level:256,gain:'4',position:-1,profileChannel:'bad',pair:[2,4],metric:'bad',scope:'region',region:{x0:0,y0:0,x1:0,y1:10},line:{x0:0,y0:0,x1:1001,y1:0},displays:{histogram:'bad',vectorscope:'delta'}};
   assert.deepEqual(normalizePreferences(invalid),defaults);
@@ -61,7 +62,7 @@ function events() {
     const window={...events(),localStorage:storage};global.document=document;global.window=window;
     global.setTimeout=fn=>{pending.set(++next,fn);return next;};global.clearTimeout=id=>pending.delete(id);
     const flush=()=>{for(const [id,fn] of [...pending]){pending.delete(id);fn();}};
-    const els=Object.fromEntries(['workspace','toggleFiles','metadataPolicy','backgroundSelect','batchDialog'].map(id=>[id,get(id)]));
+    const els=Object.fromEntries(['workspace','toggleFiles','metadataPolicy','backgroundSelect','batchDialog','pixelGrid'].map(id=>[id,get(id)]));
     const file={name:'private.png'},source={pixels:'private pixels'},profiles=[{name:'kept'}],results=[{blob:'kept result'}];
     const app={files:[file],source,profiles,batchRun:{running:false,results},exportConfig:{format:'avif'},variants:defaults.comparison.variants.map(config=>({config:{...config},generation:3,blob:'old result'}))};
     let layout,output,region,resizing=false,renders=0,dirtyCalls=0;
@@ -81,6 +82,7 @@ function events() {
   }
   let env=use({raw:JSON.stringify(legacy)});
   assert.deepEqual(env.ui.captureUserPreferences(),custom);assert.equal(env.renders(),0,'restore precedes initial controls/rendering');
+  assert.equal(env.els.pixelGrid.attrs['aria-pressed'],'true');
   assert.equal(env.els.toggleFiles.attrs['aria-expanded'],'false');assert.equal(env.get('analysisPositionValue').textContent,'87%');
   env.ui.attachUserPreferenceEvents();assert.equal(env.document.count('input'),1);assert.equal(env.get('resetPreferences').count('click'),1);
   env.ui.flushUserPreferences();assert.equal(env.writes.length,0);

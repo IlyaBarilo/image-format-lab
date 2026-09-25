@@ -24,6 +24,7 @@ export function createControls({els, app}, deps) {
     for (const variant of app.variants) {
       observer.observe(variant.canvas.parentElement);
     }
+    if(els.wipeOverlay)observer.observe(els.wipeOverlay);
   }
   
   function buildCellControls(variant) {
