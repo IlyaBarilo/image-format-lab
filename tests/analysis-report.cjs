@@ -26,7 +26,7 @@ async function makeSnapshot(type, display, count = 2) {
   const width = 64, height = 32, region = {unit:'pixels', x:8, y:4, width:48, height:24};
   const image = {width, height, data: Uint8ClampedArray.from({length:width * height * 4}, (_, i) => i % 4 === 3 ? 255 : (Math.floor(i / 4) + i % 4 * 51) % 256)};
   const altered = {...image, data:image.data.map((v, i) => i % 4 === 3 ? v : Math.round(v / 32) * 32)};
-  const compute = {histogram:computeHistogram, waveform:computeWaveform, parade:computeWaveform, vectorscope:computeVectorscope, profile:computeLineProfile};
+  const compute = {histogram:computeHistogram, waveform:computeWaveform, ycbcrWaveform:computeWaveform, parade:computeWaveform, vectorscope:computeVectorscope, profile:computeLineProfile};
   const items = Array.from({length:count}, (_, i) => {
     const input = i % 2 ? altered : image;
     return {cell:i + 1, label:`${i + 1} · ${i % 2 ? 'Квантование цвета' : 'Исходный: PNG'}`, status:'ready', message:'',
@@ -74,7 +74,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     elements.set('analysisCombinedChart', combined);
     globalThis.document = {getElementById:get, createElement: tag => tag === 'canvas' ? canvas() : element(), querySelectorAll: () => cards};
     get('analysisType').value = snapshot.settings.type;
-     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', parade:'RGB Parade', vectorscope:'Вектороскоп', profile:'Профиль', difference:'Карта различий', tradeoff:'Размер и метрика'}[snapshot.settings.type];
+     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', profile:'Профиль', difference:'Карта различий', tradeoff:'Размер и метрика'}[snapshot.settings.type];
     get('analysisMetric').value = snapshot.settings.metric;
     const deps = {...createAnalysisCombined(), ...createScopePlots(), isAnalysisResizing:() => false, getAnalysisSnapshot:() => snapshot,
       downloadBlob: (blob, name) => downloads.push({blob, name})};
@@ -103,7 +103,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
 }
 
 async function main() {
-   for (const type of ['histogram','errorHistogram','waveform','parade','vectorscope','profile','difference','tradeoff']) {
+   for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','profile','difference','tradeoff']) {
      const modes = type === 'tradeoff' ? ['metrics'] : type === 'difference' ? ['separate'] : ['vectorscope','errorHistogram'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
     for (const display of modes) {
       const snapshot = await makeSnapshot(type, display, 4), before = structuredClone(snapshot);

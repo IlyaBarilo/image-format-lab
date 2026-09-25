@@ -136,7 +136,8 @@ export function createAnalysisOutput({app},deps){
   function makeAnalysisPNG(snapshot){
     const output=document.createElement('canvas');output.width=1200;let ctx=output.getContext('2d');ctx.font='16px "Segoe UI",sans-serif';
     let selected=chosen(snapshot);const shared=snapshot.settings.display!=='separate';
-    const title=`Анализ · ${get('analysisType').selectedOptions[0].textContent}`;
+    const variantTitles={histogram:'Гистограмма · RGB',signalHistogram:'Гистограмма · Y′CbCr',waveform:'Waveform · Y′',rgbWaveform:'Waveform · RGB вместе',ycbcrWaveform:'Waveform · Y′CbCr вместе',parade:'Parade · RGB',ycbcrParade:'Parade · Y′CbCr'};
+    const title=`Анализ · ${variantTitles[snapshot.settings.type]||get('analysisType').selectedOptions[0].textContent}`;
     const header=wrap(ctx,`${snapshot.source.name} · ${snapshot.source.width}×${snapshot.source.height} · ${snapshot.createdAt}`,1152);
     const s=snapshot.settings,b=s.region,line=s.line;
     const reportView=['histogram','signalHistogram'].includes(s.type)?histogramView(selected,s.channel,shared?1152-74:566-72,{allowUnknownColorSpace:true}):null;

@@ -1,7 +1,7 @@
 // Own analysis presentation data, MIT. No application or DOM state.
 export const ANALYSIS_CHANNELS={rgb:[0,1,2],r:[0],g:[1],b:[2],alpha:[3],y:[4]};
 export const SIGNAL_NAMES=['Y′','Cb','Cr'];
-export const spatialChannels=kind=>kind==='waveform'?[3]:kind==='rgbWaveform'||kind==='parade'?[0,1,2]:kind==='ycbcrParade'?[3,4,5]:[];
+export const spatialChannels=kind=>kind==='waveform'?[3]:kind==='rgbWaveform'||kind==='parade'?[0,1,2]:kind==='ycbcrWaveform'||kind==='ycbcrParade'?[3,4,5]:[];
 export const ANALYSIS_METRICS={
   psnrRGB:{label:'PSNR RGB, dB',direction:'выше — меньше ошибка RGB'},
   alphaErrorPercent:{label:'Ошибка α, %',direction:'ниже — меньше ошибка прозрачности'},

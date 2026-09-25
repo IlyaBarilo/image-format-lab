@@ -61,11 +61,11 @@ const assert=require('node:assert/strict');
     if(bins===1){assert.ok(r.ops.some(o=>o.kind==='fill'&&o.path[0]?.[0]==='A'));assert.ok(r.ops.some(o=>o.kind==='stroke'&&o.path[0]?.[0]==='A'));}
     else assert.equal(r.ops.filter(o=>o.kind==='fill').length,1);
   }
-  for(const type of ['waveform','parade','vectorscope']){
-    const r=recorder(),data=type==='vectorscope'?{size:1,bins:new Uint32Array([1]),pixelCount:1}:{columns:1,columnPixels:new Uint32Array([1]),channels:Array.from({length:4},()=>new Uint32Array(256).fill(1))};
+  for(const type of ['waveform','parade','ycbcrWaveform','vectorscope']){
+    const r=recorder(),data=type==='vectorscope'?{size:1,bins:new Uint32Array([1]),pixelCount:1}:{columns:1,columnPixels:new Uint32Array([1]),channels:Array.from({length:6},()=>new Uint32Array(256).fill(1))};
     renderAnalysisOverlay(r.canvas,[{data},{data}],{type});
     assert.equal(r.ops.filter(o=>o.kind==='fill').length,0,'density scopes do not receive area-under-curve fills');
-    const layers=r.ops.filter(o=>o.kind==='image');assert.equal(layers.length,type==='parade'?6:2);assert.ok(layers.every(o=>o.composite==='lighter'));
+    const layers=r.ops.filter(o=>o.kind==='image');assert.equal(layers.length,['parade','ycbcrWaveform'].includes(type)?6:2);assert.ok(layers.every(o=>o.composite==='lighter'));
   }
   console.log('PASS histogram RGB/alpha fill/contour order, saturation, normalization, DPR=1/2, coincident curves, profile ranges/one sample and density scopes');
 

@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 (async () => {
   const { createAnalysis } = await import('../src/ui/analysis.mjs');
   class Element {
-    constructor() { this.hidden=false;this.dataset={};this.value='';this.attrs=new Map();this.events=new Map();this.width=1;this.height=1; }
+    constructor() { this.hidden=false;this.dataset={};this.value='';this.attrs=new Map();this.events=new Map();this.width=1;this.height=1;this.children=[];this.firstChild={textContent:''}; }
+    replaceChildren(...children){this.children=children;}
+    get selectedOptions(){return this.children.filter(option=>option.value===this.value);}
     addEventListener(name,fn){this.events.set(name,fn);}
     emit(name){this.events.get(name)?.({target:this});}
     setAttribute(name,value){this.attrs.set(name,String(value));}
@@ -13,7 +15,7 @@ const assert = require('node:assert/strict');
     focus(){document.activeElement=this;}
   }
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
-  globalThis.document={getElementById:get,activeElement:null};
+  globalThis.document={getElementById:get,createElement:()=>new Element(),activeElement:null};
   globalThis.devicePixelRatio=1;
   globalThis.Worker=class {};
   const observers=[];

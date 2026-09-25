@@ -140,12 +140,13 @@ export function createAnalysisCombined(){
       for(const [name,r,g,b]of [['R',255,0,0],['M',255,0,255],['B',0,0,255],['C',0,255,255],['G',0,255,0],['Y',255,255,0]]){const {cb,cr}=chromaCoordinates(r,g,b),x=cx+cb*size,y=cy-cr*size;ctx.strokeStyle='#94a3b8';ctx.strokeRect(x-2,y-2,4,4);ctx.fillStyle='#cbd5e1';ctx.textAlign=cb>0?'left':'right';ctx.fillText(name,x+(cb>0?6:-6),y);}
       ctx.fillStyle='#cbd5e1';ctx.textAlign='center';ctx.fillText('Cr ↑',cx,11);ctx.textAlign='left';ctx.fillText('Cb →',x0+size+6,cy+28);
     }else{
-       const channels=spatialChannels(kind),combinedRGB=kind==='rgbWaveform',gap=14,span=combinedRGB?right-left:(right-left-gap*(channels.length-1))/channels.length;
+       const channels=spatialChannels(kind),combined=['rgbWaveform','ycbcrWaveform'].includes(kind),gap=14,span=combined?right-left:(right-left-gap*(channels.length-1))/channels.length;
        grid(ctx,left,right,top,bottom,255);
-       channels.forEach((c,j)=>{const start=combinedRGB?left:left+j*(span+gap);
-         items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>data.channels[c][x*256+255-y]/data.columnPixels[x],maximum,combinedRGB?[[220,105,115],[76,198,100],[90,145,235]][c].map(n=>Math.min(255,Math.round(n*(i?1.15:.6)))):i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
-         ctx.fillStyle=combinedRGB?COLORS[c]:spatialColor(c);ctx.textAlign='center';ctx.fillText(spatialName(c),combinedRGB?right-(2-j)*22:start+span/2,12);
-         if(!combinedRGB||j===0){ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);}
+       channels.forEach((c,j)=>{const start=combined?left:left+j*(span+gap);
+         const base=kind==='ycbcrWaveform'?[[225,190,80],[75,185,205],[205,105,160]][j]:[[220,105,115],[76,198,100],[90,145,235]][j];
+         items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>data.channels[c][x*256+255-y]/data.columnPixels[x],maximum,combined?base.map(n=>Math.min(255,Math.round(n*(i?1.15:.6)))):i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
+         ctx.fillStyle=spatialColor(c);ctx.textAlign='center';ctx.fillText(spatialName(c),combined?right-(2-j)*28:start+span/2,12);
+         if(!combined||j===0){ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);}
        });
     }
   }

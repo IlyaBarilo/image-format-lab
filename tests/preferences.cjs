@@ -22,8 +22,11 @@ function events() {
   custom.filesVisible=false;custom.pixelGrid=true;custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
   Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
-      displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
+      displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrWaveform:'delta',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
    assert.deepEqual(normalizePreferences(custom),custom);
+   const combinedSignal=normalizePreferences({version:1,analysis:{type:'ycbcrWaveform',displays:{ycbcrWaveform:'delta'}}});
+   assert.equal(combinedSignal.analysis.type,'ycbcrWaveform');
+   assert.equal(combinedSignal.analysis.displays.ycbcrWaveform,'delta');
    const invalidErrorMode=structuredClone(custom);invalidErrorMode.analysis.displays.errorHistogram='delta';
    assert.equal(normalizePreferences(invalidErrorMode).analysis.displays.errorHistogram,'overlay');
   const legacy=structuredClone(custom);legacy.comparison.autoApply=false;
@@ -124,7 +127,7 @@ function events() {
   const timers=new Map(),renders=[],nodes=[];let timerId=0,hidden=false;
   global.setTimeout=(fn,delay)=>{assert.equal(delay,320);timers.set(++timerId,fn);return timerId;};
   global.clearTimeout=id=>timers.delete(id);
-  const node=tag=>{const n={...events(),tag,append(){},setAttribute(){}};nodes.push(n);return n;};
+  const node=tag=>{const n={...events(),tag,childNodes:[],append(...children){this.childNodes.push(...children);},setAttribute(){}};nodes.push(n);return n;};
   global.document={createElement:node,createTextNode:()=>node('text')};
   const controlApp={source:{name:'source.png'}};
   const variant={index:1,head:node('head'),config:{...defaults.comparison.variants[1]},generation:0,

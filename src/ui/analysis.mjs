@@ -9,6 +9,11 @@ const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′', 'Cb', 'Cr'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0', '#facc15', '#22d3ee', '#f472b6'];
 const SIGNAL_COLORS = ['#facc15', '#22d3ee', '#f472b6'];
+const GRAPH_VARIANTS = [
+  [['histogram', 'RGB'], ['signalHistogram', 'Y′CbCr']],
+  [['waveform', 'Y′'], ['rgbWaveform', 'RGB вместе'], ['ycbcrWaveform', 'Y′CbCr вместе']],
+  [['parade', 'RGB'], ['ycbcrParade', 'Y′CbCr']]
+];
 const spatialName = index => index===3?'Y′':index===4?'Cb':index===5?'Cr':NAMES[index];
 const spatialColor = index => index>=3?COLORS[index+1]:COLORS[index];
 const number = value => value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
@@ -17,7 +22,7 @@ export function createAnalysis({ app }, deps) {
   const get = id => document.getElementById(id);
   const panel = get('analysisPanel'), body = get('analysisBody'), collapse = get('analysisCollapse');
   const channel = get('analysisChannel'), matte = get('analysisMatte');
-  const type = get('analysisType');
+  const type = get('analysisType'), variantSelect = get('analysisVariant'), variantField = get('analysisVariantField');
   const differenceChannel = get('analysisDifferenceChannel'), gain = get('analysisGain');
   const profileChannel = get('analysisProfileChannel'), position = get('analysisPosition');
   const level = get('analysisLevel'), status = get('analysisStatus');
@@ -36,6 +41,19 @@ export function createAnalysis({ app }, deps) {
   const readViewports = () => cards.slice(0, app.layout).map((_, side) => deps.getAnalysisViewport(side));
 
   function syncControls() {
+    const variants = GRAPH_VARIANTS.find(group => group.some(([kind]) => kind === type.value));
+    variantField.hidden = !variants;
+    if (variants) {
+      const family = variants[0][0];
+      if (variantSelect.dataset.family !== family) {
+        variantSelect.replaceChildren(...variants.map(([value, label]) => {
+          const option = document.createElement('option'); option.value = value; option.textContent = label; return option;
+        }));
+        variantSelect.dataset.family = family;
+      }
+      variantField.firstChild.textContent = family === 'waveform' ? 'Каналы ' : 'Модель ';
+      variantSelect.value = type.value;
+    }
     deps.syncAnalysisOutput();
     const tradeoff=type.value==='tradeoff',output=deps.getAnalysisOutputSettings();
     get('analysisScope').hidden=tradeoff;
@@ -58,11 +76,12 @@ export function createAnalysis({ app }, deps) {
       ? 'По горизонтали — положение в кадре, по вертикали — уровень 0–255. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
       : 'По горизонтали — уровни или интервалы подписанной шкалы, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
     get('analysisMethod').textContent = spatial
-      ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины кадра); в RGB Parade оно повторяется для R, G и B. По вертикали — кодовые уровни 0–255. Waveform: Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), коэффициенты BT.709 применены к RGB8 после смешивания с выбранной подложкой. Это оценка сигнала, не линейная физическая яркость, HDR или IRE. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп, уровни не усредняются. Плотность — доля пикселей группы на данном уровне. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума всех видимых графиков и каналов. Фон и масштаб просмотра на расчёт не влияют.'
+      ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины кадра); в Parade оно повторяется для трёх каналов. По вертикали — кодовые уровни 0–255. Waveform: Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), коэффициенты BT.709 применены к RGB8 после смешивания с выбранной подложкой. Это оценка сигнала, не линейная физическая яркость, HDR или IRE. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп, уровни не усредняются. Плотность — доля пикселей группы на данном уровне. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума всех видимых графиков и каналов. Фон и масштаб просмотра на расчёт не влияют.'
       : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни целых отсчётов или явные интервалы float32, по вертикали — доля пикселей канала в процентах. Считаются все пиксели выбранной области. Целые уровни сохраняются точно; RGB после подложки округляется в исходной разрядности. При узком графике соседние уровни суммируются в общие группы, подписанные в сведениях. Для разных целых разрядностей используется общая нормированная шкала 0–1. Вне диапазона float32 отсчёты учитываются отдельно; крайние интервалы ими не заполняются. JSON сохраняет исходные счётчики и шкалу; PNG группирует их под размер отчёта. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
     if(signalHistogram)get('analysisMethod').textContent='Гистограмма Y′CbCr вычислена из декодированного RGB8 после смешивания с выбранной подложкой. Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. Значения округляются в шкалу 0–255. Нейтральная цветность находится около уровня 128. Это вычисленные сигналы BT.709, а не внутренние плоскости кодека, вещательные уровни или HDR. Учитываются все пиксели выбранной области; по вертикали — доля пикселей канала в процентах.';
     if(type.value==='ycbcrParade')get('analysisMethod').textContent='Y′CbCr Parade показывает вычисленные каналы декодированного RGB8: Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. После смешивания с выбранной подложкой значения округляются в шкалу 0–255, нейтральная цветность около 128. Три панели имеют общую горизонталь 0–100% выбранной области. Это не внутренние плоскости кодека, вещательные уровни или HDR.';
     if(type.value==='rgbWaveform')get('analysisMethod').textContent='Waveform RGB вместе накладывает вычисленные следы R, G и B декодированного RGB8 на одну общую координатную сетку: горизонталь 0–100% выбранной области, вертикаль 0–255. Прозрачность смешивается с выбранной подложкой. Плотность каждого канала нормируется на общий максимум; пересечения цветов складываются. Это видимые кодовые значения после декодирования, не внутренние плоскости кодека и не HDR.';
+    if(type.value==='ycbcrWaveform')get('analysisMethod').textContent='Waveform Y′CbCr вместе накладывает вычисленные следы Y′, Cb и Cr декодированного RGB8 на одну сетку: горизонталь 0–100% выбранной области, вертикаль 0–255; нейтральная цветность Cb/Cr около 128. Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. Значения округлены после смешивания прозрачности с выбранной подложкой. Плотность нормируется на общий максимум; пересечения цветов складываются. Это вычисленные сигналы BT.709, не внутренние плоскости кодека, вещательные уровни или HDR.';
      if(difference) {
       help.title = 'Отличие каждой ячейки от исходного файла. Чёрный — совпадение, цвет — величина ошибки. Усиление общее. Нажмите для подробностей.';
       get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой; α: абсолютная разность прозрачности без подложки. Это различия кодовых значений RGBA8, не Delta E и не оценка восприятия. Чёрный означает нулевую разность, цвет показывает величину от 0 до 255. Общее усиление умножает только отображаемую разность; красный — достижение или превышение верхнего порога шкалы. Средние/максимумы считаются по всем выбранным пикселям без усиления. Карта ограничена 512 пикселями по длинной стороне; каждая её точка хранит максимальную ошибку группы, чтобы не терять единичные отличия. Размеры результата и исходника должны совпадать: масштабирования или выравнивания по содержимому нет.';
@@ -237,7 +256,7 @@ export function createAnalysis({ app }, deps) {
       while (queued && !body.hidden && !resizePaused) {
         queued = false;
         const token = generation, inputs = cards.slice(0, app.layout).map((_, side) => selected(side)), background = matte.value;
-        const kind = ['parade','rgbWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
+        const kind = ['parade','rgbWaveform','ycbcrWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
         const reference = ['errorHistogram','errorProfile','ssim'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
         const computed = [];
         for (const input of inputs) {
@@ -494,7 +513,7 @@ export function createAnalysis({ app }, deps) {
   }
 
   function drawSpatial() {
-    const indices = spatialChannels(type.value),overlap=type.value==='rgbWaveform';
+    const indices = spatialChannels(type.value),overlap=['rgbWaveform','ycbcrWaveform'].includes(type.value);
     let maximum = 0;
     for (const { data } of results) if (data) for (const index of indices) {
       for (let x = 0; x < data.columns; x++) for (let value = 0; value < 256; value++) {
@@ -527,9 +546,9 @@ export function createAnalysis({ app }, deps) {
         });
          return `${spatialName(index)} ${low}–${high}, среднее ${number(sum / data.pixelCount)}`;
       }).join(' · ');
-      const description = `${rasterDescription(data)} · ${data.columns} групп столбцов · RGB на ${data.matte === 'white' ? 'белом' : 'чёрном'}`;
+      const description = `${rasterDescription(data)} · ${data.columns} групп столбцов · сигналы из RGB8 на ${data.matte === 'white' ? 'белом' : 'чёрном'}`;
       card.badge.title = `${item.label}. ${description}`;
-       const label = `${item.label}. ${description}. ${type.selectedOptions[0].textContent}. Уровни 0–255, ширина кадра 0–100%. ${summary}.`;
+       const label = `${item.label}. ${description}. ${type.selectedOptions[0].textContent}${variantField.hidden?'':` · ${variantSelect.selectedOptions[0].textContent}`}. Уровни 0–255, ширина кадра 0–100%. ${summary}.`;
       card.canvas.setAttribute('aria-label', label);
       detailLines.push(label);
        plotSpatial(card.canvas, data, indices, maximum, undefined, overlap);
@@ -559,7 +578,7 @@ export function createAnalysis({ app }, deps) {
       }
       const raster = document.createElement('canvas'); raster.width = data.columns; raster.height = 256;
       const rasterCtx = raster.getContext('2d'), pixels = rasterCtx.createImageData(data.columns, 256);
-       const color = index === 3 ? [226, 232, 240] : index === 4 ? [34, 211, 238] : index === 5 ? [244, 114, 182] : index === 0 ? [251, 113, 133] : index === 1 ? [74, 222, 128] : [96, 165, 250];
+       const color = index === 3 ? overlap ? [250, 204, 21] : [226, 232, 240] : index === 4 ? [34, 211, 238] : index === 5 ? [244, 114, 182] : index === 0 ? [251, 113, 133] : index === 1 ? [74, 222, 128] : [96, 165, 250];
       for (let x = 0; x < data.columns; x++) for (let value = 0; value < 256; value++) {
         const count = data.channels[index][x * 256 + value];
         if (!count) continue;
@@ -646,7 +665,7 @@ export function createAnalysis({ app }, deps) {
       const prepared = data.viewScale ? data : histogramView([item], settings.channel, Math.max(256, (outputSize || canvas.getBoundingClientRect()).width - 72), { allowUnknownColorSpace: true }).items[0].data;
        plot(canvas, prepared, CHANNELS[settings.channel], data.viewScale ? maximum : Math.max(maximum || 0, analysisMaximum(settings.type, [{data:prepared}], settings.channel)), settings.level, outputSize, settings.type==='signalHistogram');
     }
-    else if (spatialChannels(settings.type).length) plotSpatial(canvas, data, spatialChannels(settings.type), maximum, outputSize, settings.type==='rgbWaveform');
+    else if (spatialChannels(settings.type).length) plotSpatial(canvas, data, spatialChannels(settings.type), maximum, outputSize, ['rgbWaveform','ycbcrWaveform'].includes(settings.type));
     else if (settings.type === 'vectorscope') deps.plotVectorscope(canvas, data, maximum, outputSize);
     else if (settings.type === 'profile') deps.plotLineProfile(canvas, data, CHANNELS[settings.profileChannel], settings.position, outputSize);
     else if (settings.type === 'errorProfile') deps.plotErrorProfile(canvas, data, settings.errorChannel==='alpha'?1:0, settings.position, maximum, outputSize);
@@ -698,6 +717,7 @@ export function createAnalysis({ app }, deps) {
     });
     matte.addEventListener('change', updateAnalysis);
     type.addEventListener('change',()=>{deps.closeAnalysisRegion();updateAnalysis();});
+    variantSelect.addEventListener('change',()=>{type.value=variantSelect.value;deps.closeAnalysisRegion();updateAnalysis();});
     profileChannel.addEventListener('change',()=>{syncControls();drawAnalysis();});
     position.addEventListener('input',()=>{get('analysisPositionValue').textContent=number(Number(position.value)/10)+'%';drawAnalysis();});
     differenceChannel.addEventListener('change',()=>{syncControls();drawAnalysis();});

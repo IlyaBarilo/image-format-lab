@@ -5,7 +5,7 @@ import { DEFAULT_ANALYSIS_LINE } from './line-profile.mjs';
 
 export const PREFERENCES_KEY = 'image-format-viewer.preferences.v1';
 export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
-  type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrParade','difference','vectorscope','profile','errorProfile','ssim','tradeoff']],
+  type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','vectorscope','profile','errorProfile','ssim','tradeoff']],
   channel: ['analysisChannel', 'rgb', ['rgb','r','g','b','alpha']],
   matte: ['analysisMatte', 'white', ['white','black']],
   level: ['analysisLevel', 128, [0,255]],
@@ -21,7 +21,7 @@ export function defaultPreferences() {
     pixelGrid:false,
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
-       displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',profile:'overlay',errorProfile:'separate',ssim:'separate'},
+       displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',profile:'overlay',errorProfile:'separate',ssim:'separate'},
       pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE}}
   };
 }

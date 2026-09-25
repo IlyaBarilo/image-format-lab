@@ -70,6 +70,34 @@ async function plots(page, kind) {
       assert.deepEqual(result.channels,white.channels.map(c=>[...c]));
       assert.deepEqual(result.columnPixels,[2,2,2]); assert.deepEqual(result.input,[...before]);
     });
+    await check('graph families select RGB and Y′CbCr variants, restore them and keep comparison modes',async page=>{
+      await page.locator('#sampleImage').click();await ready(page);
+      await page.locator('button[data-analysis-size="compact"]').click();
+      const visible=await page.locator('#analysisType').evaluate(select=>[...select.options].filter(option=>!option.hidden).map(option=>option.textContent));
+      assert.equal(visible.filter(label=>label==='Гистограмма').length,1);
+      assert.equal(visible.filter(label=>label==='Waveform').length,1);
+      assert.equal(visible.filter(label=>label==='Parade').length,1);
+      await page.locator('#analysisVariant').selectOption('signalHistogram');
+      await page.waitForFunction(()=>document.getElementById('analysisType').value==='signalHistogram');
+      assert.equal(await page.locator('#analysisVariantField').isVisible(),true);
+      await page.locator('#analysisType').selectOption('waveform');await plots(page,'waveform');
+      assert.deepEqual(await page.locator('#analysisVariant option').allTextContents(),['Y′','RGB вместе','Y′CbCr вместе']);
+      await page.locator('#analysisVariant').selectOption('ycbcrWaveform');await plots(page,'ycbcrWaveform');
+      assert.ok((await page.locator('.analysis-chart').first().getAttribute('aria-label')).includes('Cb'));
+      await page.locator('#analysisDisplayOverlay').click();
+      await page.waitForFunction(()=>document.getElementById('analysisCombinedChart').getAttribute('aria-label')?.includes('Наложение ячеек'));
+      await page.locator('#analysisDisplayDelta').click();
+      await page.waitForFunction(()=>document.getElementById('analysisCombinedChart').getAttribute('aria-label')?.includes('Разница: ячейка'));
+      await page.locator('#analysisType').selectOption('parade');await plots(page,'parade');
+      await page.locator('#analysisVariant').selectOption('ycbcrParade');await plots(page,'ycbcrParade');
+      await page.locator('#analysisType').selectOption('ycbcrWaveform');await plots(page,'ycbcrWaveform');
+      assert.equal(await page.locator('#analysisDisplayDelta').isChecked(),true);
+      await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+      await page.reload();
+      assert.equal(await page.locator('#analysisType').inputValue(),'ycbcrWaveform');
+      assert.equal(await page.locator('#analysisVariant').inputValue(),'ycbcrWaveform');
+      assert.equal(await page.locator('#analysisDisplayDelta').isChecked(),true);
+    });
     await check('types and mattes cache data without encoding; common levels/density and DPR 2',async page=>{
       await page.locator('#sampleImage').click(); await ready(page);
       const original = await page.evaluate(()=>{

@@ -2,7 +2,7 @@
 import { ANALYSIS_CHANNELS, spatialChannels } from './analysis-output.mjs';
 import { histogramView } from './histogram-view.mjs';
 
-export const DELTA_TYPES = Object.freeze(['histogram', 'signalHistogram', 'waveform', 'parade', 'rgbWaveform', 'ycbcrParade', 'profile']);
+export const DELTA_TYPES = Object.freeze(['histogram', 'signalHistogram', 'waveform', 'parade', 'rgbWaveform', 'ycbcrWaveform', 'ycbcrParade', 'profile']);
 const clean = value => Math.abs(value) < 1e-10 ? 0 : value;
 
 export function deltaAt(values, position) {

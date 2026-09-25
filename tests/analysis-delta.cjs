@@ -66,6 +66,9 @@ function recordingCanvas(width=600,height=300) {
   assert.equal(parade.channels[0].values[255],100);assert.ok(parade.channels.slice(1).every(c=>c.values.every(v=>v===0)));
   const chroma=analysisDelta(pair(wave([0],1),computeWaveform({width:1,height:1,data:Uint8ClampedArray.from([255,0,0,255])})),{type:'ycbcrParade'});
   assert.deepEqual(chroma.channels.map(c=>c.index),[3,4,5]);
+  const chromaWaveform=analysisDelta(pair(wave([0],1),computeWaveform({width:1,height:1,data:Uint8ClampedArray.from([255,0,0,255])})),{type:'ycbcrWaveform'});
+  assert.deepEqual(chromaWaveform.channels.map(c=>c.index),[3,4,5]);
+  assert.deepEqual(chromaWaveform.channels.map(c=>[...c.values]),chroma.channels.map(c=>[...c.values]));
   assert.throws(()=>analysisDelta(items,{type:'vectorscope'}));assert.throws(()=>analysisDelta([items[0]],settings));
   console.log('PASS Waveform/Parade signed densities, common scale, unequal grids, channel isolation and unsupported modes');
 
