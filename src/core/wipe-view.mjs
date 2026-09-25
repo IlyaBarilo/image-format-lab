@@ -4,7 +4,7 @@ export function wipePair(first,second,ready){
     return {message:'Дождитесь готовности вариантов 1 и 2'};
   const width=first.bitmap.width,height=first.bitmap.height;
   if(!width||!height||width!==second.bitmap.width||height!==second.bitmap.height)
-    return {message:'Для шторки нужны одинаковые размеры'};
+    return {message:'Для совмещения нужны одинаковые размеры'};
   return {width,height};
 }
 

@@ -15,9 +15,14 @@ const artifacts=require('./support/artifacts.cjs');
   try{
     await context.setOffline(true);
     await page.goto(pathToFileURL(require('./support/viewer-path.cjs')()).href);
+    assert.equal(await page.locator('#wipeMode').isEnabled(),true);
+    assert.equal(await page.locator('.segmented[aria-label="Режим сравнения"] button').first().getAttribute('id'),'wipeMode');
+    await page.locator('#wipeMode').click();
+    assert.equal(await page.locator('#grid').evaluate(node=>node.classList.contains('wipe')),true);
+    assert.equal(await page.locator('#wipeHandle').isVisible(),false,'divider stays out of the empty-state hint');
     await page.locator('#sampleImage').click();
     await page.waitForFunction(()=>app.source&&!app.sourceLoading&&app.variants.slice(0,2).every(v=>v.bitmap&&!v.processing));
-    await page.locator('#wipeMode').click();
+    assert.equal(await page.locator('#wipeHandle').isVisible(),true);
     assert.equal(await page.locator('#grid').evaluate(node=>node.classList.contains('wipe')),true);
     assert.equal(await page.locator('#wipeOverlay').isVisible(),true);
     assert.equal(await page.locator('.cell[data-index="0"] .canvas-shell').isVisible(),false);

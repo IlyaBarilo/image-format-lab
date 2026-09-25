@@ -10,6 +10,18 @@ const assert=require('node:assert/strict');
   assert.equal(visibleGridLines(-16,16,100,80,7),null,'grid remains hidden below eight CSS pixels');
   assert.equal(visibleGridLines(0,8,1000,4000,8),null,'line budget prevents excessive drawing');
   assert.equal(visibleGridLines(-1000,8,10,100,8),null,'off-screen image has no grid lines');
+  const {createCanvas}=await import('../src/ui/canvas.mjs');
+  const handle={style:{},attrs:{},setAttribute(key,value){this.attrs[key]=String(value);}};
+  const modeApp={wipe:{active:false,position:.5,previousLayout:null},layout:4,source:null};
+  const layouts=[];
+  const canvas=createCanvas({app:modeApp,els:{wipeOverlay:{},wipeHandle:handle}},
+    {clamp:(value,min,max)=>Math.max(min,Math.min(max,value)),updateLayout:count=>layouts.push(count)});
+  canvas.setWipeMode(true);
+  assert.equal(modeApp.wipe.active,true,'combined view can be selected before a file is opened');
+  assert.deepEqual(layouts,[2]);
+  canvas.setWipePosition(.37123);
+  assert.equal(handle.style.left,'37.123%','visual boundary must keep the fractional position');
+  assert.equal(handle.attrs['aria-valuenow'],'37','screen-reader value can remain rounded');
   const {createComparison}=await import('../src/ui/comparison.mjs');
   const variants=[0,1,2].map(index=>({index,ready:index<2,processing:false,
     cell:{classList:{contains:()=>index===2}}}));
@@ -21,5 +33,5 @@ const assert=require('node:assert/strict');
   variants[1].ready=false;
   await comparison.renderVisibleVariants();
   assert.deepEqual(encoded,[1],'only an invalidated visible output is encoded');
-  console.log('PASS wipe pair readiness, exact alignment and bounded pixel grid');
+  console.log('PASS wipe pair readiness, precise divider, empty-state selection and bounded pixel grid');
 })().catch(error=>{console.error(error);process.exitCode=1;});

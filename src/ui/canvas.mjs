@@ -34,7 +34,7 @@ export function createCanvas({app, els}, deps) {
   
   function drawAll() {
     if (deps.isAnalysisResizing()) return;
-    if(els.wipeMode)els.wipeMode.disabled=!app.source&&!app.wipe?.active;
+    if(els.wipeHandle)els.wipeHandle.hidden=!app.source;
     deps.resizeCanvases();
     deps.updatePixelInspector?.();
     deps.updateFilePassport?.();
@@ -55,7 +55,7 @@ export function createCanvas({app, els}, deps) {
   function getAnalysisViewport(side, image = app.variants[side]?.imageData) {
     const wipe=app.wipe?.active&&side<2;
     if(wipe&&wipePair(app.variants[0],app.variants[1],deps.isVariantReady).message)
-      return {region:null,message:'В шторке нет двух готовых результатов одного размера.'};
+      return {region:null,message:'Для совмещённого просмотра нужны два готовых результата одного размера.'};
     const canvas = wipe?els.wipeCanvas:app.variants[side]?.canvas;
     if (!canvas || !app.source || !image) return { region: null, message: 'Нет изображения для анализа видимой части.' };
     const visible = canvas.getBoundingClientRect();
@@ -127,14 +127,14 @@ export function createCanvas({app, els}, deps) {
     if(!app.wipe?.active||!wipeContext||!els.wipeCanvas||!els.wipeCanvas.width)return;
     const canvas=els.wipeCanvas,ctx=wipeContext,[first,second]=app.variants;
     deps.drawBackground(ctx,canvas.width,canvas.height);
-    if(!app.source){deps.drawOverlayMessage(ctx,canvas,'Откройте изображение');return;}
+    if(!app.source)return;
     const pair=wipePair(first,second,deps.isVariantReady);
     if(pair.message){deps.drawOverlayMessage(ctx,canvas,pair.message);return;}
     const {width,height}=pair;
     const scale=deps.getDrawScale(canvas);
     const x=canvas.width/2-(app.view.centerX-(app.source.width-width)/2)*scale;
     const y=canvas.height/2-(app.view.centerY-(app.source.height-height)/2)*scale;
-    const divider=Math.round(canvas.width*app.wipe.position);
+    const divider=canvas.width*app.wipe.position;
     ctx.imageSmoothingEnabled=scale<1;ctx.imageSmoothingQuality='high';
     ctx.save();ctx.beginPath();ctx.rect(0,0,divider,canvas.height);ctx.clip();
     ctx.drawImage(first.bitmap,x,y,width*scale,height*scale);ctx.restore();
@@ -312,7 +312,6 @@ export function createCanvas({app, els}, deps) {
 
   function setWipeMode(enabled,restoreLayout=true){
     if(!app.wipe||!els.wipeOverlay)return;
-    if(enabled&&!app.source)return;
     if(Boolean(enabled)===app.wipe.active)return;
     if(enabled){
       app.wipe.previousLayout=app.layout;
@@ -331,7 +330,7 @@ export function createCanvas({app, els}, deps) {
     app.wipe.position=deps.clamp(position,0,1);
     if(els.wipeHandle){
       const percent=Math.round(app.wipe.position*100);
-      els.wipeHandle.style.left=`${percent}%`;
+      els.wipeHandle.style.left=`${app.wipe.position*100}%`;
       els.wipeHandle.setAttribute('aria-valuenow',String(percent));
       els.wipeHandle.setAttribute('aria-valuetext',`${percent}% варианта 1`);
     }
