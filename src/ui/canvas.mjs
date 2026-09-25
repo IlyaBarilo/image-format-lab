@@ -25,6 +25,7 @@ export function createCanvas({app, els}, deps) {
     if (deps.isAnalysisResizing()) return;
     deps.resizeCanvases();
     deps.updatePixelInspector?.();
+    deps.updateFilePassport?.();
     redrawPreviews();
     document.getElementById("zoomReadout").textContent=app.source?`${Math.round(deps.comparisonScale()*1000)/10}%`:"—";
     deps.updateAnalysisViewport();

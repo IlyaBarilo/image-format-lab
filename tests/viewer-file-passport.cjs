@@ -1,0 +1,60 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+const { chromium } = require('playwright');
+const { png } = require('./support/passport-fixtures.cjs');
+const artifacts = require('./support/artifacts.cjs');
+
+(async () => {
+  const url = pathToFileURL(require('./support/viewer-path.cjs')()).href;
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.IMAGE_TEST_BROWSER || undefined });
+  try {
+    const context = await browser.newContext({ viewport:{width:1440,height:1000}, deviceScaleFactor:2 });
+    await context.setOffline(true);
+    const page = await context.newPage(), errors = [], requests = [];
+    page.setDefaultTimeout(20000);
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });
+    await page.goto(url);
+    const opener = page.locator('.cell').first().getByRole('button', {name:'О файле ячейки 1'});
+    assert.equal(await opener.isDisabled(), true);
+    await page.locator('#fileInput').setInputFiles({name:'passport16.png',mimeType:'image/png',buffer:png({depth:16})});
+    const ready = () => page.waitForFunction(() => app.source && !app.sourceLoading && app.variants.slice(0,app.layout).every(isVariantReady));
+    const read = () => page.waitForFunction(() => document.getElementById('filePassportStatus').textContent.startsWith('Прочитаны'));
+    const value = (id, label) => page.locator('#' + id).evaluate((dl, key) => [...dl.querySelectorAll('dt')].find(dt=>dt.textContent===key)?.nextElementSibling.textContent, label);
+    await ready();
+    await page.evaluate(() => { window.passportEncodes=0; window.passportBlobs=app.variants.map(v=>v.blob); const original=encodeFromSource; encodeFromSource=(...args)=>{passportEncodes++;return original(...args);}; });
+    await opener.click(); await read();
+    assert.equal(await page.locator('#filePassportTarget').inputValue(), 'source');
+    assert.equal(await value('filePassportFields','Формат по сигнатуре'),'PNG');
+    assert.equal(await value('filePassportFields','Разрядность в файле'),'16 бит/компонент');
+    assert.equal(await value('filePassportFields','Размеры в файле'),'3 × 2');
+    assert.match(await value('filePassportRaster','Объём одного RGBA-буфера'),/48 байт/);
+    assert.match(await value('filePassportFields','Бит на пиксель (bpp)'),/по размерам в файле/);
+    await page.locator('#filePassportTarget').selectOption('1'); await read();
+    assert.equal(await value('filePassportFields','Формат по сигнатуре'),'JPEG');
+    assert.equal(await value('filePassportFields','Разрядность в файле'),'8 бит/компонент');
+    assert.equal(await value('filePassportFields','Размеры в файле'),'3 × 2');
+    assert.equal(await page.evaluate(()=>passportEncodes),0);
+    assert.equal(await page.evaluate(()=>app.variants.every((v,i)=>v.blob===passportBlobs[i])),true);
+    await page.evaluate(()=>markDirty(app.variants[1],{schedule:false}));
+    assert.match(await page.locator('#filePassportStatus').textContent(),/Дождитесь/);
+    assert.equal(await page.locator('#filePassportFields').textContent(),'');
+    await page.evaluate(()=>renderVariant(app.variants[1])); await ready(); await read();
+    assert.equal(await value('filePassportFields','Формат по сигнатуре'),'JPEG');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#filePassportDialog').isVisible(),false);
+    assert.equal(await opener.evaluate(e=>e===document.activeElement),true);
+    await page.setViewportSize({width:320,height:900}); await opener.click(); await read();
+    assert.equal(await page.locator('#filePassportDialog').evaluate(e=>e.scrollWidth>e.clientWidth),false);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(()=>document.getElementById('filePassportDialog').contains(document.activeElement)),true);
+    if(process.env.IMAGE_TEST_LOGS){const folder=artifacts.folder(process.env.IMAGE_TEST_LOGS);fs.mkdirSync(folder,{recursive:true});await page.screenshot({path:path.join(folder,artifacts.runId+'-file-passport-narrow.png')});}
+    await page.evaluate(()=>{disposeSource();drawAll();});
+    assert.equal(await page.locator('#filePassportFields').textContent(),'');assert.match(await page.locator('#filePassportStatus').textContent(),/Откройте/);
+    assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);await context.close();
+    console.log('PASS offline source PNG16/output JPEG passport, no encoding, invalidation, Escape/focus and narrow layout');
+  } finally { await browser.close(); }
+})().catch(error=>{console.error(error);process.exitCode=1;});

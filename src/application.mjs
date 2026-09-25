@@ -8,6 +8,7 @@ import * as metadata from './core/metadata.mjs';
 import * as settings from './core/settings.mjs';
 import * as zip from './core/zip.mjs';
 import * as pixels from './core/pixels.mjs';
+import * as passport from './core/file-passport.mjs';
 import { createBootstrap } from './ui/bootstrap.mjs';
 import { createTheme } from './ui/theme.mjs';
 import { createPreferences } from './ui/preferences.mjs';
@@ -28,6 +29,7 @@ import { createLicenses } from './ui/licenses.mjs';
 import { createReports } from './ui/reports.mjs';
 import { createAnalysis } from './ui/analysis.mjs';
 import { createPixelInspector } from './ui/pixel-inspector.mjs';
+import { createFilePassport } from './ui/file-passport.mjs';
 import { createAnalysisLayout } from './ui/analysis-layout.mjs';
 import { createAnalysisRegion } from './ui/analysis-region.mjs';
 import { createScopePlots } from './ui/scope-plots.mjs';
@@ -48,7 +50,7 @@ import { createCompute } from './services/compute.mjs';
 export function createApplication() {
   const app = createState(), els = collectElements();
   const context = { app, els };
-  const actions = Object.assign({}, utils, gif, bmp, metrics, metadata, settings, zip, pixels);
+  const actions = Object.assign({}, utils, gif, bmp, metrics, metadata, settings, zip, pixels, passport);
   function dependencies(names) {
     return Object.defineProperties({}, Object.fromEntries(names.map(name => [name, { get: () => actions[name] }])));
   }
@@ -181,6 +183,7 @@ export function createApplication() {
   Object.assign(actions, createControls(context, dependencies([
     "updateAnalysis",
     "updatePixelInspector",
+    "openFilePassport", "updateFilePassport",
     "clamp",
     "codecLabel",
     "detectAlpha",
@@ -231,6 +234,7 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createCanvas(context, dependencies([
+    "updateFilePassport",
     "updatePixelInspector", "drawPixelMarker", "pixelPointerDown", "pixelPointerMove", "pixelPointerUp", "cancelPixelPointer",
     "isAnalysisResizing",
     "updateAnalysisViewport",
@@ -282,6 +286,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing"])));
   Object.assign(actions, createPixelInspector(context, dependencies(["isVariantReady", "outputFormatLabel", "getDrawScale", "redrawPreviews", "redrawAnalysis"])));
+  Object.assign(actions, createFilePassport(context, dependencies(["inspectFile", "workingRasterInfo", "fileBitsPerPixel", "formatBytes", "isVariantReady", "outputFormatLabel"])));
   Object.assign(actions, createScopePlots());
   Object.assign(actions, createAnalysisCombined());
   Object.assign(actions, createAnalysisOutput(context, dependencies(["getAnalysisSnapshot", "redrawAnalysis", "downloadBlob", "renderAnalysisChart", "renderAnalysisOverlay", "renderAnalysisDelta", "renderAnalysisTradeoff", "isAnalysisResizing"])));

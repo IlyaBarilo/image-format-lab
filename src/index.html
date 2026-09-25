@@ -425,6 +425,15 @@
     </form>
   </dialog>
 
+  <dialog id="filePassportDialog" class="study-dialog file-passport-dialog" aria-labelledby="filePassportTitle">
+    <div class="licenses-heading"><h2 id="filePassportTitle">О файле</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
+    <div class="study-tools"><label for="filePassportTarget">Изображение</label><select id="filePassportTarget" class="select"></select></div>
+    <p class="batch-note" id="filePassportStatus" role="status" aria-live="polite"></p>
+    <h3>Файл</h3><dl class="passport-fields" id="filePassportFields"></dl>
+    <h3>Рабочие пиксели</h3><dl class="passport-fields" id="filePassportRaster"></dl>
+    <p class="batch-note">bpp = полный размер файла в битах / число пикселей; это не оценка качества. Объём RGBA относится к одному рабочему буферу, а не ко всей памяти приложения. Декодер может изменить ориентацию, цветовое представление и разрядность.</p>
+    <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла.</p>
+  </dialog>
   <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
     <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
     <div class="batch-dialog-body">

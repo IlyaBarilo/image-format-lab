@@ -318,8 +318,17 @@ export function createControls({els, app}, deps) {
       const metric = document.createElement("div");
       metric.className = "metric";
       if (title) metric.title = title;
-      const labelEl = document.createElement("span");
+      const labelEl = document.createElement(key === "format" ? "button" : "span");
       labelEl.textContent = label;
+      if (key === "format") {
+        labelEl.type = 'button'; labelEl.className = 'file-info-open'; labelEl.textContent = 'Формат ⓘ';
+        labelEl.title = 'О файле: свойства исходника и результата';
+        labelEl.setAttribute('aria-label', `О файле ячейки ${variant.index + 1}`);
+        labelEl.setAttribute('aria-haspopup', 'dialog'); labelEl.setAttribute('aria-controls', 'filePassportDialog');
+        labelEl.disabled = !app.source;
+        labelEl.addEventListener('click', () => deps.openFilePassport(variant));
+        variant.controls.fileInfo = labelEl;
+      }
       if (title) {
         const help = document.createElement("abbr");
         help.className = "help-dot";
@@ -387,6 +396,8 @@ export function createControls({els, app}, deps) {
     variant.controls.download.disabled = !deps.isVariantReady(variant);
     deps.updateAnalysis();
     deps.updatePixelInspector?.({ redraw: true });
+    if (variant.controls.fileInfo) variant.controls.fileInfo.disabled = !app.source;
+    deps.updateFilePassport?.();
   }
   
   function alphaLabel(format, imageData, pixelBuffer) {
