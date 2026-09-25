@@ -23,7 +23,9 @@ export function createCompute({app}, deps) {
   async function computeImage(format,config,source) {
     if(typeof Worker==="undefined") {
       deps.showStatus("Worker недоступен: обработка выполняется в основном потоке.");
-      return format==="gif"?deps.encodeGif(config.gifColors,config.gifDither,source):deps.encodeBmp(format==="bmp32",config.matte,source);
+      return format==="gif"?deps.encodeGif(config.gifColors,config.gifDither,source)
+        : format==='bmp8'?deps.encodeBmp8(config.bmpColors,config.bmpCompression,config.matte,source)
+        : deps.encodeBmp(format==="bmp32",config.matte,source);
     }
     return deps.workerCompute(format,{config,source:{width:source.width,height:source.height,hasAlpha:source.hasAlpha,imageData:source.imageData}});
   }

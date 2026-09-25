@@ -10,6 +10,8 @@ export function normalizeBatchSettings(value) {
   if (Number.isInteger(value.quality) && value.quality >= 1 && value.quality <= 100) config.quality = value.quality;
   if (Number.isInteger(value.gifColors) && value.gifColors >= 2 && value.gifColors <= 256) config.gifColors = value.gifColors;
   if (typeof value.gifDither === "boolean") config.gifDither = value.gifDither;
+  if (Number.isInteger(value.bmpColors) && value.bmpColors >= 2 && value.bmpColors <= 256) config.bmpColors = value.bmpColors;
+  if (['none','rle8'].includes(value.bmpCompression)) config.bmpCompression = value.bmpCompression;
   if (["auto","8","16"].includes(value.pngDepth)) config.pngDepth=value.pngDepth;
   if (typeof value.matte === "string" && Object.hasOwn(MATTES, value.matte)) config.matte = value.matte;
   if (["panorama", "none"].includes(value.metadataPolicy)) config.metadataPolicy = value.metadataPolicy;
@@ -36,7 +38,11 @@ export function validateComparison(value) {
     if (!v || !Object.hasOwn(FORMAT_DEFS, v.format) || !Number.isInteger(v.quality) || v.quality < 1 || v.quality > 100
       || !Number.isInteger(v.gifColors) || v.gifColors < 2 || v.gifColors > 256 || typeof v.gifDither !== "boolean"
       || !Object.hasOwn(MATTES, v.matte)) throw new Error("Некорректные параметры варианта.");
-    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, matte:v.matte };
+    const bmpColors = Object.hasOwn(v,'bmpColors') ? v.bmpColors : 256;
+    const bmpCompression = Object.hasOwn(v,'bmpCompression') ? v.bmpCompression : 'none';
+    if (!Number.isInteger(bmpColors) || bmpColors < 2 || bmpColors > 256 || !['none','rle8'].includes(bmpCompression))
+      throw new Error('Некорректные параметры BMP.');
+    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
   });
   // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
   return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};

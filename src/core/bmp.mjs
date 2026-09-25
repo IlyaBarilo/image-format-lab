@@ -1,5 +1,85 @@
 import { hexToRgb } from "./utils.mjs";
 import { MATTES } from "./config.mjs";
+import { quantizeUniform, indexWithoutDither, indexedToImageData } from './gif.mjs';
+
+export function encodeBmp8(maxColors, compression, matteKey, source, makePreview = true) {
+  if (!Number.isInteger(maxColors) || maxColors < 2 || maxColors > 256 || !['none', 'rle8'].includes(compression))
+    throw new Error('Некорректные параметры BMP 8 бит.');
+  const {width, height} = source;
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+      source.imageData?.data?.length !== width * height * 4) throw new Error('Некорректный размер BMP.');
+  const matte = hexToRgb(MATTES[matteKey] || '#ffffff');
+  const input = source.imageData.data;
+  const opaque = new Uint8ClampedArray(input.length);
+  for (let p = 0; p < input.length; p += 4) {
+    const alpha = input[p + 3] / 255;
+    opaque[p] = Math.round(input[p] * alpha + matte.r * (1 - alpha));
+    opaque[p + 1] = Math.round(input[p + 1] * alpha + matte.g * (1 - alpha));
+    opaque[p + 2] = Math.round(input[p + 2] * alpha + matte.b * (1 - alpha));
+    opaque[p + 3] = 255;
+  }
+  const quant = quantizeUniform(opaque, maxColors, false, true);
+  const indexed = indexWithoutDither(opaque, width, height, quant, false, -1);
+  const palette = quant.palette;
+  const rowSize = (width + 3) & ~3;
+  const pixels = compression === 'rle8' ? encodeRle8(indexed, width, height) : new Uint8Array(rowSize * height);
+  if (compression === 'none') for (let y = 0; y < height; y++)
+    pixels.set(indexed.subarray(y * width, (y + 1) * width), (height - 1 - y) * rowSize);
+  const offset = 54 + palette.length * 4;
+  const fileSize = offset + pixels.length;
+  if (fileSize > 0xffffffff) throw new Error('BMP превышает допустимый размер файла.');
+  const bytes = new Uint8Array(fileSize), view = new DataView(bytes.buffer);
+  bytes.set([0x42, 0x4d]);
+  view.setUint32(2, fileSize, true);
+  view.setUint32(10, offset, true);
+  view.setUint32(14, 40, true);
+  view.setInt32(18, width, true);
+  view.setInt32(22, height, true);
+  view.setUint16(26, 1, true);
+  view.setUint16(28, 8, true);
+  view.setUint32(30, compression === 'rle8' ? 1 : 0, true);
+  view.setUint32(34, pixels.length, true);
+  view.setInt32(38, 2835, true);
+  view.setInt32(42, 2835, true);
+  view.setUint32(46, palette.length, true);
+  for (let i = 0; i < palette.length; i++) {
+    const p = 54 + i * 4, color = palette[i];
+    bytes[p] = color.b; bytes[p + 1] = color.g; bytes[p + 2] = color.r;
+  }
+  bytes.set(pixels, offset);
+  return {blob: new Blob([bytes], {type:'image/bmp'}),
+    previewImageData: makePreview ? indexedToImageData(indexed, palette, width, height, -1) : null};
+}
+
+function encodeRle8(indexed, width, height) {
+  const bytes = [];
+  for (let y = height - 1; y >= 0; y--) {
+    const row = y * width;
+    let x = 0;
+    while (x < width) {
+      let run = 1;
+      while (x + run < width && run < 255 && indexed[row + x + run] === indexed[row + x]) run++;
+      if (run >= 3) { bytes.push(run, indexed[row + x]); x += run; continue; }
+      const start = x;
+      x += run;
+      while (x < width && x - start < 255) {
+        let next = 1;
+        while (x + next < width && next < 255 && indexed[row + x + next] === indexed[row + x]) next++;
+        if (next >= 3 || x + next - start > 255) break;
+        x += next;
+      }
+      const length = x - start;
+      if (length >= 3) {
+        bytes.push(0, length);
+        for (let i = start; i < x; i++) bytes.push(indexed[row + i]);
+        if (length & 1) bytes.push(0);
+      } else for (let i = start; i < x; i++) bytes.push(1, indexed[row + i]);
+    }
+    if (y > 0) bytes.push(0, 0);
+  }
+  bytes.push(0, 1);
+  return Uint8Array.from(bytes);
+}
 
 export function encodeBmp(withAlpha, matteKey, source, makePreview = true) {
   const width = source.width;

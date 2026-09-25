@@ -59,11 +59,13 @@ export function encodeGif(maxColors, useDither, source, makePreview = true) {
   };
 }
 
-export function quantizeUniform(data, maxColors, hasAlpha) {
+export function quantizeUniform(data, maxColors, hasAlpha, preferFullPalette = false) {
   maxColors = clamp(Math.round(Number(maxColors) || 1), 1, 256);
-  let levels = Math.max(2, Math.floor(Math.cbrt(maxColors)));
-  while (levels ** 3 > maxColors && levels > 2) levels--;
-  while ((levels + 1) ** 3 <= maxColors && levels < 8) levels++;
+  let levels = Math.max(2, preferFullPalette ? Math.ceil(Math.cbrt(maxColors)) : Math.floor(Math.cbrt(maxColors)));
+  if (!preferFullPalette) {
+    while (levels ** 3 > maxColors && levels > 2) levels--;
+    while ((levels + 1) ** 3 <= maxColors && levels < 8) levels++;
+  }
 
   const bucketCount = levels ** 3;
   const sums = Array.from({ length: bucketCount }, () => ({ r: 0, g: 0, b: 0, n: 0 }));

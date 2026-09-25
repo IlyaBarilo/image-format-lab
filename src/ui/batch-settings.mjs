@@ -53,6 +53,8 @@ export function createBatchSettings({app}, deps) {
     }
     if (def.lossy && (!Number.isInteger(config.quality) || config.quality < 1 || config.quality > 100)) throw new Error("Качество должно быть целым числом от 1 до 100.");
     if ((config.format === "gif" || config.format === "gifenc") && (!Number.isInteger(config.gifColors) || config.gifColors < 2 || config.gifColors > 256)) throw new Error("Количество цветов должно быть целым числом от 2 до 256.");
+    if (config.format === 'bmp8' && (!Number.isInteger(config.bmpColors) || config.bmpColors < 2 || config.bmpColors > 256 || !['none','rle8'].includes(config.bmpCompression)))
+      throw new Error('Для BMP 8 бит укажите 2–256 цветов и допустимый режим сжатия.');
     if (!Object.hasOwn(MATTES, config.matte) || !["panorama", "none"].includes(config.metadataPolicy)) throw new Error("Проверьте заливку и настройки метаданных.");
     for (const key of ["resizeWidth", "resizeHeight"]) {
       const value = config[key];
@@ -71,7 +73,8 @@ export function createBatchSettings({app}, deps) {
     const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}`
       : config.format === "tiff" ? `, ${normalizeTiffOptions(config).tiffCompression === "none" ? "без сжатия" : normalizeTiffOptions(config).tiffCompression.toUpperCase() + (normalizeTiffOptions(config).tiffCompression === "deflate" ? " " + normalizeTiffOptions(config).tiffLevel : "") + (normalizeTiffOptions(config).tiffPredictor ? ", предиктор" : ", без предиктора")}`
-      : config.format === "gif" || config.format === "gifenc" ? `, цветов ${config.gifColors}` : "";
+      : config.format === "gif" || config.format === "gifenc" ? `, цветов ${config.gifColors}`
+      : config.format === 'bmp8' ? `, до ${config.bmpColors} цветов, ${config.bmpCompression === 'rle8' ? 'RLE8' : 'без сжатия'}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };
     const matte = def.alpha === "none" ? `; заливка ${matteNames[config.matte]}` : "";
     return `${def.label}${details}; ${size}${matte}; ${config.format === "jpeg" && config.metadataPolicy !== "none" ? "GPano сохраняется в JPEG" : config.format==='png' ? "исходные метаданные удаляются; точный PNG сохраняет известную метку sRGB" : "метаданные удаляются"}` + (config.targetKB ? `; до ${config.targetKB} КБ, качество ${config.minQuality}–${config.quality}` : "");

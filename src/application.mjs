@@ -374,6 +374,7 @@ export function createApplication() {
     "computePixelMetrics",
     "prepareMetricInputs",
     "encodeBmp",
+    "encodeBmp8",
     "encodeGif",
     "showStatus",
     "workerCompute"

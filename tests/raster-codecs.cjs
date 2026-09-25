@@ -36,7 +36,7 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
 }
 (async()=>{
   const {decodeBmpPixels,decodeTiffPixels,encodeTiffPixels,normalizeTiffOptions}=await import('../src/core/raster-codecs.mjs');
-  const {encodeBmp}=await import('../src/core/bmp.mjs');
+  const {encodeBmp,encodeBmp8}=await import('../src/core/bmp.mjs');
   const bmpCodec=await require('../vendor/bmp-decoder.js')({print(){},printErr(){}});
   const tiffCodec=await require('../vendor/tiff-codec.js')({print(){},printErr(){}});
   const image={width:17,height:13,data:Uint8ClampedArray.from({length:17*13*4},(_,i)=>i*37%256)};
@@ -50,6 +50,43 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
   }
   const transparent={width:2,height:1,imageData:{data:Uint8ClampedArray.of(123,45,67,0,89,123,0,0)}};
   assert.deepEqual(new Uint8ClampedArray(decodeBmpPixels(bmpCodec,await encodeBmp(true,'white',transparent,false).blob.arrayBuffer()).buffer),transparent.imageData.data);
+  const indexed={width:13,height:3,imageData:{data:new Uint8ClampedArray(13*3*4)}};
+  const bmpPalette=[[0,0,0],[255,0,0],[0,255,0],[0,0,255]];
+  const rows=[[0,0,0,0,1,2,3,1,2,3,3,3,3],[2,1,0,3,2,1,0,3,2,1,0,3,2],[1,1,1,1,1,1,1,1,1,1,1,1,1]];
+  for(let y=0;y<3;y++)for(let x=0;x<13;x++)indexed.imageData.data.set([...bmpPalette[rows[y][x]],255],(y*13+x)*4);
+  const plain=encodeBmp8(16,'none','white',indexed,false),compressed=encodeBmp8(16,'rle8','white',indexed,false);
+  const plainBytes=Buffer.from(await plain.blob.arrayBuffer()),rleBytes=Buffer.from(await compressed.blob.arrayBuffer());
+  for(const [bytes,method] of [[plainBytes,0],[rleBytes,1]]){
+    assert.equal(bytes.toString('ascii',0,2),'BM');assert.equal(bytes.readUInt32LE(2),bytes.length);
+    assert.equal(bytes.readUInt16LE(28),8);assert.equal(bytes.readUInt32LE(30),method);
+    assert.ok(bytes.readUInt32LE(46)<=16);assert.equal(bytes.readUInt32LE(10),54+bytes.readUInt32LE(46)*4);
+    assert.equal(bytes.readUInt32LE(34),bytes.length-bytes.readUInt32LE(10));
+  }
+  assert.equal(plainBytes.length,plainBytes.readUInt32LE(10)+16*3,'uncompressed rows are padded to four bytes');
+  assert.deepEqual([...new Uint8Array(decodeBmpPixels(bmpCodec,plainBytes.buffer.slice(plainBytes.byteOffset,plainBytes.byteOffset+plainBytes.length)).buffer)],
+    [...indexed.imageData.data],'BMP8 keeps the four exact palette colors in bottom-up rows');
+  assert.deepEqual(new Uint8Array(decodeBmpPixels(bmpCodec,rleBytes.buffer.slice(rleBytes.byteOffset,rleBytes.byteOffset+rleBytes.length)).buffer),
+    new Uint8Array(indexed.imageData.data),'RLE8 decodes to exactly the same colors');
+  const stream=rleBytes.subarray(rleBytes.readUInt32LE(10));
+  assert.deepEqual([...stream.subarray(-2)],[0,1],'RLE8 closes the bitmap');
+  assert.ok(stream.includes(0),'RLE8 contains escape records');
+  const manyColors={width:27,height:1,imageData:{data:new Uint8ClampedArray(27*4)}};
+  let colorAt=0;
+  for(const r of [0,128,255])for(const g of [0,128,255])for(const b of [0,128,255])
+    manyColors.imageData.data.set([r,g,b,255],colorAt++*4);
+  const budget16=Buffer.from(await encodeBmp8(16,'none','white',manyColors,false).blob.arrayBuffer());
+  assert.equal(budget16.readUInt32LE(46),16,'16-color budget can use all 16 palette entries');
+  const longRun={width:260,height:1,imageData:{data:new Uint8ClampedArray(260*4)}};
+  for(let p=0;p<260*4;p+=4)longRun.imageData.data.set([255,0,0,255],p);
+  const longRle=Buffer.from(await encodeBmp8(2,'rle8','white',longRun,false).blob.arrayBuffer());
+  assert.deepEqual([...longRle.subarray(longRle.readUInt32LE(10))],[255,0,5,0,0,1],'RLE8 splits runs longer than 255 pixels');
+  const alphaBmp={width:2,height:1,imageData:{data:Uint8ClampedArray.of(80,20,5,0,0,0,0,255)}};
+  for(const [matte,expected] of [['white',[255,255,255,255,0,0,0,255]],['black',[0,0,0,255,0,0,0,255]]]){
+    const result=encodeBmp8(2,'rle8',matte,alphaBmp,false);
+    assert.deepEqual([...new Uint8Array(decodeBmpPixels(bmpCodec,await result.blob.arrayBuffer()).buffer)],expected,'BMP8 composites transparency before quantizing');
+  }
+  for(const [colors,compression] of [[1,'none'],[257,'none'],[16,'zip']])assert.throws(()=>encodeBmp8(colors,compression,'white',indexed,false));
+  assert.deepEqual(indexed.imageData.data,Uint8ClampedArray.from(rows.flatMap(row=>row.flatMap(i=>[...bmpPalette[i],255]))),'BMP8 must not mutate source pixels');
   const dib=Buffer.from(bmp({bits:24,palette:false,width:2,bytes:[0,0,255,0,255,0,0,0]})).subarray(14);
   dib.writeInt32LE(2,8);const icon=Buffer.alloc(22+dib.length+4);icon.writeUInt16LE(1,2);icon.writeUInt16LE(1,4);icon[6]=2;icon[7]=1;icon.writeUInt16LE(1,10);icon.writeUInt16LE(24,12);icon.writeUInt32LE(dib.length+4,14);icon.writeUInt32LE(22,18);icon.set(dib,22);icon[22+dib.length]=0x40;
   assert.deepEqual([...new Uint8Array(decodeBmpPixels(bmpCodec,arrayBuffer(icon),true).buffer)],[255,0,0,255,0,255,0,0],'ICO BMP and transparency mask');
@@ -67,7 +104,7 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
   }
   for(const bad of [new ArrayBuffer(8),bmp({bytes:[]}),bmp({width:40000001,bytes:[0,0,0,0]})])assert.throws(()=>decodeBmpPixels(bmpCodec,bad));
   assert.equal(decodeBmpPixels(bmpCodec,bmp({bytes:[1,2,3,0]})).width,4);
-  console.log('PASS BMP24/32 alpha, palettes 1/4/8, RLE4/8, 16-bit RGB555/565, top-down, corruption and recovery');
+  console.log('PASS BMP8 palette/RLE8 output, BMP24/32 alpha, palettes 1/4/8, RLE4/8, 16-bit RGB555/565, top-down, corruption and recovery');
 
   const sizes=[];
   for(const compression of ['none','deflate','lzw'])for(const predictor of [false,true])for(const level of [1,6,9]){

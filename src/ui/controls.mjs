@@ -67,18 +67,39 @@ export function createControls({els, app}, deps) {
     const bmpDepthWrap = document.createElement("label");
     bmpDepthWrap.className = "bmp-depth-wrap";
     bmpDepthWrap.hidden = !isBmpFormat(variant.config.format);
-    bmpDepthWrap.title = "BMP без сжатия: 24 бита — цвет с заливкой прозрачности; 32 бита — цвет и альфа-канал.";
+    bmpDepthWrap.title = "BMP 8 бит — палитра; 24 бита — RGB с заливкой прозрачности; 32 бита — RGBA.";
     const bmpDepth = document.createElement("select");
     bmpDepth.className = "select bmp-depth";
-    for (const [value, label] of [["24", "24 бита · RGB"], ["32", "32 бита · RGBA"]]) {
+    for (const [value, label] of [["8", "8 бит · палитра"], ["24", "24 бита · RGB"], ["32", "32 бита · RGBA"]]) {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = label;
       bmpDepth.append(option);
     }
-    bmpDepth.value = variant.config.format === "bmp32" ? "32" : "24";
+    bmpDepth.value = variant.config.format === 'bmp8' ? '8' : variant.config.format === "bmp32" ? "32" : "24";
     bmpDepthWrap.append(document.createTextNode("Разрядность"), bmpDepth);
     head.append(bmpDepthWrap);
+    const bmpColorsWrap = document.createElement('label');
+    bmpColorsWrap.className = 'bmp-colors-wrap';
+    bmpColorsWrap.hidden = variant.config.format !== 'bmp8';
+    bmpColorsWrap.title = 'Максимальное число цветов палитры BMP: 2–256.';
+    const bmpColors = document.createElement('input');
+    bmpColors.className = 'small-input bmp-colors';
+    bmpColors.type = 'number'; bmpColors.min = '2'; bmpColors.max = '256'; bmpColors.step = '1';
+    bmpColors.value = String(variant.config.bmpColors ?? 256);
+    bmpColorsWrap.append(document.createTextNode('Цвета'), bmpColors);
+    const bmpCompressionWrap = document.createElement('label');
+    bmpCompressionWrap.className = 'bmp-compression-wrap';
+    bmpCompressionWrap.hidden = variant.config.format !== 'bmp8';
+    bmpCompressionWrap.title = 'RLE8 сжимает последовательности одинаковых индексов палитры без дополнительных потерь.';
+    const bmpCompression = document.createElement('select');
+    bmpCompression.className = 'select bmp-compression';
+    for (const [value,label] of [['none','Без сжатия'],['rle8','RLE8']]) {
+      const option=document.createElement('option');option.value=value;option.textContent=label;bmpCompression.append(option);
+    }
+    bmpCompression.value = variant.config.bmpCompression || 'none';
+    bmpCompressionWrap.append(document.createTextNode('Сжатие'), bmpCompression);
+    head.append(bmpColorsWrap, bmpCompressionWrap);
     const pngDepthWrap=document.createElement('label');
     pngDepthWrap.className='png-depth-wrap';
     pngDepthWrap.hidden=variant.config.format!=='png';
@@ -230,6 +251,10 @@ export function createControls({els, app}, deps) {
       pngDepth,
       bmpDepthWrap,
       bmpDepth,
+      bmpColorsWrap,
+      bmpColors,
+      bmpCompressionWrap,
+      bmpCompression,
       tiffCompressionWrap,
       tiffCompression,
       tiffLevelWrap,
@@ -281,6 +306,16 @@ export function createControls({els, app}, deps) {
       if (!isBmpFormat(variant.config.format)) return;
       variant.config.format = formatFromOption("bmp", bmpDepth.value);
       deps.syncControlsVisibility(variant);
+      deps.markDirty(variant);
+    });
+    bmpColors.addEventListener('change', () => {
+      const value = deps.clamp(Math.round(Number(bmpColors.value) || 256), 2, 256);
+      bmpColors.value = String(value);
+      variant.config.bmpColors = value;
+      deps.markDirty(variant);
+    });
+    bmpCompression.addEventListener('change', () => {
+      variant.config.bmpCompression = bmpCompression.value;
       deps.markDirty(variant);
     });
   
@@ -346,8 +381,14 @@ export function createControls({els, app}, deps) {
 
     if (variant.controls.bmpDepthWrap) {
       variant.controls.bmpDepthWrap.hidden = !isBmpFormat(format);
-      if (isBmpFormat(format)) variant.controls.bmpDepth.value = format === "bmp32" ? "32" : "24";
+      if (isBmpFormat(format)) variant.controls.bmpDepth.value = format === 'bmp8' ? '8' : format === "bmp32" ? "32" : "24";
       variant.controls.select.value = formatOptionValue(format);
+    }
+    if (variant.controls.bmpColorsWrap) {
+      variant.controls.bmpColorsWrap.hidden = format !== 'bmp8';
+      variant.controls.bmpCompressionWrap.hidden = format !== 'bmp8';
+      variant.controls.bmpColors.value = String(variant.config.bmpColors ?? 256);
+      variant.controls.bmpCompression.value = variant.config.bmpCompression || 'none';
     }
     if(variant.controls.pngDepthWrap){variant.controls.pngDepthWrap.hidden=format!=='png';variant.controls.pngDepth.value=variant.config.pngDepth || 'auto';}
     if(variant.controls.jpegSubsamplingWrap){
@@ -492,7 +533,7 @@ export function createControls({els, app}, deps) {
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
       avif: "Встроенные libheif / libaom",
       jxl: "Встроенный libjxl", jxlLossless: "Встроенный libjxl",
-      bmp24: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
+      bmp8: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
       tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; TIFF/BigTIFF, первая страница",
       ico: "Наибольший PNG внутри ICO — браузер; BMP внутри ICO — встроенный libnsbmp"
     };
@@ -511,7 +552,7 @@ export function createControls({els, app}, deps) {
       heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",
       gif: "Собственный кодировщик; один кадр, 2–256 цветов, переключаемый дизеринг, двоичная прозрачность",
       gifenc: "Встроенный gifenc; один кадр, 2–256 цветов, без дизеринга, двоичная прозрачность",
-      bmp24: "Собственный кодировщик; без сжатия, выбор 24 бит RGB с заливкой или 32 бит RGBA с прозрачностью"
+      bmp8: "Собственный кодировщик; выбор 8 бит с палитрой до 256 цветов и сжатием RLE8, 24 бит RGB с заливкой или 32 бит RGBA с прозрачностью"
     };
     const rows = FORMAT_OPTIONS.map(({format, label}) => {
       const unavailable = format === "original" ? "" : deps.formatUnavailableReason(format);

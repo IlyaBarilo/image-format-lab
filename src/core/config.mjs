@@ -81,6 +81,14 @@ export const FORMAT_DEFS = {
     native: false,
     codec: "gifenc"
   },
+  bmp8: {
+    label: "BMP 8-bit",
+    mime: "image/bmp",
+    ext: "bmp",
+    lossy: false,
+    alpha: "none",
+    native: false
+  },
   bmp24: {
     label: "BMP 24-bit",
     mime: "image/bmp",
@@ -100,10 +108,10 @@ export const FORMAT_DEFS = {
 };
 
 export const DEFAULT_VARIANTS = [
-  { format: "original", quality: 100, gifColors: 256, gifDither: true, matte: "white" },
-  { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, matte: "white", jpegSubsampling: "420", jpegProgressive: false },
-  { format: "png", quality: 100, gifColors: 256, gifDither: true, matte: "white" },
-  { format: "webp", quality: 85, gifColors: 128, gifDither: true, matte: "white" }
+  { format: "original", quality: 100, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" },
+  { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white", jpegSubsampling: "420", jpegProgressive: false },
+  { format: "png", quality: 100, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" },
+  { format: "webp", quality: 85, gifColors: 128, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" }
 ];
 
 export const BATCH_STORAGE_KEY = "image-format-viewer.batch-settings.v1";

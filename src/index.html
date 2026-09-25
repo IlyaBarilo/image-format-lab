@@ -337,8 +337,15 @@
           <select class="select" id="batchFormat" autofocus></select>
         </label>
         <label class="batch-field" id="batchBmpField" for="batchBmpDepth" hidden>Разрядность BMP
-          <select class="select" id="batchBmpDepth"><option value="24">24 бита · RGB</option><option value="32">32 бита · RGBA</option></select>
-          <span class="batch-note">Без сжатия. 24 бита — цвет с заливкой прозрачности; 32 бита — цвет и альфа-канал.</span>
+          <select class="select" id="batchBmpDepth"><option value="8">8 бит · палитра</option><option value="24">24 бита · RGB</option><option value="32">32 бита · RGBA</option></select>
+          <span class="batch-note">8 и 24 бита заменяют прозрачность заливкой; 32 бита сохраняют альфа-канал.</span>
+        </label>
+        <label class="batch-field" id="batchBmpColorsField" for="batchBmpColors" hidden>Макс. цветов BMP
+          <input class="small-input" id="batchBmpColors" type="number" min="2" max="256" step="1">
+        </label>
+        <label class="batch-field" id="batchBmpCompressionField" for="batchBmpCompression" hidden>Сжатие BMP
+          <select class="select" id="batchBmpCompression"><option value="none">Без сжатия</option><option value="rle8">RLE8</option></select>
+          <span class="batch-note">RLE8 не меняет цвета после построения палитры; на сложных изображениях файл может стать больше.</span>
         </label>
         <label class="batch-field" id="batchPngField" for="batchPngDepth" hidden>Разрядность PNG<select class="select" id="batchPngDepth"><option value="auto">Авто</option><option value="8">8 бит/канал</option><option value="16">16 бит/канал</option></select><span class="batch-hint">Авто сохраняет разрядность исходных пикселей. PNG16 — только исходный размер, до 8 Мп. Перевод 8 → 16 не восстанавливает детали.</span></label>
         <div class="batch-field" id="batchTiffField" hidden><span>Сжатие TIFF</span><button class="text-btn" id="batchTiffSettings" type="button" aria-haspopup="dialog" aria-controls="tiffSettingsDialog">Настройки…</button></div>

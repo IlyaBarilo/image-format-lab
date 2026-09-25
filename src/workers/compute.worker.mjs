@@ -1,4 +1,4 @@
-import { encodeBmp } from '../core/bmp.mjs';
+import { encodeBmp, encodeBmp8 } from '../core/bmp.mjs';
 import { encodeGif } from '../core/gif.mjs';
 import { computePixelMetrics } from '../core/metrics.mjs';
 import { computeHistogram } from '../core/histogram.mjs';
@@ -28,6 +28,7 @@ self.onmessage = event => {
     else {
       const { config, source } = payload;
       const encoded = kind === 'gif' ? encodeGif(config.gifColors, config.gifDither, source, false)
+        : kind === 'bmp8' ? encodeBmp8(config.bmpColors, config.bmpCompression, config.matte, source, false)
         : encodeBmp(kind === 'bmp32', config.matte, source, false);
       result = { blob: encoded.blob };
     }

@@ -25,7 +25,9 @@ export function createBatchDialog({els, app}, deps) {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
     document.getElementById('batchPngDepth').value=config.pngDepth || 'auto';
-    document.getElementById("batchBmpDepth").value = config.format === "bmp32" ? "32" : "24";
+    document.getElementById("batchBmpDepth").value = config.format === 'bmp8' ? '8' : config.format === "bmp32" ? "32" : "24";
+    document.getElementById('batchBmpColors').value = String(config.bmpColors ?? 256);
+    document.getElementById('batchBmpCompression').value = config.bmpCompression || 'none';
     const jpeg=normalizeJpegOptions(config);
     document.getElementById('batchJpegSubsampling').value=jpeg.jpegSubsampling;
     document.getElementById('batchJpegProgressive').checked=jpeg.jpegProgressive;
@@ -58,6 +60,7 @@ export function createBatchDialog({els, app}, deps) {
     const limited = els.batchResizeMode.value === "limit";
     const quality = Number(els.batchQualityNumber.value);
     const colors = Number(els.batchGifColors.value);
+    const bmpColors = Number(document.getElementById('batchBmpColors').value);
     return {
       pngDepth:document.getElementById('batchPngDepth').value,
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
@@ -67,6 +70,8 @@ export function createBatchDialog({els, app}, deps) {
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
       gifColors: format === "gif" || format === "gifenc" || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
       gifDither: els.batchGifDither.checked,
+      bmpColors: format === 'bmp8' ? bmpColors : app.exportConfig.bmpColors,
+      bmpCompression: format === 'bmp8' ? document.getElementById('batchBmpCompression').value : app.exportConfig.bmpCompression,
       matte: els.batchMatte.value,
       metadataPolicy: els.batchMetadata.value,
       resizeWidth: limited ? els.batchDialogWidth.value : "",
@@ -94,6 +99,8 @@ export function createBatchDialog({els, app}, deps) {
     const def = FORMAT_DEFS[config.format];
     const gif = config.format === "gif" || config.format === "gifenc";
     document.getElementById("batchBmpField").hidden = !isBmpFormat(config.format);
+    document.getElementById('batchBmpColorsField').hidden = config.format !== 'bmp8';
+    document.getElementById('batchBmpCompressionField').hidden = config.format !== 'bmp8';
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
     document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';

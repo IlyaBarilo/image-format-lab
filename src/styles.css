@@ -535,6 +535,8 @@ select:disabled {
 .gif-wrap,
 .png-depth-wrap,
 .bmp-depth-wrap,
+.bmp-colors-wrap,
+.bmp-compression-wrap,
 .tiff-compression-wrap,
 .matte-wrap {
   display: inline-flex;
@@ -565,8 +567,15 @@ select:disabled {
   min-width: 66px;
 }
 
+.bmp-colors-wrap .small-input {
+  width: 66px;
+  min-width: 66px;
+}
+
 .png-depth-wrap,
 .bmp-depth-wrap,
+.bmp-colors-wrap,
+.bmp-compression-wrap,
 .tiff-compression-wrap,
 .tiff-level-wrap,
 .tiff-predictor-wrap {
@@ -585,6 +594,12 @@ select:disabled {
   flex: 0 0 auto;
   min-width: 152px;
   width: 152px;
+}
+
+.cell-head .bmp-compression {
+  flex: 0 0 auto;
+  min-width: 132px;
+  width: 132px;
 }
 
 .tiff-level {
