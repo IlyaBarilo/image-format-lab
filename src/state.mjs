@@ -119,7 +119,7 @@ export function collectElements() {
   gridModeToggle: document.getElementById("gridModeToggle"),
   gridModeMenu: document.getElementById("gridModeMenu"),
   gridModePixels: document.getElementById("gridModePixels"),
-  gridModeJpeg: document.getElementById("gridModeJpeg"),
+  gridModeCodec: document.getElementById("gridModeCodec"),
   wipeOverlay: document.getElementById("wipeOverlay"),
   wipeCanvas: document.getElementById("wipeCanvas"),
   wipeHandle: document.getElementById("wipeHandle"),

@@ -21,11 +21,13 @@ function events() {
   assert.equal(normalizePreferences({version:1,analysis:{}}).analysis.scope,'viewport','missing scope uses the current default');
   custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=true;
   custom.comparison.metadataPolicy='none';custom.comparison.variants[1].quality=37;custom.comparison.variants[3].format='avif';
-  custom.filesVisible=false;custom.pixelGrid=true;custom.gridMode='jpeg-blocks';custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
+  custom.filesVisible=false;custom.pixelGrid=true;custom.gridMode='codec-blocks';custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
   Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
       displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrWaveform:'delta',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
-   assert.deepEqual(normalizePreferences(custom),custom);
+  assert.deepEqual(normalizePreferences(custom),custom);
+  const oldGrid=structuredClone(custom);oldGrid.gridMode='jpeg-blocks';
+  assert.deepEqual(normalizePreferences(oldGrid),custom,'saved JPEG grid mode extends to supported codec grids');
    const combinedSignal=normalizePreferences({version:1,analysis:{type:'ycbcrWaveform',displays:{ycbcrWaveform:'delta'}}});
    assert.equal(combinedSignal.analysis.type,'ycbcrWaveform');
    assert.equal(combinedSignal.analysis.displays.ycbcrWaveform,'delta');
@@ -88,7 +90,7 @@ function events() {
   let env=use({raw:JSON.stringify(legacy)});
   assert.deepEqual(env.ui.captureUserPreferences(),custom);assert.equal(env.renders(),0,'restore precedes initial controls/rendering');
   assert.equal(env.els.pixelGrid.attrs['aria-pressed'],'true');
-  assert.equal(env.app.gridMode,'jpeg-blocks');
+  assert.equal(env.app.gridMode,'codec-blocks');
   assert.equal(env.els.toggleFiles.attrs['aria-expanded'],'false');assert.equal(env.get('analysisPositionValue').textContent,'87%');
   env.ui.attachUserPreferenceEvents();assert.equal(env.document.count('input'),1);assert.equal(env.get('resetPreferences').count('click'),1);
   env.ui.flushUserPreferences();assert.equal(env.writes.length,0);

@@ -39,7 +39,7 @@ export function normalizePreferences(value) {
   try { result.comparison=validateComparison(value.comparison); } catch { /* Keep the default comparison. */ }
   if(typeof value.filesVisible==='boolean')result.filesVisible=value.filesVisible;
   if(typeof value.pixelGrid==='boolean')result.pixelGrid=value.pixelGrid;
-  if(['pixels','jpeg-blocks'].includes(value.gridMode))result.gridMode=value.gridMode;
+  if(value.gridMode==='jpeg-blocks'||value.gridMode==='codec-blocks')result.gridMode='codec-blocks';
   const p=value.panels;
   if(record(p)){
     if(['compact','balance','max'].includes(p.size))result.panels.size=p.size;

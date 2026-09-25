@@ -1,4 +1,5 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
+import { webpBlockGrid } from '../core/webp-blocks.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createComparison({app, els}, deps) {
@@ -12,6 +13,7 @@ export function createComparison({app, els}, deps) {
     variant.blob = null;
     variant.resultConfig = null;
     variant.resultSource = null;
+    variant.blockGrid = null;
   }
   
   async function renderVisibleVariants() {
@@ -45,6 +47,8 @@ export function createComparison({app, els}, deps) {
       if (format !== "original") { const unavailable=deps.formatUnavailableReason(format); if(unavailable) throw new Error(unavailable); }
       const encoded = await deps.encodeFromSource(config, source, current);
       if (!current()) return;
+      const blockGrid = format === 'webp' ? await webpBlockGrid(encoded.blob).catch(()=>null) : null;
+      if (!current()) return;
       const decoded = encoded.previewOnly
         ? await deps.imageDataToPreview(encoded.previewImageData, encoded.sourcePixelBuffer?.bitDepth>8?encoded.sourcePixelBuffer:undefined)
         : await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
@@ -65,6 +69,7 @@ export function createComparison({app, els}, deps) {
       variant.pixelBuffer = decoded.pixelBuffer;
       variant.resultConfig = config;
       variant.resultSource = source;
+      variant.blockGrid = blockGrid;
       variant.dirty = false;
       variant.measurement = {bytes:encoded.blob.size,width:encoded.width,height:encoded.height,
         percentOfSource:source.size?encoded.blob.size/source.size*100:null,psnrRGB:psnr,alphaErrorPercent:alphaError,

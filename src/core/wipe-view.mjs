@@ -23,6 +23,20 @@ export function jpegBlockSize(subsampling){
 }
 
 export function visibleJpegBlockLines(offset,scale,pixels,viewport,cssScale){
-  if(!Number.isFinite(pixels)||pixels<=0||!Number.isFinite(cssScale)||8*cssScale<24)return null;
-  return visibleGridLines(offset,8*scale,Math.ceil(pixels/8),viewport,8*cssScale);
+  return visibleCodecBlockLines(offset,scale,pixels,viewport,cssScale,8);
+}
+
+export function visibleCodecBlockLines(offset,scale,pixels,viewport,cssScale,blockSize){
+  if(!Number.isFinite(pixels)||pixels<=0||!Number.isFinite(cssScale)||
+     !Number.isInteger(blockSize)||blockSize<1||blockSize*cssScale<24)return null;
+  return visibleGridLines(offset,blockSize*scale,Math.ceil(pixels/blockSize),viewport,blockSize*cssScale);
+}
+
+export function codecGridSpec(config,webpGrid){
+  if(!config)return null;
+  if(config.format==='jpeg')return {kind:'jpeg',step:8,...jpegBlockSize(config.jpegSubsampling)};
+  if(config.format==='webp'&&webpGrid?.kind==='webp-vp8')return {kind:'webp',step:16,width:16,height:16};
+  if(config.format==='avif'||config.format==='heic')return {kind:'guide',step:64,width:64,height:64};
+  if(config.format==='jxl')return {kind:'guide',step:8,width:8,height:8};
+  return null;
 }

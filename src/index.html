@@ -42,7 +42,8 @@
           <button class="text-btn grid-mode-toggle" id="gridModeToggle" type="button" aria-label="Выбрать вид сетки" aria-haspopup="menu" aria-expanded="false" aria-controls="gridModeMenu" title="Выбрать вид сетки">▾</button>
           <div class="grid-mode-menu" id="gridModeMenu" role="menu" aria-label="Вид сетки" hidden>
             <button id="gridModePixels" type="button" role="menuitemradio" aria-checked="true">Пиксели</button>
-            <button id="gridModeJpeg" type="button" role="menuitemradio" aria-checked="false">Блоки JPEG</button>
+            <button id="gridModeCodec" type="button" role="menuitemradio" aria-checked="false" aria-describedby="gridModeHint">Блоки формата</button>
+            <p id="gridModeHint">JPEG и WebP: сплошные границы. AVIF, HEIC и JPEG XL: пунктирный ориентир; реальные блоки могут отличаться.</p>
           </div>
         </div>
       </div>
