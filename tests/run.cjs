@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..');
 const tests = ['publication-policy', 'build-regressions', 'build-version', 'release-workflow', 'release-publishing', 'preferences', 'theme', 'source-packages', 'codec-compression', 'core-regressions', 'canvas-layout', 'analysis-layout', 'analysis-visibility', 'analysis-viewport', 'analysis-overlay', 'analysis-delta', 'file-import', 'jpeg-regressions', 'raster-codecs', 'raster-settings', 'tiff-regressions', 'viewer-files', 'viewer-batch', 'viewer-batch-dialog', 'viewer-batch-preview', 'viewer-enhancements', 'viewer-analysis', 'viewer-waveform', 'viewer-difference', 'viewer-vectorscope-profile', 'viewer-analysis-output', 'browser-regressions', 'heic-regressions', 'heic-encode-regressions', 'modern-regressions', 'standalone-release'];
 tests.push('raster-worker', 'analysis-report', 'pixel-buffer', 'pixel-metrics', 'histogram-precision', 'error-histogram', 'viewer-error-histogram', 'reference-samples', 'experiment-protocol', 'viewer-experiment-protocol', 'quality-series', 'quality-series-controller', 'viewer-quality-series', 'png-precision', 'pixel-inspector', 'viewer-pixel-inspector', 'file-passport', 'viewer-file-passport');
 tests.push('wipe-view', 'viewer-wipe-view');
+tests.push('analysis-guides');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

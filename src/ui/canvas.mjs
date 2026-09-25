@@ -1,6 +1,7 @@
 import { BACKGROUNDS } from "./../core/config.mjs";
 import { visibleAnalysisRegion } from '../core/analysis-viewport.mjs';
 import { visibleGridLines, wipePair } from '../core/wipe-view.mjs';
+import { analysisGuideGeometry } from '../core/analysis-guides.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createCanvas({app, els}, deps) {
@@ -103,7 +104,50 @@ export function createCanvas({app, els}, deps) {
   
     deps.drawImageFrame(ctx, x, y, sourceW * scale, sourceH * scale);
     drawPixelGrid(ctx,canvas,x,y,sourceW,sourceH,scale);
+    if(image&&deps.isVariantReady?.(variant))drawAnalysisGuides(ctx,canvas,variant.imageData,variant.index,x,y,scale);
     deps.drawPixelMarker?.(variant);
+  }
+
+  function drawAnalysisGuides(ctx,canvas,image,side,x,y,scale){
+    if(!image||!deps.getAnalysisScope||!deps.getAnalysisRegion||!deps.getAnalysisLine)return;
+    const scope=deps.getAnalysisScope(),type=document.getElementById('analysisType')?.value;
+    if(type==='tradeoff'||(scope!=='region'&&type!=='profile'))return;
+    const viewport=scope==='viewport'&&type==='profile'?getAnalysisViewport(side,image).region:null;
+    let guides;
+    try{guides=analysisGuideGeometry(image.width,image.height,{scope,region:deps.getAnalysisRegion(),viewport,type,line:deps.getAnalysisLine()});}
+    catch{return;}
+    if(!guides)return;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    const device=Math.max(1,canvas.width/rect.width);
+    ctx.save();
+    ctx.beginPath();ctx.rect(x,y,image.width*scale,image.height*scale);ctx.clip();
+    const stroke=(path,dashed=false)=>{
+      ctx.beginPath();path();ctx.setLineDash(dashed?[5*device,4*device]:[]);
+      ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.strokeStyle='rgba(7,22,30,.95)';ctx.lineWidth=3*device;ctx.stroke();
+      ctx.strokeStyle='#9af3df';ctx.lineWidth=1.5*device;ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    if(guides.region){
+      const box=guides.region;
+      stroke(()=>ctx.rect(x+box.x*scale,y+box.y*scale,box.width*scale,box.height*scale),true);
+    }
+    if(guides.line){
+      const points=guides.line;
+      const ax=x+(points.x0+.5)*scale,ay=y+(points.y0+.5)*scale;
+      const bx=x+(points.x1+.5)*scale,by=y+(points.y1+.5)*scale;
+      stroke(()=>{ctx.moveTo(ax,ay);ctx.lineTo(bx,by);});
+      ctx.font=`bold ${11*device}px "Segoe UI",sans-serif`;
+      ctx.textBaseline='middle';
+      for(const [px,py,label] of [[ax,ay,'A'],[bx,by,'B']]){
+        ctx.beginPath();ctx.arc(px,py,5*device,0,Math.PI*2);
+        ctx.fillStyle='#10212b';ctx.fill();ctx.strokeStyle='#9af3df';ctx.lineWidth=device;ctx.stroke();
+        ctx.lineWidth=2*device;ctx.strokeStyle='#10212b';ctx.strokeText(label,px+8*device,py-8*device);
+        ctx.fillStyle='#fff';ctx.fillText(label,px+8*device,py-8*device);
+      }
+    }
+    ctx.restore();
   }
 
   function drawPixelGrid(ctx,canvas,x,y,width,height,scale){
@@ -142,6 +186,7 @@ export function createCanvas({app, els}, deps) {
     ctx.drawImage(second.bitmap,x,y,width*scale,height*scale);ctx.restore();
     deps.drawImageFrame(ctx,x,y,width*scale,height*scale);
     drawPixelGrid(ctx,canvas,x,y,width,height,scale);
+    drawAnalysisGuides(ctx,canvas,first.imageData,0,x,y,scale);
   }
   
   function drawBackground(ctx, width, height) {

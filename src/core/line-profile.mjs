@@ -5,10 +5,14 @@ export function profileBinAt(profile, position) {
   return Math.min(profile.bins-1,Math.floor(Math.round(position/1000*(profile.sampleCount-1))*profile.bins/profile.sampleCount));
 }
 export function profileEndpoints(imageData, region = null, line = DEFAULT_ANALYSIS_LINE) {
-  const bounds=analysisBounds(imageData,region), {x0,y0,x1,y1}=line||{};
+  const bounds=analysisBounds(imageData,region);
+  return {bounds,points:profilePoints(bounds,line)};
+}
+export function profilePoints(bounds,line=DEFAULT_ANALYSIS_LINE) {
+  const {x0,y0,x1,y1}=line||{};
   if(![x0,y0,x1,y1].every(v=>Number.isInteger(v)&&v>=0&&v<=1000))throw new Error('Некорректная линия анализа.');
   const x=v=>bounds.x+Math.round(v*(bounds.width-1)/1000),y=v=>bounds.y+Math.round(v*(bounds.height-1)/1000);
-  return {bounds,points:{x0:x(x0),y0:y(y0),x1:x(x1),y1:y(y1)}};
+  return {x0:x(x0),y0:y(y0),x1:x(x1),y1:y(y1)};
 }
 export function computeLineProfile(imageData, matte = 'white', region = null, line = DEFAULT_ANALYSIS_LINE) {
   const {bounds,points}=profileEndpoints(imageData,region,line),{width,height,data}=imageData;

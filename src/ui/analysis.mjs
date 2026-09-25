@@ -26,7 +26,7 @@ export function createAnalysis({ app }, deps) {
   let redrawFrame = 0;
   let attached = false, generation = 0, queued = false, running = false;
   let cache = new WeakMap(), lastSource = null, results = [];
-  let lastRegionKey = '';
+  let lastRegionKey = '', lastGuideKey = '';
   let viewportRegions = [], viewportKey = '', viewportTimer = null;
   let resizePaused = false, resizeNeedsUpdate = false;
   const followsViewport = () => deps.getAnalysisScope() === 'viewport' && type.value !== 'tradeoff';
@@ -159,6 +159,8 @@ export function createAnalysis({ app }, deps) {
     if (lastSource !== app.source || regionKey !== lastRegionKey) { cache = new WeakMap(); lastSource = app.source; lastRegionKey = regionKey; }
     syncLayout();
     syncControls();
+    const guideKey=JSON.stringify([type.value,deps.getAnalysisScope(),deps.getAnalysisRegion(),deps.getAnalysisLine()]);
+    if(guideKey!==lastGuideKey){lastGuideKey=guideKey;deps.redrawPreviews?.();}
     clearPlots();
     deps.presentAnalysis(getAnalysisSnapshot());
     queued = false;
