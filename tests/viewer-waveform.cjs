@@ -90,7 +90,11 @@ async function plots(page, kind) {
       await page.waitForFunction(()=>document.getElementById('analysisCombinedChart').getAttribute('aria-label')?.includes('Разница: ячейка'));
       await page.locator('#analysisType').selectOption('parade');await plots(page,'parade');
       await page.locator('#analysisVariant').selectOption('ycbcrParade');await plots(page,'ycbcrParade');
-      await page.locator('#analysisType').selectOption('ycbcrWaveform');await plots(page,'ycbcrWaveform');
+      await page.locator('#analysisType').selectOption('ycbcrWaveform');
+      await page.waitForFunction(()=>{
+        const chart=document.getElementById('analysisCombinedChart');
+        return chart.dataset.kind==='ycbcrWaveform'&&chart.dataset.mode==='delta';
+      });
       assert.equal(await page.locator('#analysisDisplayDelta').isChecked(),true);
       await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
       await page.reload();
