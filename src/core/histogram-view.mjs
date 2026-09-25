@@ -70,8 +70,12 @@ export function histogramInterval(scale, level) {
 export function histogramSummary(data, channel = 'rgb') {
   const scale = histogramScale(data, channel), indices = channel === 'alpha' ? [3] : channel === 'rgb' ? [0, 1, 2] : [{ r: 0, g: 1, b: 2 }[channel]];
   const outside = indices.map(c => `${['R','G','B','α'][c]}: ниже ${data.underflow?.[c] || 0}, выше ${data.overflow?.[c] || 0}`).join('; ');
+  const boundary = data.boundaryCounts ? ` На границе диапазона: ${indices.map(c => {
+    const low=data.boundaryCounts.low[c],high=data.boundaryCounts.high[c],name=['R','G','B','α'][c];
+    return `${name} 0: ${low} (${format(low/data.pixelCount*100)}%), ${data.scale.max}: ${high} (${format(high/data.pixelCount*100)}%)`;
+  }).join('; ')}. Это не доказательство клиппинга` : '';
   return `${scale.kind === 'float' ? 'float32' : `${data.bitDepth || 8} бит/канал`}, ${histogramTick(scale, 0)}–${histogramTick(scale, 1)}, ${scale.bins} ${scale.kind === 'float' ? 'интервалов' : 'уровней'}.` +
-    (indices.some(c => data.underflow?.[c] || data.overflow?.[c]) ? ` Вне диапазона: ${outside}.` : '');
+    (indices.some(c => data.underflow?.[c] || data.overflow?.[c]) ? ` Вне диапазона: ${outside}.` : '') + boundary;
 }
 
 export function groupHistogramDelta(model, maxBins) {

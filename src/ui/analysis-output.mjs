@@ -23,7 +23,7 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':kind==='difference'?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
@@ -35,9 +35,9 @@ export function createAnalysisOutput({app},deps){
     if(pair.dataset.layout!==key){const old=pair.value;pair.replaceChildren();for(let a=1;a<=app.layout;a++)for(let b=a+1;b<=app.layout;b++){const option=document.createElement('option');option.value=`${a},${b}`;option.textContent=`${a} + ${b}`;pair.append(option);}pair.value=[...pair.options].some(o=>o.value===old)?old:'1,2';pair.dataset.layout=key;}
     const settings=getAnalysisOutputSettings();
     for(const option of pair.options){const [a,b]=option.value.split(',');option.textContent=settings.display==='delta'?`${b} − ${a}`:`${a} + ${b}`;}
-    get('analysisDisplayField').hidden=['tradeoff','difference'].includes(kind);
+    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile'].includes(kind);
     get('analysisDisplayDeltaField').hidden=!DELTA_TYPES.includes(kind);
-    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
+    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
     get('analysisPairField').hidden=!['overlay','delta'].includes(settings.display)||app.layout===2;
     get('analysisMetricField').hidden=kind!=='tradeoff';
     combined.hidden=settings.display==='separate';
@@ -144,7 +144,7 @@ export function createAnalysisOutput({app},deps){
     if(reportView&&!shared)selected=reportView.items;
     const parameterText=s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
       `${s.display==='delta'?`Разница ячеек ${s.pair[1]} − ${s.pair[0]}`:s.display==='overlay'?`Наложение ячеек ${s.pair.join(' + ')}`:'Ячейки рядом'}; подложка: ${s.matte==='white'?'белая':'чёрная'}; область: ${s.scope==='viewport'?'видимая часть каждой ячейки':b?`${b.x0/10}%, ${b.y0/10}%, ${(b.x1-b.x0)/10}% × ${(b.y1-b.y0)/10}%`:'весь кадр'}`+
-      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(line?`; каналы: ${s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
+      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
     const method=wrap(ctx,snapshot.method,1152);
@@ -167,7 +167,7 @@ export function createAnalysisOutput({app},deps){
        else for(const chart of charts)if(chart.item.data)chart.details=describe(chart.item);
     }
     const columns=shared?1:2,chartWidth=(1152-(columns-1)*20)/columns,rows=[];
-    const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type,selected,s.type==='errorHistogram'?s.errorChannel:s.channel);
+    const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type,selected,['errorHistogram','errorProfile'].includes(s.type)?s.errorChannel:s.channel);
     for(let i=0;i<charts.length;i+=columns){const row=charts.slice(i,i+columns).map(c=>({...c,head:wrap(ctx,c.title,chartWidth),tail:wrap(ctx,c.details||'',chartWidth)}));rows.push({items:row,height:Math.max(...row.map(c=>c.head.length*22+300+c.tail.length*22+20))});}
     output.height=100+(header.length+settings.length+method.length)*22+rows.reduce((s,r)=>s+r.height,0);
     ctx=output.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,output.width,output.height);ctx.fillStyle='#17212b';ctx.textBaseline='top';ctx.font='bold 24px "Segoe UI",sans-serif';ctx.fillText(title,24,22);ctx.font='16px "Segoe UI",sans-serif';

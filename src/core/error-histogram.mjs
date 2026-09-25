@@ -6,6 +6,21 @@ const BINS = 256;
 const peak = pixels => 2 ** pixels.bitDepth - 1;
 const binFor = error => error === 0 ? 0 : Math.max(1, Math.min(255, Math.ceil(error * 255 - 1e-12)));
 
+export function comparableErrorRasters(result, reference, matte = 'white') {
+  const current = createPixelBuffer(result), source = createPixelBuffer(reference);
+  if (![current, source].every(p => (p.sampleType === 'uint8' && p.bitDepth === 8) || (p.sampleType === 'uint16' && p.bitDepth === 16))) {
+    throw new Error('Анализ ошибок поддерживает точные целые RGBA8 и RGBA16.');
+  }
+  if (current.alphaMode !== 'straight' || source.alphaMode !== 'straight') throw new Error('Анализ ошибок требует прямую прозрачность.');
+  if (current.width !== source.width || current.height !== source.height) throw new Error('Анализ ошибок требует одинаковых размеров результата и исходника.');
+  if (current.colorSpace !== 'unknown' && source.colorSpace !== 'unknown' && current.colorSpace !== source.colorSpace) {
+    throw new Error('Цветовые пространства результата и исходника различаются; сравнение кодовых значений невозможно без преобразования цвета.');
+  }
+  if (matte !== 'white' && matte !== 'black') throw new Error('Неизвестная подложка анализа.');
+  return { current, source, currentPeak: peak(current), sourcePeak: peak(source),
+    colorComparison: current.colorSpace === 'unknown' || source.colorSpace === 'unknown' ? 'unknown-code-values' : 'same-code-values' };
+}
+
 export function errorBinInterval(bin) {
   if (!Number.isInteger(bin) || bin < 0 || bin >= BINS) throw new RangeError('Некорректная группа ошибки.');
   return bin === 0 ? '0% (точное совпадение)' : `(${((bin - 1) / 255 * 100).toFixed(3)}%; ${(bin / 255 * 100).toFixed(3)}%]`;
@@ -18,19 +33,9 @@ export function errorHistogramSummary(data) {
 }
 
 export function computeErrorHistogram(result, reference, matte = 'white', region = null) {
-  const current = createPixelBuffer(result), source = createPixelBuffer(reference);
-  if (![current, source].every(p => (p.sampleType === 'uint8' && p.bitDepth === 8) || (p.sampleType === 'uint16' && p.bitDepth === 16))) {
-    throw new Error('Гистограмма ошибок поддерживает точные целые RGBA8 и RGBA16.');
-  }
-  if (current.alphaMode !== 'straight' || source.alphaMode !== 'straight') throw new Error('Гистограмма ошибок требует прямую прозрачность.');
-  if (current.width !== source.width || current.height !== source.height) throw new Error('Гистограмма ошибок требует одинаковых размеров результата и исходника.');
-  if (current.colorSpace !== 'unknown' && source.colorSpace !== 'unknown' && current.colorSpace !== source.colorSpace) {
-    throw new Error('Цветовые пространства результата и исходника различаются; сравнение кодовых значений невозможно без преобразования цвета.');
-  }
-  if (matte !== 'white' && matte !== 'black') throw new Error('Неизвестная подложка анализа.');
+  const {current,source,currentPeak,sourcePeak,colorComparison}=comparableErrorRasters(result,reference,matte);
   const bounds = analysisRegionBounds(current.width, current.height, region);
   const pixelCount = bounds.width * bounds.height, channels = [new Uint32Array(BINS), new Uint32Array(BINS)];
-  const currentPeak = peak(current), sourcePeak = peak(source);
   let sumRGB = 0, squaresRGB = 0, sumAlpha = 0, squaresAlpha = 0, sumMaxRGB = 0, maxRGB = 0, maxAlpha = 0, changedRGB = 0, changedAlpha = 0;
   for (let y = bounds.y; y < bounds.y + bounds.height; y++) for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
     const i = (y * current.width + x) * 4;
@@ -53,7 +58,7 @@ export function computeErrorHistogram(result, reference, matte = 'white', region
   }
   return { width: current.width, height: current.height, bounds, pixelCount, bins: BINS, channels, matte,
     bitDepth: { result: current.bitDepth, source: source.bitDepth }, colorSpace: { result: current.colorSpace, source: source.colorSpace },
-    colorComparison: current.colorSpace === 'unknown' || source.colorSpace === 'unknown' ? 'unknown-code-values' : 'same-code-values',
+    colorComparison,
     metrics: { maeRGB: sumRGB / (3 * pixelCount) * 100, rmseRGB: Math.sqrt(squaresRGB / (3 * pixelCount)) * 100,
       maeAlpha: sumAlpha / pixelCount * 100, rmseAlpha: Math.sqrt(squaresAlpha / pixelCount) * 100,
       meanMaxRGB: sumMaxRGB / pixelCount * 100, maxRGB: maxRGB * 100, maxAlpha: maxAlpha * 100,

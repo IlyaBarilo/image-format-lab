@@ -5,7 +5,7 @@ import { profilePoints } from './line-profile.mjs';
 export function analysisGuideGeometry(width,height,{scope,region=null,viewport=null,type,line}={}){
   if(type==='tradeoff')return null;
   const showRegion=scope==='region'&&region!=null;
-  const showLine=type==='profile';
+  const showLine=type==='profile'||type==='errorProfile';
   if(!showRegion&&!showLine)return null;
   if((scope==='region'&&!region)||(scope==='viewport'&&showLine&&!viewport))return null;
   const bounds=analysisRegionBounds(width,height,scope==='region'?region:scope==='viewport'?viewport:null);

@@ -48,5 +48,22 @@ export function createScopePlots() {
     ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.setLineDash([3,3]);const pointer=left+position/1000*(right-left);ctx.beginPath();ctx.moveTo(pointer,top);ctx.lineTo(pointer,bottom);ctx.stroke();ctx.setLineDash([]);
     ctx.textAlign='right';indices.slice().reverse().forEach((index,offset)=>{ctx.fillStyle=COLORS[index];ctx.fillText(NAMES[index],right-offset*22,12);});
   }
-  return {plotVectorscope,plotLineProfile};
+  function plotErrorProfile(canvas,data,index,position,maximum,outputSize) {
+    const {ctx,width,height}=prepare(canvas,outputSize),left=52,right=width-16,top=28,bottom=height-25;
+    const channel=data.channels[index],limit=maximum||1;
+    const x=bin=>data.bins===1?(left+right)/2:left+bin/(data.bins-1)*(right-left);
+    const y=value=>bottom-value/limit*(bottom-top);
+    const fmt=value=>value.toLocaleString('ru-RU',{maximumSignificantDigits:4});
+    ctx.strokeStyle='#334155';ctx.lineWidth=1;
+    for(const ratio of [0,.5,1]){const value=limit*ratio;ctx.beginPath();ctx.moveTo(left,y(value));ctx.lineTo(right,y(value));ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(`${fmt(value)}%`,left-5,y(value));}
+    ctx.textAlign='left';ctx.fillText('A · 0%',left,height-10);ctx.textAlign='center';ctx.fillText('50%',(left+right)/2,height-10);ctx.textAlign='right';ctx.fillText('B · 100%',right,height-10);
+    ctx.strokeStyle=index?'#e2e8f0':'#fb7185';ctx.globalAlpha=.45;ctx.beginPath();
+    for(let bin=0;bin<data.bins;bin++)if(channel.min[bin]!==channel.max[bin]){ctx.moveTo(x(bin),y(channel.min[bin]));ctx.lineTo(x(bin),y(channel.max[bin]));}ctx.stroke();
+    ctx.globalAlpha=1;ctx.lineWidth=1.5;ctx.beginPath();channel.mean.forEach((value,bin)=>{if(bin)ctx.lineTo(x(bin),y(value));else ctx.moveTo(x(bin),y(value));});ctx.stroke();
+    if(data.bins===1){ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.arc(x(0),y(channel.mean[0]),3,0,Math.PI*2);ctx.fill();}
+    ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.setLineDash([3,3]);const pointer=left+position/1000*(right-left);ctx.beginPath();ctx.moveTo(pointer,top);ctx.lineTo(pointer,bottom);ctx.stroke();ctx.setLineDash([]);
+    ctx.textAlign='right';ctx.fillStyle=index?'#e2e8f0':'#fb7185';ctx.fillText(index?'Ошибка α':'Ошибка RGB max',right,12);
+    canvas.dataset.kind='errorProfile';canvas.dataset.yMin='0';canvas.dataset.yMax=String(limit);
+  }
+  return {plotVectorscope,plotLineProfile,plotErrorProfile};
 }

@@ -45,5 +45,6 @@ export function computeHistogram(input, matte = 'white', region = null, options 
   const pixelCount = bounds.width * bounds.height;
   return { width, height, bounds, pixelCount, matte, channels, sampleType, bitDepth, colorSpace, alphaMode,
     scale: { kind: floating ? 'float' : 'integer', min, max, bins, alphaMax, white },
-    underflow, overflow, means: sums.map(sum => sum / pixelCount) };
+    underflow, overflow, means: sums.map(sum => sum / pixelCount),
+    boundaryCounts: floating ? null : { low: channels.map(values => values[0]), high: channels.map(values => values[max]) } };
 }

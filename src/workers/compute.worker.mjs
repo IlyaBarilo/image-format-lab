@@ -8,6 +8,7 @@ import { computeSignalHistogram } from '../core/signal-scopes.mjs';
 import { computeDifference } from '../core/difference.mjs';
 import { computeVectorscope } from '../core/vectorscope.mjs';
 import { computeLineProfile } from '../core/line-profile.mjs';
+import { computeErrorProfile } from '../core/error-profile.mjs';
 
 self.onmessage = event => {
   try {
@@ -21,6 +22,7 @@ self.onmessage = event => {
     else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);
     else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);
     else if (kind === 'profile') result = computeLineProfile(payload.imageData, payload.matte, payload.region, payload.line);
+    else if (kind === 'errorProfile') result = computeErrorProfile(payload.pixelBuffer, payload.reference, payload.matte, payload.region, payload.line);
     else {
       const { config, source } = payload;
       const encoded = kind === 'gif' ? encodeGif(config.gifColors, config.gifDither, source, false)
