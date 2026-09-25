@@ -37,6 +37,7 @@ export function createComparison({app, els}, deps) {
     variant.error = null;
     variant.metrics = { format: deps.outputFormatLabel(format), size: "счёт..." };
     deps.updateMetrics(variant);
+    let pendingBitmap = null;
     try {
       if (format !== "original") { const unavailable=deps.formatUnavailableReason(format); if(unavailable) throw new Error(unavailable); }
       const encoded = await deps.encodeFromSource(config, source, current);
@@ -44,21 +45,19 @@ export function createComparison({app, els}, deps) {
       const decoded = encoded.previewOnly
         ? await deps.imageDataToPreview(encoded.previewImageData)
         : await deps.decodeVariantForPreview(encoded.blob);
-      if (!current()) {
-        if (decoded.bitmap && decoded.bitmap.close) decoded.bitmap.close();
-        return;
-      }
+      pendingBitmap = decoded.bitmap;
+      if (!current()) return;
       if (decoded.imageData.width !== encoded.width || decoded.imageData.height !== encoded.height) {
-        if (decoded.bitmap && decoded.bitmap.close) decoded.bitmap.close();
         throw new Error("Размеры сохранённого файла не совпадают с ожидаемыми");
       }
-      const reference = encoded.sourceImageData;
-      const {psnr, alpha:alphaError} = await deps.measurePixels(reference.data, decoded.imageData.data);
-      if(!current()) {decoded.bitmap?.close();return;}
+      // Legacy RGBA8 ImageData may lack a colour label; its code-value comparison remains available.
+      const {psnr, alpha:alphaError} = await deps.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
+      if(!current()) return;
       const alphaInfo = deps.alphaLabel(format, decoded.imageData);
       variant.blob = encoded.blob;
       variant.url = URL.createObjectURL(encoded.blob);
       variant.bitmap = decoded.bitmap;
+      pendingBitmap = null;
       variant.imageData = decoded.imageData;
       variant.pixelBuffer = decoded.pixelBuffer;
       variant.resultConfig = config;
@@ -84,6 +83,7 @@ export function createComparison({app, els}, deps) {
       variant.metrics = { format: deps.outputFormatLabel(format), size: "ошибка" };
       deps.showStatus(def.label + ": " + variant.error, true);
     } finally {
+      pendingBitmap?.close?.();
       if (current()) {
         variant.processing = false;
         deps.updateMetrics(variant);

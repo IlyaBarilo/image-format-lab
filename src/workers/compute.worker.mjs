@@ -1,6 +1,6 @@
 import { encodeBmp } from '../core/bmp.mjs';
 import { encodeGif } from '../core/gif.mjs';
-import { computePsnr, computeAlphaError } from '../core/metrics.mjs';
+import { computePixelMetrics } from '../core/metrics.mjs';
 import { computeHistogram } from '../core/histogram.mjs';
 import { computeWaveform } from '../core/waveform.mjs';
 import { computeDifference } from '../core/difference.mjs';
@@ -11,7 +11,7 @@ self.onmessage = event => {
   try {
     const { kind, payload } = event.data;
     let result;
-    if (kind === 'metrics') result = { psnr: computePsnr(payload.a, payload.b), alpha: computeAlphaError(payload.a, payload.b) };
+    if (kind === 'metrics') result = computePixelMetrics(payload.a, payload.b, payload.options);
     else if (kind === 'histogram') result = computeHistogram(payload.imageData, payload.matte, payload.region);
     else if (kind === 'waveform') result = computeWaveform(payload.imageData, payload.matte, payload.region);
     else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);

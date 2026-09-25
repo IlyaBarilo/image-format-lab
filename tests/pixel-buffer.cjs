@@ -96,6 +96,7 @@ const assert = require('node:assert/strict');
   const { createDecode } = await import('../src/services/decode.mjs');
   const { createEncode } = await import('../src/services/encode.mjs');
   const { createComparison } = await import('../src/ui/comparison.mjs');
+  const { computePixelMetrics } = await import('../src/core/metrics.mjs');
   let canvases = 0, bitmaps = 0, closedBitmaps = 0, closedDecoded = 0;
   const drawn = [];
   globalThis.document = { createElement(tag) {
@@ -195,7 +196,12 @@ const assert = require('node:assert/strict');
   const errors = [];
   const comparisonDeps = {
     ...decode, encodeFromSource: async () => original,
-    outputFormatLabel: () => 'PNG', updateMetrics() {}, measurePixels: async () => ({ psnr: Infinity, alpha: 0 }),
+    outputFormatLabel: () => 'PNG', updateMetrics() {}, measurePixels: async (a, b, options) => {
+      assert.equal(a, original.sourcePixelBuffer);
+      assert.equal(b.sampleType, 'uint8');
+      assert.deepEqual(options, { allowUnknownColorSpace: true });
+      return computePixelMetrics(a, b, options);
+    },
     alphaLabel: () => 'alpha', formatBytes: String, drawAll() {}, showStatus: text => errors.push(text)
   };
   Object.assign(comparisonDeps, createComparison({ app, els: { metadataPolicy: { value: 'panorama' } } }, comparisonDeps));
@@ -220,6 +226,12 @@ const assert = require('node:assert/strict');
   await pending;
   assert.equal(variant.pixelBuffer, null, 'A stale preview never retains a pixel buffer');
   assert.equal(closedBitmaps, beforeClose + 2);
+  comparisonDeps.imageDataToPreview = decode.imageDataToPreview;
+  comparisonDeps.measurePixels = async (a, b, options) => computePixelMetrics(a, { ...b, colorSpace: 'srgb' }, options);
+  await comparisonDeps.renderVariant(variant);
+  assert.match(variant.error, /пространства/);
+  assert.equal(variant.pixelBuffer, null);
+  assert.equal(closedBitmaps, beforeClose + 3, 'Failed metrics release the unpublished bitmap');
   console.log('PASS comparison stores/releases descriptors and discards stale results');
   delete globalThis.ImageData;
   delete globalThis.document;

@@ -28,9 +28,13 @@ export function createCompute({app}, deps) {
     return deps.workerCompute(format,{config,source:{width:source.width,height:source.height,hasAlpha:source.hasAlpha,imageData:source.imageData}});
   }
   
-  async function measurePixels(a,b) {
-    if(a.length>=4000000 && typeof Worker!=="undefined") return deps.workerCompute("metrics",{a,b});
-    return {psnr:deps.computePsnr(a,b),alpha:deps.computeAlphaError(a,b)};
+  async function measurePixels(a,b,options) {
+    const inputs = deps.prepareMetricInputs(a,b,options);
+    // Count both working views; retain the former threshold for two RGBA8 arrays.
+    if(inputs.a.byteLength+inputs.b.byteLength>=8000000 && typeof Worker!=="undefined") {
+      return deps.workerCompute("metrics",inputs);
+    }
+    return deps.computePixelMetrics(inputs.a,inputs.b,inputs.options);
   }
 
   return { workerCompute, computeImage, measurePixels };

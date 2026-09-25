@@ -335,8 +335,8 @@ export function createApplication() {
     "withEncodedMeta"
   ])));
   Object.assign(actions, createCompute(context, dependencies([
-    "computeAlphaError",
-    "computePsnr",
+    "computePixelMetrics",
+    "prepareMetricInputs",
     "encodeBmp",
     "encodeGif",
     "showStatus",

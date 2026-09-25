@@ -75,7 +75,7 @@ export function createBatchPreview({app, els}, deps) {
       decoded = await deps.decodeVariantForPreview(encoded.blob);
       if (!current()) return;
       if (decoded.imageData.width !== encoded.width || decoded.imageData.height !== encoded.height) throw new Error("Размеры результата не совпадают с ожидаемыми.");
-      const { psnr, alpha } = await deps.measurePixels(encoded.sourceImageData.data, decoded.imageData.data);
+      const { psnr, alpha } = await deps.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
       if (!current()) return;
       preview.bitmap = decoded.bitmap;
       decoded = null;
