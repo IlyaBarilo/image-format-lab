@@ -206,7 +206,7 @@ export function createCanvas({app, els}, deps) {
       if(spec.kind==='guide'){
         const device=canvas.width/rect.width;
         ctx.setLineDash([4*device,4*device]);
-        ctx.strokeStyle='rgba(203,135,58,.9)';ctx.lineWidth=Math.max(1,device);
+        ctx.strokeStyle='rgba(64,82,94,.88)';ctx.lineWidth=2;
       }else{
         ctx.strokeStyle=major?'rgba(64,82,94,.88)':'rgba(112,120,128,.65)';
         ctx.lineWidth=major?2:1;
