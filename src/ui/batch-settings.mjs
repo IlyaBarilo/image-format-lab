@@ -1,4 +1,5 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
+import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import { pngDepth } from '../core/png.mjs';
 import { BATCH_STORAGE_KEY, FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 
@@ -43,6 +44,7 @@ export function createBatchSettings({app}, deps) {
     if (unavailable) throw new Error(unavailable);
     const def = FORMAT_DEFS[config.format];
     if (config.format === "tiff") normalizeTiffOptions(config);
+    if (config.format === 'jpeg') normalizeJpegOptions(config);
     if (config.format === 'png') pngDepth(config.pngDepth);
     if (config.delivery !== undefined && !["files", "zip"].includes(config.delivery)) throw new Error("Выберите способ получения результата.");
     if (config.targetKB) {
@@ -65,7 +67,8 @@ export function createBatchSettings({app}, deps) {
     const def = FORMAT_DEFS[config.format];
     const size = config.resizeWidth || config.resizeHeight
       ? `не более ${config.resizeWidth || "∞"}×${config.resizeHeight || "∞"} px` : "исходные размеры";
-    const details = def.lossy ? `, качество ${config.quality}`
+    const jpeg= config.format === 'jpeg' ? normalizeJpegOptions(config) : null;
+    const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}`
       : config.format === "tiff" ? `, ${normalizeTiffOptions(config).tiffCompression === "none" ? "без сжатия" : normalizeTiffOptions(config).tiffCompression.toUpperCase() + (normalizeTiffOptions(config).tiffCompression === "deflate" ? " " + normalizeTiffOptions(config).tiffLevel : "") + (normalizeTiffOptions(config).tiffPredictor ? ", предиктор" : ", без предиктора")}`
       : config.format === "gif" || config.format === "gifenc" ? `, цветов ${config.gifColors}` : "";

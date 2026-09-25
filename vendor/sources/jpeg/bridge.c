@@ -1,5 +1,5 @@
 /* Copyright (c) 2026 Ilya Barilo. MIT; see PROJECT-LICENSE.
- * Synchronous, bounded libjpeg API for the TIFF Worker. No files or callbacks
+ * Synchronous, bounded libjpeg API for the raster Worker. No files or callbacks
  * into JavaScript. The caller copies the result before clear/free.
  */
 #include <stdio.h>
@@ -12,9 +12,12 @@
 #include <jconfig.h>
 
 static struct jpeg_decompress_struct decoder;
+static struct jpeg_compress_struct encoder;
 static struct { struct jpeg_error_mgr base; jmp_buf jump; } errors;
-static int created;
+static int created, encode_created;
 static unsigned char *pixels;
+static unsigned char *encoded, *rgb_row;
+static unsigned long encoded_length;
 static unsigned width, height, components, precision, lossless, adobe;
 static size_t bytes;
 static char message[JMSG_LENGTH_MAX];
@@ -29,7 +32,11 @@ static void warning(j_common_ptr info, int level) {
 }
 void viewer_jpeg_clear(void) {
   if (created) { jpeg_destroy_decompress(&decoder); created = 0; }
+  if (encode_created) { jpeg_destroy_compress(&encoder); encode_created = 0; }
   free(pixels); pixels = NULL;
+  free(encoded); encoded = NULL;
+  free(rgb_row); rgb_row = NULL;
+  encoded_length = 0;
   bytes = width = height = components = precision = lossless = adobe = 0;
 }
 static int reject(const char *reason) {
@@ -90,6 +97,56 @@ int viewer_jpeg_decode(const unsigned char *input, size_t size, int raw) {
   jpeg_destroy_decompress(&decoder); created = 0;
   return 0;
 }
+int viewer_jpeg_encode(const unsigned char *rgba, unsigned image_width, unsigned image_height,
+                       int quality, int subsampling, int progressive) {
+  viewer_jpeg_clear(); message[0] = 0;
+  if (!rgba || !image_width || !image_height ||
+      (uint64_t)image_width * image_height > 40000000 ||
+      quality < 1 || quality > 100 || subsampling < 0 || subsampling > 2 ||
+      (progressive != 0 && progressive != 1))
+    return reject("Invalid JPEG encoding options");
+  memset(&encoder, 0, sizeof(encoder));
+  encoder.err = jpeg_std_error(&errors.base);
+  errors.base.error_exit = failed;
+  errors.base.emit_message = warning;
+  if (setjmp(errors.jump)) { viewer_jpeg_clear(); return 1; }
+  encode_created = 1;
+  jpeg_create_compress(&encoder);
+  jpeg_mem_dest(&encoder, &encoded, &encoded_length);
+  encoder.image_width = image_width;
+  encoder.image_height = image_height;
+  encoder.input_components = 3;
+  encoder.in_color_space = JCS_RGB;
+  encoder.mem->max_memory_to_use = 268435456;
+  jpeg_set_defaults(&encoder);
+  jpeg_set_quality(&encoder, quality, TRUE);
+  encoder.comp_info[0].h_samp_factor = subsampling == 0 ? 1 : 2;
+  encoder.comp_info[0].v_samp_factor = subsampling == 2 ? 2 : 1;
+  encoder.comp_info[1].h_samp_factor = encoder.comp_info[1].v_samp_factor = 1;
+  encoder.comp_info[2].h_samp_factor = encoder.comp_info[2].v_samp_factor = 1;
+  if (progressive) jpeg_simple_progression(&encoder);
+  rgb_row = malloc((size_t)image_width * 3);
+  if (!rgb_row) return reject("Not enough memory for JPEG scanline");
+  jpeg_start_compress(&encoder, TRUE);
+  while (encoder.next_scanline < image_height) {
+    const unsigned char *source = rgba + (size_t)encoder.next_scanline * image_width * 4;
+    for (unsigned x = 0; x < image_width; x++) {
+      rgb_row[x * 3] = source[x * 4];
+      rgb_row[x * 3 + 1] = source[x * 4 + 1];
+      rgb_row[x * 3 + 2] = source[x * 4 + 2];
+    }
+    JSAMPROW row = rgb_row;
+    if (jpeg_write_scanlines(&encoder, &row, 1) != 1)
+      return reject("Incomplete JPEG scanline");
+  }
+  jpeg_finish_compress(&encoder);
+  jpeg_destroy_compress(&encoder); encode_created = 0;
+  if (!encoded || !encoded_length || encoded_length > 268435456)
+    return reject("JPEG result is empty or too large");
+  return 0;
+}
+const void *viewer_jpeg_encoded(void) { return encoded; }
+size_t viewer_jpeg_encoded_bytes(void) { return encoded_length; }
 const char *viewer_jpeg_error(void) { return message; }
 #define STRING_VALUE(x) #x
 #define EXPAND_STRING(x) STRING_VALUE(x)

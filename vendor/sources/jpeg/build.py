@@ -1,4 +1,4 @@
-"""Build the pinned JPEG decoder without fetching dependencies.
+"""Build the pinned JPEG encoder and decoder without fetching dependencies.
 Copyright (c) 2026 Ilya Barilo. MIT; see PROJECT-LICENSE.
 """
 import argparse
@@ -59,7 +59,8 @@ run([args.cmake, '-S', work / prefix, '-B', build, '-G', 'Ninja',
      '-DWITH_SIMD=OFF', '-DWITH_TURBOJPEG=OFF', '-DWITH_TOOLS=OFF', '-DWITH_TESTS=OFF',
      '-DCMAKE_C_FLAGS=-ffile-prefix-map=' + work.as_posix() + '=.'])
 run([args.cmake, '--build', build, '--target', 'jpeg-static', '--clean-first', '--parallel', args.jobs])
-exports = ['malloc', 'free', 'viewer_jpeg_decode', 'viewer_jpeg_clear', 'viewer_jpeg_error',
+exports = ['malloc', 'free', 'viewer_jpeg_decode', 'viewer_jpeg_encode', 'viewer_jpeg_encoded',
+           'viewer_jpeg_encoded_bytes', 'viewer_jpeg_clear', 'viewer_jpeg_error',
            'viewer_jpeg_version', 'viewer_jpeg_width', 'viewer_jpeg_height', 'viewer_jpeg_components',
            'viewer_jpeg_precision', 'viewer_jpeg_lossless', 'viewer_jpeg_adobe', 'viewer_jpeg_pixels', 'viewer_jpeg_bytes']
 output.parent.mkdir(parents=True, exist_ok=True)
@@ -72,5 +73,6 @@ run([sys.executable, emroot / 'emcc.py', package / 'bridge.c', build / 'libjpeg.
      '-ffile-prefix-map=' + package.as_posix() + '=jpeg-sources', '-Wl,-Map=' + str(output.with_suffix('.map')),
      '-sEXPORTED_FUNCTIONS=' + json.dumps(['_' + name for name in exports]),
      '-sEXPORTED_RUNTIME_METHODS=' + json.dumps(['HEAPU8', 'UTF8ToString']), '-o', output])
+output.write_bytes(output.read_bytes().replace(b'\r\n', b'\n'))
 print(json.dumps({'file': output.name, 'bytes': output.stat().st_size,
                   'sha256': hashlib.sha256(output.read_bytes()).hexdigest()}))

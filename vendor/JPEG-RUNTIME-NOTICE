@@ -21,6 +21,286 @@ libjpeg-turbo-3.2.0/src/jaricom.c
  * Recommendation ITU-T T.82 (1993) | ISO/IEC 11544:1993.
  */
 
+libjpeg-turbo-3.2.0/src/jcapimin.c
+/*
+ * jcapimin.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1998, Thomas G. Lane.
+ * Modified 2003-2010 by Guido Vollbeding.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024-2025, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains application interface code for the compression half
+ * of the JPEG library.  These are the "minimum" API routines that may be
+ * needed in either the normal full-compression case or the transcoding-only
+ * case.
+ *
+ * Most of the routines intended to be called directly by an application
+ * are in this file or in jcapistd.c.  But also see jcparam.c for
+ * parameter-setup helper routines, jcomapi.c for routines shared by
+ * compression and decompression, and jctrans.c for the transcoding case.
+ */
+
+libjpeg-turbo-3.2.0/src/jcapistd.c
+/*
+ * jcapistd.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains application interface code for the compression half
+ * of the JPEG library.  These are the "standard" API routines that are
+ * used in the normal full-compression case.  They are not used by a
+ * transcoding-only application.  Note that if an application links in
+ * jpeg_start_compress, it will end up linking in the entire compressor.
+ * We thus must separate this file from jcapimin.c to avoid linking the
+ * whole compression library into a transcoder.
+ */
+
+libjpeg-turbo-3.2.0/src/jcarith.c
+/*
+ * jcarith.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Developed 1997-2009 by Guido Vollbeding.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2015, 2018, 2021-2022, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains portable arithmetic entropy encoding routines for JPEG
+ * (implementing Recommendation ITU-T T.81 | ISO/IEC 10918-1).
+ *
+ * Both sequential and progressive modes are supported in this single module.
+ *
+ * Suspension is not currently supported in this module.
+ *
+ * NOTE: All referenced figures are from
+ * Recommendation ITU-T T.81 (1992) | ISO/IEC 10918-1:1994.
+ */
+
+libjpeg-turbo-3.2.0/src/jccoefct.c
+/*
+ * jccoefct.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1997, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024-2025, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains the coefficient buffer controller for compression.
+ * This controller is the top level of the lossy JPEG compressor proper.
+ * The coefficient buffer lies between forward-DCT and entropy encoding steps.
+ */
+
+libjpeg-turbo-3.2.0/src/jccolor.c
+/*
+ * jccolor.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1996, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
+ * Copyright (C) 2009-2012, 2015, 2022, 2024-2025, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains input colorspace conversion routines.
+ */
+
+libjpeg-turbo-3.2.0/src/jcdctmgr.c
+/*
+ * jcdctmgr.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 1999-2006, MIYASAKA Masaru.
+ * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
+ * Copyright (C) 2011, 2014-2015, 2022, 2024-2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains the forward-DCT management logic.
+ * This code selects a particular DCT implementation to be used,
+ * and it performs related housekeeping chores including coefficient
+ * quantization.
+ */
+
+libjpeg-turbo-3.2.0/src/jcdiffct.c
+/*
+ * jcdiffct.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1997, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains the difference buffer controller for compression.
+ * This controller is the top level of the lossless JPEG compressor proper.
+ * The difference buffer lies between the prediction/differencing and entropy
+ * encoding steps.
+ */
+
+libjpeg-turbo-3.2.0/src/jchuff.c
+/*
+ * jchuff.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1997, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2009-2011, 2014-2016, 2018-2026, D. R. Commander.
+ * Copyright (C) 2015, Matthieu Darbois.
+ * Copyright (C) 2018, Matthias Räncker.
+ * Copyright (C) 2020, Arm Limited.
+ * Copyright (C) 2022, Felix Hanau.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains Huffman entropy encoding routines.
+ *
+ * Much of the complexity here has to do with supporting output suspension.
+ * If the data destination module demands suspension, we want to be able to
+ * back up to the start of the current MCU.  To do this, we copy state
+ * variables into local working storage, and update them back to the
+ * permanent JPEG objects only upon successful completion of an MCU.
+ *
+ * NOTE: All referenced figures are from
+ * Recommendation ITU-T T.81 (1992) | ISO/IEC 10918-1:1994.
+ */
+
+libjpeg-turbo-3.2.0/src/jcinit.c
+/*
+ * jcinit.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1997, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2020, 2022, 2024, 2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains initialization logic for the JPEG compressor.
+ * This routine is in charge of selecting the modules to be executed and
+ * making an initialization call to each one.
+ *
+ * Logically, this code belongs in jcmaster.c.  It's split out because
+ * linking this routine implies linking the entire compression library.
+ * For a transcoding-only application, we want to be able to use jcmaster.c
+ * without linking in the whole library.
+ */
+
+libjpeg-turbo-3.2.0/src/jclhuff.c
+/*
+ * jclhuff.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1997, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains Huffman entropy encoding routines for lossless JPEG.
+ *
+ * Much of the complexity here has to do with supporting output suspension.
+ * If the data destination module demands suspension, we want to be able to
+ * back up to the start of the current MCU.  To do this, we copy state
+ * variables into local working storage, and update them back to the
+ * permanent JPEG objects only upon successful completion of an MCU.
+ */
+
+libjpeg-turbo-3.2.0/src/jclossls.c
+/*
+ * jclossls.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1998, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024, 2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains prediction, sample differencing, and point transform
+ * routines for the lossless JPEG compressor.
+ */
+
+libjpeg-turbo-3.2.0/src/jcmainct.c
+/*
+ * jcmainct.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains the main buffer controller for compression.
+ * The main buffer lies between the pre-processor and the JPEG
+ * compressor proper; it holds downsampled data in the JPEG colorspace.
+ */
+
+libjpeg-turbo-3.2.0/src/jcmarker.c
+/*
+ * jcmarker.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1998, Thomas G. Lane.
+ * Modified 2003-2010 by Guido Vollbeding.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2010, 2022, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains routines to write JPEG datastream markers.
+ */
+
+libjpeg-turbo-3.2.0/src/jcmaster.c
+/*
+ * jcmaster.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1997, Thomas G. Lane.
+ * Modified 2003-2010 by Guido Vollbeding.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2010, 2016, 2018, 2022-2024, 2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains master control logic for the JPEG compressor.
+ * These routines are concerned with parameter validation, initial setup,
+ * and inter-pass control (determining the number of passes and the work
+ * to be done in each pass).
+ */
+
 libjpeg-turbo-3.2.0/src/jcomapi.c
 /*
  * jcomapi.c
@@ -34,6 +314,124 @@ libjpeg-turbo-3.2.0/src/jcomapi.c
  *
  * This file contains application interface routines that are used for both
  * compression and decompression.
+ */
+
+libjpeg-turbo-3.2.0/src/jcparam.c
+/*
+ * jcparam.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1998, Thomas G. Lane.
+ * Modified 2003-2008 by Guido Vollbeding.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2009-2011, 2018, 2023-2024, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains optional default-setting code for the JPEG compressor.
+ * Applications do not have to use this file, but those that don't use it
+ * must know a lot more about the innards of the JPEG code.
+ */
+
+libjpeg-turbo-3.2.0/src/jcphuff.c
+/*
+ * jcphuff.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1995-1997, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2011, 2015, 2018, 2021-2022, 2024-2025, D. R. Commander.
+ * Copyright (C) 2016, 2018, 2022, Matthieu Darbois.
+ * Copyright (C) 2020, Arm Limited.
+ * Copyright (C) 2021, Alex Richardson.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains Huffman entropy encoding routines for progressive JPEG.
+ *
+ * We do not support output suspension in this module, since the library
+ * currently does not allow multiple-scan files to be written with output
+ * suspension.
+ */
+
+libjpeg-turbo-3.2.0/src/jcprepct.c
+/*
+ * jcprepct.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2022, 2024-2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains the compression preprocessing controller.
+ * This controller manages the color conversion, downsampling,
+ * and edge expansion steps.
+ *
+ * Most of the complexity here is associated with buffering input rows
+ * as required by the downsampler.  See the comments at the head of
+ * jcsample.c for the downsampler's needs.
+ */
+
+libjpeg-turbo-3.2.0/src/jcsample.c
+/*
+ * jcsample.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1996, Thomas G. Lane.
+ * Lossless JPEG Modifications:
+ * Copyright (C) 1999, Ken Murchison.
+ * libjpeg-turbo Modifications:
+ * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
+ * Copyright (C) 2015, 2019, 2022, 2024-2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains downsampling routines.
+ *
+ * Downsampling input data is counted in "row groups".  A row group is defined
+ * to be max_v_samp_factor rows of each component, from which the downsampler
+ * produces v_samp_factor sample rows.  A single row group is processed in each
+ * call to the downsampler module.
+ *
+ * The downsampler is responsible for edge-expansion of its output data
+ * to fill an integral number of DCT blocks horizontally.  The source buffer
+ * may be modified if it is helpful for this purpose (the source buffer is
+ * allocated wide enough to correspond to the desired output width).
+ * The caller (the prep controller) is responsible for vertical padding.
+ *
+ * The downsampler may request "context rows" by setting need_context_rows
+ * during startup.  In this case, the input arrays will contain at least one
+ * row group's worth of components above and below the passed-in data; the
+ * caller will create dummy rows at image top and bottom by replicating the
+ * first or last real component row(s).
+ *
+ * An excellent reference for image resampling is
+ *   Digital Image Warping, George Wolberg, 1990.
+ *   Pub. by IEEE Computer Society Press, Los Alamitos, CA. ISBN 0-8186-8944-7.
+ *
+ * The downsampling algorithm used here is a simple average of the source
+ * components covered by the output sample.  The hi-falutin sampling literature
+ * refers to this as a "box filter".  In general, the characteristics of a box
+ * filter are not very good.  However, for the specific cases we normally use
+ * (1:1 and 2:1 ratios), the box is equivalent to a "triangle filter", which is
+ * not nearly so bad.  If you intend to use other sampling ratios, you'd be
+ * well advised to improve this code.
+ *
+ * A simple input-smoothing capability is provided.  This is mainly intended
+ * for cleaning up color-dithered GIF input files.  (If you find it inadequate,
+ * we suggest using an external filtering program such as pnmconvol).  When
+ * enabled, each input component C is replaced by a weighted sum of itself and
+ * its eight neighbors.  C's weight is 1-8*SF, and each neighbor's weight is
+ * SF, where SF = (smoothing_factor / 1024).
+ * Currently, smoothing is only supported for 2h2v sampling factors.
  */
 
 libjpeg-turbo-3.2.0/src/jdapimin.c
@@ -102,6 +500,29 @@ libjpeg-turbo-3.2.0/src/jdarith.c
  * NOTE: All referenced figures are from
  * Recommendation ITU-T T.81 (1992) | ISO/IEC 10918-1:1994.
  */
+
+libjpeg-turbo-3.2.0/src/jdatadst.c
+/*
+ * jdatadst.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * Modified 2009-2012 by Guido Vollbeding.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2013, 2016, 2022, 2026, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains compression data destination routines for the case of
+ * emitting JPEG data to memory or to a file (or any stdio stream).
+ * While these routines are sufficient for most applications,
+ * some will want to use a different destination manager.
+ * IMPORTANT: we assume that fwrite() will correctly transcribe an array of
+ * JOCTETs into 8-bit-wide elements on external storage.  If char is wider
+ * than 8 bits on your machine, you may need to do some tweaking.
+ */
+
+/* this is not a core library module, so it doesn't define JPEG_INTERNALS */
 
 libjpeg-turbo-3.2.0/src/jdatasrc.c
 /*
@@ -498,6 +919,109 @@ libjpeg-turbo-3.2.0/src/jerror.c
 
 /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
 
+libjpeg-turbo-3.2.0/src/jfdctflt.c
+/*
+ * jfdctflt.c
+ *
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * This file is part of the Independent JPEG Group's software.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains a floating-point implementation of the
+ * forward DCT (Discrete Cosine Transform).
+ *
+ * This implementation should be more accurate than either of the integer
+ * DCT implementations.  However, it may not give the same results on all
+ * machines because of differences in roundoff behavior.  Speed will depend
+ * on the hardware's floating point capacity.
+ *
+ * A 2-D DCT can be done by 1-D DCT on each row followed by 1-D DCT
+ * on each column.  Direct algorithms are also available, but they are
+ * much more complex and seem not to be any faster when reduced to code.
+ *
+ * This implementation is based on Arai, Agui, and Nakajima's algorithm for
+ * scaled DCT.  Their original paper (Trans. IEICE E-71(11):1095) is in
+ * Japanese, but the algorithm is described in the Pennebaker & Mitchell
+ * JPEG textbook (see REFERENCES section in file README.ijg).  The following
+ * code is based directly on figure 4-8 in P&M.
+ * While an 8-point DCT cannot be done in less than 11 multiplies, it is
+ * possible to arrange the computation so that many of the multiplies are
+ * simple scalings of the final outputs.  These multiplies can then be
+ * folded into the multiplications or divisions by the JPEG quantization
+ * table entries.  The AA&N method leaves only 5 multiplies and 29 adds
+ * to be done in the DCT itself.
+ * The primary disadvantage of this method is that with a fixed-point
+ * implementation, accuracy is lost due to imprecise representation of the
+ * scaled quantization values.  However, that problem does not arise if
+ * we use floating point arithmetic.
+ */
+
+libjpeg-turbo-3.2.0/src/jfdctfst.c
+/*
+ * jfdctfst.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1994-1996, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2015, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains a fast, not so accurate integer implementation of the
+ * forward DCT (Discrete Cosine Transform).
+ *
+ * A 2-D DCT can be done by 1-D DCT on each row followed by 1-D DCT
+ * on each column.  Direct algorithms are also available, but they are
+ * much more complex and seem not to be any faster when reduced to code.
+ *
+ * This implementation is based on Arai, Agui, and Nakajima's algorithm for
+ * scaled DCT.  Their original paper (Trans. IEICE E-71(11):1095) is in
+ * Japanese, but the algorithm is described in the Pennebaker & Mitchell
+ * JPEG textbook (see REFERENCES section in file README.ijg).  The following
+ * code is based directly on figure 4-8 in P&M.
+ * While an 8-point DCT cannot be done in less than 11 multiplies, it is
+ * possible to arrange the computation so that many of the multiplies are
+ * simple scalings of the final outputs.  These multiplies can then be
+ * folded into the multiplications or divisions by the JPEG quantization
+ * table entries.  The AA&N method leaves only 5 multiplies and 29 adds
+ * to be done in the DCT itself.
+ * The primary disadvantage of this method is that with fixed-point math,
+ * accuracy is lost due to imprecise representation of the scaled
+ * quantization values.  The smaller the quantization table entry, the less
+ * precise the scaled value, so this implementation does worse with high-
+ * quality-setting files than with low-quality ones.
+ */
+
+libjpeg-turbo-3.2.0/src/jfdctint.c
+/*
+ * jfdctint.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1996, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2015, 2020, 2022, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains a slower but more accurate integer implementation of the
+ * forward DCT (Discrete Cosine Transform).
+ *
+ * A 2-D DCT can be done by 1-D DCT on each row followed by 1-D DCT
+ * on each column.  Direct algorithms are also available, but they are
+ * much more complex and seem not to be any faster when reduced to code.
+ *
+ * This implementation is based on an algorithm described in
+ *   C. Loeffler, A. Ligtenberg and G. Moschytz, "Practical Fast 1-D DCT
+ *   Algorithms with 11 Multiplications", Proc. Int'l. Conf. on Acoustics,
+ *   Speech, and Signal Processing 1989 (ICASSP '89), pp. 988-991.
+ * The primary algorithm described there uses 11 multiplies and 29 adds.
+ * We use their alternate method with 12 multiplies and 32 adds.
+ * The advantage of this method is that no data path contains more than one
+ * multiplication; this allows a very simple and accurate implementation in
+ * scaled fixed-point arithmetic, with a minimal number of shifts.
+ */
+
 libjpeg-turbo-3.2.0/src/jidctflt.c
 /*
  * jidctflt.c
@@ -706,6 +1230,14 @@ libjpeg-turbo-3.2.0/src/jmemnobs.c
  * This is very portable in the sense that it'll compile on almost anything,
  * but you'd better have lots of main memory (or virtual memory) if you want
  * to process big images.
+ */
+
+libjpeg-turbo-3.2.0/src/jpeg_nbits.c
+/*
+ * Copyright (C) 2024-2025, D. R. Commander.
+ *
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
  */
 
 libjpeg-turbo-3.2.0/src/jquant1.c

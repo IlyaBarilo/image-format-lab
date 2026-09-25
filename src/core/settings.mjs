@@ -1,4 +1,5 @@
 import { normalizeTiffOptions } from './raster-codecs.mjs';
+import { normalizeJpegOptions } from './jpeg-encode.mjs';
 import { pngDepth } from './png.mjs';
 import { BACKGROUNDS, DEFAULT_EXPORT_CONFIG, FORMAT_DEFS, MATTES } from "./config.mjs";
 
@@ -22,6 +23,8 @@ export function normalizeBatchSettings(value) {
   if (["none", "deflate", "lzw"].includes(value.tiffCompression)) config.tiffCompression = value.tiffCompression;
   if (Number.isInteger(value.tiffLevel) && value.tiffLevel >= 1 && value.tiffLevel <= 9) config.tiffLevel = value.tiffLevel;
   if (typeof value.tiffPredictor === "boolean") config.tiffPredictor = value.tiffPredictor;
+  if (['444','422','420'].includes(value.jpegSubsampling)) config.jpegSubsampling = value.jpegSubsampling;
+  if (typeof value.jpegProgressive === 'boolean') config.jpegProgressive = value.jpegProgressive;
   return config;
 }
 
@@ -33,7 +36,7 @@ export function validateComparison(value) {
     if (!v || !Object.hasOwn(FORMAT_DEFS, v.format) || !Number.isInteger(v.quality) || v.quality < 1 || v.quality > 100
       || !Number.isInteger(v.gifColors) || v.gifColors < 2 || v.gifColors > 256 || typeof v.gifDither !== "boolean"
       || !Object.hasOwn(MATTES, v.matte)) throw new Error("Некорректные параметры варианта.");
-    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, matte:v.matte };
+    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, matte:v.matte };
   });
   // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
   return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};

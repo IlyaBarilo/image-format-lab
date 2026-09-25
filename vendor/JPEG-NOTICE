@@ -1,4 +1,4 @@
-JPEG decoder: libjpeg-turbo 3.2.0
+JPEG encoder and decoder: libjpeg-turbo 3.2.0
 ================================
 
 This software is based in part on the work of the Independent JPEG Group.
@@ -15,7 +15,7 @@ D. R. Commander and other named contributors. Source bytes of the selected
 upstream files are unchanged; our separate bridge and adapters are by Ilya Barilo.
 
 This build uses Emscripten 6.0.9, CMake 4.4.3 and Ninja 1.13.2. It links the
-libjpeg decoding API with emmalloc and the Emscripten C runtime. It does not
+libjpeg encoding and decoding API with emmalloc and the Emscripten C runtime. It does not
 link TurboJPEG, PNG/libspng, platform assembly SIMD, libc++ or libde265/libheif.
 Those HEIC libraries remain separately documented components of the application.
 

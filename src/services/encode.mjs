@@ -76,7 +76,10 @@ export function createEncode({}, deps) {
     const def = FORMAT_DEFS[format];
     const canvas = deps.prepareCanvasForFormat(def, config.matte, outputSource);
     const quality = def.lossy ? deps.clamp(config.quality / 100, 0.01, 1) : undefined;
-    let blob = await deps.canvasToBlobStrict(canvas, def.mime, quality);
+    let blob = format === 'jpeg'
+      ? await (await deps.loadOptionalCodec('utif')).encodeJpeg(
+          canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height), config)
+      : await deps.canvasToBlobStrict(canvas, def.mime, quality);
     let panoramaPreserved = false;
     if (format === "jpeg" && config.metadataPolicy !== "none") {
       if (source.panoramaError) throw new Error(source.panoramaError + ". Проверьте GPano или выберите удаление метаданных.");

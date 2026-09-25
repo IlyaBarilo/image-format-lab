@@ -1,4 +1,5 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
+import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import workerSource from 'viewer:tiff-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
 
@@ -37,7 +38,7 @@ export function createTiff() {
           if (current.url) URL.revokeObjectURL(current.url);
           current.url = null;
           resolve(current);
-        } else if (data.type === 'error') current.fail(new Error((current.pending?.type === 'decode-bmp' ? 'BMP/ICO: ' : 'TIFF: ') + data.message));
+        } else if (data.type === 'error') current.fail(new Error((current.pending?.type === 'decode-bmp' ? 'BMP/ICO: ' : current.pending?.type === 'encode-jpeg' ? 'JPEG: ' : 'TIFF: ') + data.message));
         else if (['decoded', 'encoded'].includes(data.type) && data.id === current.pending?.id) {
           const pending = current.pending;
           current.pending = null;
@@ -60,7 +61,7 @@ export function createTiff() {
       return new Promise((resolve, reject) => {
         const id = ++sequence;
         current.pending = { id, type, resolve, reject };
-        current.timer = setTimeout(() => current.fail(new Error(type === 'encode' ? 'Превышено время кодирования TIFF' : 'Превышено время декодирования TIFF')), 120000);
+        current.timer = setTimeout(() => current.fail(new Error(type === 'encode-jpeg' ? 'Превышено время кодирования JPEG' : type === 'encode' ? 'Превышено время кодирования TIFF' : 'Превышено время декодирования TIFF')), 120000);
         try { current.worker.postMessage({ type, id, buffer, ...properties }, [buffer]); }
         catch (error) { current.fail(error); }
       });
@@ -85,12 +86,21 @@ export function createTiff() {
     const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, options });
     return new Blob([result.buffer], { type: 'image/tiff' });
   }
+  async function encodeJpeg(imageData, options={}) {
+    const {width,height,data}=imageData;
+    const settings={...normalizeJpegOptions(options),quality:options.quality};
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width<1 || height<1 || width*height>40000000 ||
+        data?.length!==width*height*4 || !Number.isInteger(settings.quality) || settings.quality<1 || settings.quality>100)
+      throw new Error('Некорректные параметры JPEG или превышен лимит 40 мегапикселей');
+    const result=await operate('encode-jpeg',()=>new Uint8ClampedArray(data).buffer,{width,height,options:settings});
+    return new Blob([result.buffer],{type:'image/jpeg'});
+  }
   async function decodeBmp(file, ico=false) {
     if (!file.size || file.size>256*1024*1024) throw new Error('BMP/ICO: пустой файл или размер более 256 МиБ');
     const result=await operate('decode-bmp',()=>file.arrayBuffer(),{ico});
     return {width:result.width,height:result.height,imageData:new ImageData(new Uint8ClampedArray(result.buffer),result.width,result.height),close:null};
   }
-  const api = { decode, encode, decodeBmp };
+  const api = { decode, encode, encodeJpeg, decodeBmp };
   async function loadTiffCodec() { await start(); return api; }
   return { loadTiffCodec };
 }

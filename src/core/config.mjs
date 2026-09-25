@@ -13,7 +13,8 @@ export const FORMAT_DEFS = {
     ext: "jpg",
     lossy: true,
     alpha: "none",
-    native: true
+    native: false,
+    codec: "utif"
   },
   png: {
     label: "PNG",
@@ -100,7 +101,7 @@ export const FORMAT_DEFS = {
 
 export const DEFAULT_VARIANTS = [
   { format: "original", quality: 100, gifColors: 256, gifDither: true, matte: "white" },
-  { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, matte: "white" },
+  { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, matte: "white", jpegSubsampling: "420", jpegProgressive: false },
   { format: "png", quality: 100, gifColors: 256, gifDither: true, matte: "white" },
   { format: "webp", quality: 85, gifColors: 128, gifDither: true, matte: "white" }
 ];
@@ -151,7 +152,7 @@ export const OPTIONAL_CODECS = {
     ready: () => window.gifenc && window.gifenc.GIFEncoder && window.gifenc.quantize && window.gifenc.applyPalette ? window.gifenc : null
   },
   utif: {
-    label: "BMP / TIFF · libnsbmp / libtiff / UTIF",
+    label: "JPEG / BMP / TIFF · libjpeg-turbo / libnsbmp / libtiff / UTIF",
     version: "libnsbmp 0.1.7 / libtiff 4.7.2 / UTIF 3.1.0 / libjpeg-turbo 3.2.0",
     kind: "worker"
   },

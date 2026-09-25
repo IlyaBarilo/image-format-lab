@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 class Element {
   constructor(){this.value='';this.checked=false;this.hidden=false;this.open=false;this.style={};this.listeners={};this.children=[];this.classList={contains:()=>false,toggle(){}};this.validity={valid:true};}
+  get childNodes(){return this.children;}
   set innerHTML(value){this.children=[];}
   append(...items){this.children.push(...items);}
   replaceChildren(...items){this.children=items;}
@@ -137,7 +138,34 @@ class Element {
   const batchSettings=createBatchSettings({app},{formatUnavailableReason:()=>''});
   assert.throws(()=>batchSettings.validateExportConfig({...app.exportConfig,pngDepth:'32'}),/выберите/);
   assert.match(batchSettings.exportConfigDescription({...app.exportConfig,pngDepth:'16'}),/16 бит/);
+  const jpegComparison=structuredClone(comparison);
+  jpegComparison.variants[1]={...jpegComparison.variants[1],format:'jpeg',jpegSubsampling:'444',jpegProgressive:true};
+  assert.equal(parseProfiles({version:1,profiles:[{name:'JPEG',settings:jpegComparison}]}).at(0).settings.variants[1].jpegSubsampling,'444');
+  assert.equal(normalizePreferences({version:1,comparison:jpegComparison}).comparison.variants[1].jpegProgressive,true);
+  assert.throws(()=>validateComparison({...jpegComparison,variants:jpegComparison.variants.map(v=>({...v,jpegSubsampling:'411'}))}));
+  assert.equal(normalizeBatchSettings({jpegSubsampling:'411',jpegProgressive:'true'}).jpegSubsampling,'420');
+  assert.equal(normalizeBatchSettings({jpegSubsampling:'411',jpegProgressive:'true'}).jpegProgressive,false);
+  const jpeg={index:1,head:new Element(),config:{...jpegComparison.variants[1]}};
+  controls.buildCellControls(jpeg);controls.syncControlsVisibility(jpeg);
+  assert.equal(jpeg.controls.jpegSubsampling.value,'444');assert.equal(jpeg.controls.jpegProgressive.checked,true);
+  const beforeJpeg=dirty;jpeg.controls.jpegSubsampling.value='422';jpeg.controls.jpegSubsampling.emit('change');
+  jpeg.controls.jpegProgressive.checked=false;jpeg.controls.jpegProgressive.emit('change');
+  assert.equal(jpeg.config.jpegSubsampling,'422');assert.equal(jpeg.config.jpegProgressive,false);assert.equal(dirty,beforeJpeg+2);
+  jpeg.config.format='png';controls.syncControlsVisibility(jpeg);assert.equal(jpeg.controls.jpegSubsamplingWrap.hidden,true);
+  jpeg.config.format='jpeg';controls.syncControlsVisibility(jpeg);assert.equal(jpeg.controls.jpegSubsampling.value,'422');
+  app.exportConfig={...DEFAULT_EXPORT_CONFIG,format:'jpeg',jpegSubsampling:'444',jpegProgressive:true};batchDeps.openBatchDialog();
+  assert.equal(get('batchJpegSubsamplingField').hidden,false);assert.equal(get('batchJpegProgressiveField').hidden,false);
+  assert.equal(get('batchJpegSubsampling').value,'444');assert.equal(get('batchJpegProgressive').checked,true);
+  get('batchJpegSubsampling').value='420';get('batchJpegProgressive').checked=false;batchDeps.updateBatchDialog();
+  assert.equal(batchDeps.readBatchDialogConfig().jpegSubsampling,'420');assert.equal(app.exportConfig.jpegSubsampling,'444');
+  els.batchDialog.close();batchDeps.openBatchDialog();assert.equal(get('batchJpegSubsampling').value,'444','Cancel restores JPEG draft');
+  get('batchJpegSubsampling').value='422';batchDeps.commitBatchDialog(false);assert.equal(app.exportConfig.jpegSubsampling,'422');
+  assert.equal(jpeg.config.jpegSubsampling,'422','Batch settings leave comparison independent');
+  assert.throws(()=>batchSettings.validateExportConfig({...app.exportConfig,jpegSubsampling:'411'}),/JPEG/);
+  assert.match(batchSettings.exportConfigDescription(app.exportConfig),/4:2:2/);
+  els.batchDialog.close();
   console.log('PASS PNG depth persistence/profiles, independent cells, automatic changes and batch draft/cancel/save');
+  console.log('PASS JPEG subsampling/progressive persistence, independent cells and batch draft/cancel/save');
   console.log('PASS single BMP choice, saved 24/32 profiles/preferences, automatic depth changes, matte visibility, independent cells and batch draft/cancel/save');
   console.log('PASS TIFF profiles, normalization, automatic comparison, conditional controls, batch draft/cancel/save and preview invalidation');
   delete global.document;

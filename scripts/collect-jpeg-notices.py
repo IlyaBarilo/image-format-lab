@@ -37,5 +37,5 @@ for path, label in paths:
     comment = re.match(r'\s*((?:(?:/\*[\s\S]*?\*/|//[^\n]*\n)\s*)+)', text)
     if comment:
         texts.append(label + '\n' + comment[1].strip() + '\n')
-(vendor/'JPEG-RUNTIME-NOTICE').write_text('\n'.join(texts),encoding='utf-8')
+(vendor/'JPEG-RUNTIME-NOTICE').write_bytes('\n'.join(texts).encode('utf-8'))
 print('Collected', len(seen), 'linked source headers.')

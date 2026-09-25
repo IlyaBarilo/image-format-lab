@@ -82,7 +82,7 @@
       "id": "libjpeg-turbo",
       "name": "libjpeg-turbo",
       "version": "3.2.0",
-      "scope": "Открытие JPEG внутри TIFF, включая lossless",
+      "scope": "Открытие JPEG внутри TIFF, включая lossless; сохранение JPEG с настройками цветности и прогрессивности",
       "license": "IJG; BSD-3-Clause для сборочных частей",
       "licenseFiles": [
         "libjpeg-turbo-README.ijg",

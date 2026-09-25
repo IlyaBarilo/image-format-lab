@@ -94,8 +94,8 @@
     {
       "file": "components.json",
       "url": "Project component registry with licenses and source references",
-      "bytes": 18580,
-      "sha256": "ce1385ed466dd39dedcdfeeba7bdf7c2db158a255fcc584bd65ce81fdaf187e0"
+      "bytes": 18686,
+      "sha256": "6a974044a6edc784b0fee3c0b75fbb12c7e443725c7fe57dd68576c8e9729bed"
     },
     {
       "file": "sources/gifenc-1.0.3/src/color.js",
@@ -550,14 +550,14 @@
     {
       "file": "sources/jpeg/bridge.c",
       "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
-      "bytes": 4465,
-      "sha256": "65618fdb8d0850ce548bb5212124fe099fd657537a1ffa1e207cea2085521d86"
+      "bytes": 7157,
+      "sha256": "4a16b541e1ddbcf534632bb968531d6f26308212b103d2f4e951172649056cdf"
     },
     {
       "file": "sources/jpeg/build.py",
       "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
-      "bytes": 4453,
-      "sha256": "e29ff393b79ff7ca1dd7c4e1fd5eaf9b80f740519720a5cbe53b16cacf8119f7"
+      "bytes": 4614,
+      "sha256": "f14cf3d6cdadc0c1573287a3cec53892cb997b9f4a378edeb58ed3134af0e4e4"
     },
     {
       "file": "sources/jpeg/sources.lock.json",
@@ -574,8 +574,8 @@
     {
       "file": "sources/jpeg/README.md",
       "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
-      "bytes": 2570,
-      "sha256": "8310e4afa615a11e7da61bee706b0f7d92b21466028de6e8f8a9eb8739f3a6ea"
+      "bytes": 2679,
+      "sha256": "f3f35bf61b1fc43915ce5733a1d80d89b1b1788f6e5afab5138547b42d4c9cf3"
     },
     {
       "file": "sources/jpeg/upstream/libjpeg-turbo-3.2.0-sources.tar.gz",
@@ -598,20 +598,20 @@
     {
       "file": "JPEG-NOTICE",
       "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
-      "bytes": 1480,
-      "sha256": "3a8087495d6e5c79580fc7ecaa904919afb7ae862b2550e6372e9643f8ca747b"
+      "bytes": 1505,
+      "sha256": "b9d8d3baa6f40f067c75f640e705cf707a01259314e4649789f7a528d22a3d4f"
     },
     {
       "file": "JPEG-RUNTIME-NOTICE",
       "url": "libjpeg-turbo 3.2.0 and Emscripten 6.0.9; see JPEG-NOTICE",
-      "bytes": 34058,
-      "sha256": "7181a2ed20b87f3f98c856cef32952ec84c26e4fb8a7bb3d02bfc6e5fba2611e"
+      "bytes": 54162,
+      "sha256": "6ad5f9bc5d21ba6dc88f45ed323d81f449a26f76a0636739ebeda2d7c1f07822"
     },
     {
       "file": "jpeg-decoder.js",
       "url": "Built from sources/jpeg/ using Emscripten 6.0.9; libjpeg-turbo 3.2.0",
-      "bytes": 377766,
-      "sha256": "31c6351c1183cc0238f828356ee5f7b3e7ac8c500f5700c85e83d3be1a08f6ec"
+      "bytes": 694851,
+      "sha256": "b4feda2d9b5a3857c8d763eb045039ce0ed02e41b3aac45f69313f01c580d5d2"
     },
     {
       "file": "sources/modern/README.md",

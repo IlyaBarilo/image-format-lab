@@ -1,4 +1,4 @@
-# JPEG decoder build sources
+# JPEG encoder and decoder build sources
 
 The viewer uses libjpeg-turbo 3.2.0 through the libjpeg C API. The original
 baseline/progressive and lossless JPEG implementations formerly embedded in
@@ -25,17 +25,18 @@ are downloaded by the build script. It generates an embedded-WASM JS module and
 a link map. The bridge uses a pinned internal field (`master->lossless`); upgrades
 must recheck this along with the public 8/12/16-bit scanline APIs.
 
-To integrate a rebuilt decoder, copy its JS to `vendor/jpeg-decoder.js`, update
+To integrate a rebuilt codec, copy its JS to `vendor/jpeg-decoder.js`, update
 applicable notices with `scripts/collect-jpeg-notices.py`, run
 `node scripts/build-vendor.cjs`, then `npm --prefix scripts run build` and `npm --prefix scripts test`.
 The source archive is supplied in the repository for reproducibility, not loaded
-by the browser. The single HTML embeds the decoder and all applicable notices.
+by the browser. The single HTML embeds the codec and all applicable notices.
 Unlike the HEIC LGPL source bundle, this permissively licensed source package
 does not need to be embedded into every HTML copy.
 
 The build disables TurboJPEG, tools, tests and platform SIMD. The final link
-keeps the decoding paths referenced by `bridge.c`, without PNG/libspng, encoders,
-or external file access. Our independent JPEG/TIFF tests validate this specific
+keeps the encoding and decoding paths referenced by `bridge.c`, without PNG/libspng
+or external file access. The encoder supports baseline/progressive 8-bit JPEG and
+4:4:4, 4:2:2 or 4:2:0 chroma subsampling. Our independent JPEG/TIFF tests validate this specific
 build instead of claiming that the upstream suite was run.
 
 The Worker bounds inputs to 256 MiB and images to 40 megapixels and is destroyed

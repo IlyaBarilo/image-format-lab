@@ -28,6 +28,14 @@ function request(type,data={},transfer=[]){return new Promise((resolve,reject)=>
   try{
     assert.equal((await request('init')).codec,'tiff');
     const image={width:9,height:7,data:Uint8ClampedArray.from({length:9*7*4},(_,i)=>i*13%256)};
+    const jpegInput=image.data.slice().buffer;
+    const encodedJpeg=await request('encode-jpeg',{width:9,height:7,buffer:jpegInput,options:{quality:85,jpegSubsampling:'444',jpegProgressive:true}},[jpegInput]);
+    assert.equal(jpegInput.byteLength,0);assert.equal(encodedJpeg.type,'encoded');
+    const jpegBytes=new Uint8Array(encodedJpeg.buffer);
+    assert.equal(jpegBytes[0],255);assert.equal(jpegBytes[1],216);
+    const {createJpegDecoder}=await import('../src/core/jpeg.mjs');
+    const jpegCodec=await require('../vendor/jpeg-decoder.js')({print(){},printErr(){}});
+    assert.equal(createJpegDecoder(jpegCodec)(jpegBytes).width,9);
     for(const tiffCompression of ['none','deflate','lzw']){
       const pixels=image.data.slice().buffer;
       const encoded=await request('encode',{width:9,height:7,buffer:pixels,options:{tiffCompression,tiffLevel:9,tiffPredictor:false}},[pixels]);
@@ -42,6 +50,6 @@ function request(type,data={},transfer=[]){return new Promise((resolve,reject)=>
     const file=fs.readFileSync(path.join(root,'tests/fixtures/tiff/baseline.tiff'));
     const jpeg=await request('decode',{buffer:file.buffer.slice(file.byteOffset,file.byteOffset+file.length)});
     assert.equal(jpeg.type,'decoded');assert.equal(jpeg.width,37,'JPEG compatibility after error');
-    console.log('PASS actual raster Worker entry: init, three TIFF codecs, BMP alpha, transferred buffers, JPEG fallback and error recovery');
+    console.log('PASS actual raster Worker entry: JPEG encoding, three TIFF codecs, BMP alpha, transferred buffers, JPEG fallback and error recovery');
   }finally{await worker.terminate();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

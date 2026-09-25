@@ -82,7 +82,7 @@ watch отслеживает их изменения. Туда же включе
 | `core/analysis-output.mjs`, `ui/analysis-combined.mjs`, `ui/analysis-output.mjs` | Нормировка наложения, валидация точек размера/метрики, сериализация массивов/Infinity, общий Canvas и PNG/JSON текущего анализа; снимок состояния и проверка его актуальности связаны через application |
 | `workers/heic.worker.mjs` | Запуск собственной WASM-сборки HEIC и выдача RGBA8 |
 | `workers/tiff.worker.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF; UTIF / libjpeg-turbo для совместимости |
-| `core/jpeg.mjs`, `core/tiff-jpeg.mjs`, `core/tiff.mjs` | Связь с C-декодером, JPEG-таблицы/полосы/плитки и проверки TIFF |
+| `core/jpeg.mjs`, `core/jpeg-encode.mjs`, `core/tiff-jpeg.mjs`, `core/tiff.mjs` | Связь с libjpeg-turbo для чтения и сохранения JPEG, JPEG-таблицы/полосы/плитки и проверки TIFF |
 
 Расширение `.mjs` явно обозначает ES-модуль. Сборщик и проверки используют Node.js.
 

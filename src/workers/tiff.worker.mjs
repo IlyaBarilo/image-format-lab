@@ -1,4 +1,5 @@
 import { createJpegDecoder } from '../core/jpeg.mjs';
+import { encodeJpegPixels } from '../core/jpeg-encode.mjs';
 import { installTiffJpeg } from '../core/tiff-jpeg.mjs';
 import { decodeLegacyTiff } from '../core/tiff-legacy.mjs';
 import { decodeBmpPixels, decodeTiffPixels, encodeTiffPixels } from '../core/raster-codecs.mjs';
@@ -16,6 +17,10 @@ self.onmessage=async({data:request})=>{
     if(type==='init'){self.postMessage({type:'ready',codec:'tiff',jpegVersion:codec.jpeg.UTF8ToString(codec.jpeg._viewer_jpeg_version())});return;}
     if(type==='encode'){
       const buffer=encodeTiffPixels(codec.tiff,{width:request.width,height:request.height,data:new Uint8ClampedArray(request.buffer)},request.options);
+      self.postMessage({type:'encoded',id,buffer},[buffer]);return;
+    }
+    if(type==='encode-jpeg'){
+      const buffer=encodeJpegPixels(codec.jpeg,{width:request.width,height:request.height,data:new Uint8ClampedArray(request.buffer)},request.options);
       self.postMessage({type:'encoded',id,buffer},[buffer]);return;
     }
     let result;

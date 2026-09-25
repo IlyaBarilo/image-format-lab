@@ -1,5 +1,6 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { normalizeTiffOptions } from "./../core/raster-codecs.mjs";
+import { normalizeJpegOptions } from './../core/jpeg-encode.mjs';
 import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -152,6 +153,28 @@ export function createControls({els, app}, deps) {
     matte.value = variant.config.matte;
     matteWrap.append(matte);
     head.append(matteWrap);
+
+    const jpegOptions=normalizeJpegOptions(variant.config);
+    const jpegSubsamplingWrap=document.createElement('label');
+    jpegSubsamplingWrap.className='jpeg-subsampling-wrap';
+    jpegSubsamplingWrap.hidden=variant.config.format!=='jpeg';
+    jpegSubsamplingWrap.title='Субдискретизация цветности JPEG. 4:4:4 сохраняет полное разрешение цветовых каналов, но JPEG остаётся с потерями.';
+    const jpegSubsampling=document.createElement('select');
+    jpegSubsampling.className='select jpeg-subsampling';
+    for(const [value,label] of [['420','4:2:0'],['422','4:2:2'],['444','4:4:4']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;jpegSubsampling.append(option);
+    }
+    jpegSubsampling.value=jpegOptions.jpegSubsampling;
+    jpegSubsamplingWrap.append(document.createTextNode('Цветность'),jpegSubsampling);
+    const jpegProgressiveWrap=document.createElement('label');
+    jpegProgressiveWrap.className='switch jpeg-progressive-wrap';
+    jpegProgressiveWrap.hidden=variant.config.format!=='jpeg';
+    jpegProgressiveWrap.title='Прогрессивная организация JPEG: изображение уточняется за несколько проходов при загрузке.';
+    const jpegProgressive=document.createElement('input');
+    jpegProgressive.type='checkbox';jpegProgressive.className='jpeg-progressive';
+    jpegProgressive.checked=jpegOptions.jpegProgressive;
+    jpegProgressiveWrap.append(jpegProgressive,document.createTextNode('Прогр.'));
+    head.append(jpegSubsamplingWrap,jpegProgressiveWrap);
   
     const tiffOptions = normalizeTiffOptions(variant.config);
     const tiffCompressionWrap = document.createElement("label");
@@ -214,6 +237,10 @@ export function createControls({els, app}, deps) {
       tiffLevelValue,
       tiffPredictorWrap,
       tiffPredictor,
+      jpegSubsamplingWrap,
+      jpegSubsampling,
+      jpegProgressiveWrap,
+      jpegProgressive,
       select,
       qualityWrap,
       quality,
@@ -235,6 +262,14 @@ export function createControls({els, app}, deps) {
     tiffCompression.addEventListener("change", updateTiffSettings);
     tiffLevel.addEventListener("input", updateTiffSettings);
     tiffPredictor.addEventListener("change", updateTiffSettings);
+    jpegSubsampling.addEventListener('change',()=>{
+      variant.config.jpegSubsampling=jpegSubsampling.value;
+      deps.markDirty(variant);
+    });
+    jpegProgressive.addEventListener('change',()=>{
+      variant.config.jpegProgressive=jpegProgressive.checked;
+      deps.markDirty(variant);
+    });
   
     select.addEventListener("change", () => {
       variant.config.format = formatFromOption(select.value, bmpDepth.value);
@@ -315,6 +350,13 @@ export function createControls({els, app}, deps) {
       variant.controls.select.value = formatOptionValue(format);
     }
     if(variant.controls.pngDepthWrap){variant.controls.pngDepthWrap.hidden=format!=='png';variant.controls.pngDepth.value=variant.config.pngDepth || 'auto';}
+    if(variant.controls.jpegSubsamplingWrap){
+      const options=normalizeJpegOptions(variant.config);
+      variant.controls.jpegSubsamplingWrap.hidden=format!=='jpeg';
+      variant.controls.jpegProgressiveWrap.hidden=format!=='jpeg';
+      variant.controls.jpegSubsampling.value=options.jpegSubsampling;
+      variant.controls.jpegProgressive.checked=options.jpegProgressive;
+    }
   
     if (variant.controls.tiffCompressionWrap) {
       const options = normalizeTiffOptions(variant.config);
@@ -456,7 +498,7 @@ export function createControls({els, app}, deps) {
     };
     const write = {
       original: "Исходные байты без перекодирования; все метаданные сохраняются",
-      jpeg: "Браузер; качество 1–100, с потерями; прозрачность заменяется заливкой",
+      jpeg: "Встроенный libjpeg-turbo; качество 1–100, 4:4:4 / 4:2:2 / 4:2:0, обычный или прогрессивный JPEG; прозрачность заменяется заливкой",
       png: "Авто / 8 / 16 бит на канал. PNG16: собственный код + pako, точные отсчёты и alpha; исходные размеры, до 8 Мп. Обычный PNG8 — браузер",
       pngUpng: "Встроенные UPNG / pako; 8 бит/канал, полная прозрачность; PNG16 предварительно сводится к 8 битам",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",

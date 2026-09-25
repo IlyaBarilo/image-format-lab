@@ -1,4 +1,5 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
+import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
@@ -25,6 +26,9 @@ export function createBatchDialog({els, app}, deps) {
     const config = app.exportConfig;
     document.getElementById('batchPngDepth').value=config.pngDepth || 'auto';
     document.getElementById("batchBmpDepth").value = config.format === "bmp32" ? "32" : "24";
+    const jpeg=normalizeJpegOptions(config);
+    document.getElementById('batchJpegSubsampling').value=jpeg.jpegSubsampling;
+    document.getElementById('batchJpegProgressive').checked=jpeg.jpegProgressive;
     app.batchTiffDraft = normalizeTiffOptions(config);
     document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
       app.batchTiffDraft = options;
@@ -57,6 +61,8 @@ export function createBatchDialog({els, app}, deps) {
     return {
       pngDepth:document.getElementById('batchPngDepth').value,
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
+      jpegSubsampling:document.getElementById('batchJpegSubsampling').value,
+      jpegProgressive:document.getElementById('batchJpegProgressive').checked,
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
       gifColors: format === "gif" || format === "gifenc" || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
@@ -89,6 +95,8 @@ export function createBatchDialog({els, app}, deps) {
     const gif = config.format === "gif" || config.format === "gifenc";
     document.getElementById("batchBmpField").hidden = !isBmpFormat(config.format);
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
+    document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
+    document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
     document.getElementById('batchPngField').hidden=config.format!=='png';
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;

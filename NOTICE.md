@@ -44,7 +44,8 @@ MIT/Zlib, MPL, LGPL, IJG/BSD и другие лицензии библиотек
 
 **This software is based in part on the work of the Independent JPEG Group.**
 
-JPEG внутри TIFF обрабатывается libjpeg-turbo. Полный
+JPEG внутри TIFF обрабатывается libjpeg-turbo; он же сохраняет обычный и
+прогрессивный JPEG. Полный
 [IJG README](vendor/libjpeg-turbo-README.ijg) и
 [условия libjpeg-turbo](vendor/libjpeg-turbo-LICENSE) сохранены в поставке.
 Уведомление выше входит в сопровождающую продукт документацию и встроено
