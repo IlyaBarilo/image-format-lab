@@ -159,11 +159,17 @@ export function createCanvas({app, els}, deps) {
     if(!columns||!rows)return;
     ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
     ctx.beginPath();
-    for(let i=columns.first;i<=columns.last;i++){const gx=x+i*scale;ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);}
-    for(let i=rows.first;i<=rows.last;i++){const gy=y+i*scale;ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);}
-    const deviceWidth=Math.max(1,canvas.width/rect.width);
-    ctx.strokeStyle='rgba(0,0,0,.58)';ctx.lineWidth=deviceWidth*2;ctx.stroke();
-    ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=deviceWidth;ctx.stroke();
+    for(let i=columns.first;i<=columns.last;i++){
+      if(i<=0||i>=width)continue;
+      const gx=Math.floor(x+i*scale)+.5;
+      ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);
+    }
+    for(let i=rows.first;i<=rows.last;i++){
+      if(i<=0||i>=height)continue;
+      const gy=Math.floor(y+i*scale)+.5;
+      ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);
+    }
+    ctx.strokeStyle='rgba(112,120,128,.8)';ctx.lineWidth=1;ctx.stroke();
     ctx.restore();
   }
 
