@@ -386,6 +386,7 @@ export function createControls({els, app}, deps) {
     variant.metricsEls.time.textContent = m.time || "—";
     variant.controls.download.disabled = !deps.isVariantReady(variant);
     deps.updateAnalysis();
+    deps.updatePixelInspector?.({ redraw: true });
   }
   
   function alphaLabel(format, imageData, pixelBuffer) {

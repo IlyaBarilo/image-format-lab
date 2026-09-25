@@ -27,6 +27,7 @@ import { createStudy } from './ui/study.mjs';
 import { createLicenses } from './ui/licenses.mjs';
 import { createReports } from './ui/reports.mjs';
 import { createAnalysis } from './ui/analysis.mjs';
+import { createPixelInspector } from './ui/pixel-inspector.mjs';
 import { createAnalysisLayout } from './ui/analysis-layout.mjs';
 import { createAnalysisRegion } from './ui/analysis-region.mjs';
 import { createScopePlots } from './ui/scope-plots.mjs';
@@ -56,6 +57,7 @@ export function createApplication() {
     "restoreUserPreferences",
     "attachUserPreferenceEvents",
     "attachAnalysisEvents",
+    "attachPixelInspectorEvents",
     "attachLicenseEvents",
     "addFiles",
     "attachBatchPreviewEvents",
@@ -178,6 +180,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createControls(context, dependencies([
     "updateAnalysis",
+    "updatePixelInspector",
     "clamp",
     "codecLabel",
     "detectAlpha",
@@ -228,6 +231,7 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createCanvas(context, dependencies([
+    "updatePixelInspector", "drawPixelMarker", "pixelPointerDown", "pixelPointerMove", "pixelPointerUp", "cancelPixelPointer",
     "isAnalysisResizing",
     "updateAnalysisViewport",
     "updateAnalysis",
@@ -277,6 +281,7 @@ export function createApplication() {
     "isVariantReady"
   ])));
   Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing"])));
+  Object.assign(actions, createPixelInspector(context, dependencies(["isVariantReady", "outputFormatLabel", "getDrawScale", "redrawPreviews", "redrawAnalysis"])));
   Object.assign(actions, createScopePlots());
   Object.assign(actions, createAnalysisCombined());
   Object.assign(actions, createAnalysisOutput(context, dependencies(["getAnalysisSnapshot", "redrawAnalysis", "downloadBlob", "renderAnalysisChart", "renderAnalysisOverlay", "renderAnalysisDelta", "renderAnalysisTradeoff", "isAnalysisResizing"])));

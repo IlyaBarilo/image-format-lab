@@ -239,6 +239,23 @@
           </div>
         </div>
       </section>
+      <details class="pixel-inspector" id="pixelInspector">
+        <summary>Пиксель</summary>
+        <form class="pixel-coordinates" id="pixelForm" novalidate aria-describedby="pixelHint">
+          <label>X <input class="small-input" id="pixelX" type="number" min="0" step="1" required aria-label="Координата X пикселя" aria-describedby="pixelStatus"></label>
+          <label>Y <input class="small-input" id="pixelY" type="number" min="0" step="1" required aria-label="Координата Y пикселя" aria-describedby="pixelStatus"></label>
+          <button class="text-btn" id="pixelShow" type="submit">Показать</button>
+          <span class="analysis-note" id="pixelHint"></span>
+        </form>
+        <p class="analysis-note" id="pixelStatus" role="status" aria-live="polite"></p>
+        <div class="pixel-table-scroll" id="pixelTable" role="region" aria-label="Значения пикселя исходника и ячеек" tabindex="0" hidden>
+          <table class="pixel-table">
+            <thead><tr><th scope="col">Изображение</th><th scope="col">Отсчёты</th><th scope="col">R</th><th scope="col">G</th><th scope="col">B</th><th scope="col">α</th></tr></thead>
+            <tbody id="pixelRows"></tbody>
+          </table>
+        </div>
+        <p class="analysis-note">Значения рабочих пикселей без подложки и округления до 8 бит. RGB виден даже при α = 0. Координаты от левого верхнего угла полного кадра; область графиков их не меняет. Δ сравнивает коды каналов без преобразования цветового пространства.</p>
+      </details>
       <div class="analysis-help-content" id="analysisHelpContent" hidden>
         <p id="analysisMethod">Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни 0–255, по вертикали — доля пикселей канала в процентах. Шкала общая для всех видимых графиков. Считаются все пиксели кадра RGBA 8 бит. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.</p>
         <p id="analysisCaveat">Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:</p>

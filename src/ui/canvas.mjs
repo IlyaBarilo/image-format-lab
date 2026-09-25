@@ -24,11 +24,18 @@ export function createCanvas({app, els}, deps) {
   function drawAll() {
     if (deps.isAnalysisResizing()) return;
     deps.resizeCanvases();
+    deps.updatePixelInspector?.();
+    redrawPreviews();
+    document.getElementById("zoomReadout").textContent=app.source?`${Math.round(deps.comparisonScale()*1000)/10}%`:"—";
+    deps.updateAnalysisViewport();
+  }
+
+  // Marker-only updates do not resize canvases or schedule analysis/encoding.
+  function redrawPreviews() {
+    if (deps.isAnalysisResizing()) return;
     for (const variant of app.variants) {
       if (!variant.cell.classList.contains("hidden") && variant.canvas.parentElement.getBoundingClientRect().height) deps.drawVariant(variant);
     }
-    document.getElementById("zoomReadout").textContent=app.source?`${Math.round(deps.comparisonScale()*1000)/10}%`:"—";
-    deps.updateAnalysisViewport();
   }
 
   function getAnalysisViewport(side, image = app.variants[side]?.imageData) {
@@ -78,6 +85,7 @@ export function createCanvas({app, els}, deps) {
     }
   
     deps.drawImageFrame(ctx, x, y, sourceW * scale, sourceH * scale);
+    deps.drawPixelMarker?.(variant);
   }
   
   function drawBackground(ctx, width, height) {
@@ -142,6 +150,7 @@ export function createCanvas({app, els}, deps) {
   function attachCanvasEvents(canvas) {
     canvas.addEventListener("wheel", (event) => {
       if (!app.source) return;
+      deps.cancelPixelPointer?.();
       event.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const dprX = canvas.width / rect.width;
@@ -162,6 +171,8 @@ export function createCanvas({app, els}, deps) {
   
     canvas.addEventListener("pointerdown", (event) => {
       if (!app.source) return;
+      deps.pixelPointerDown?.(event);
+      if (event.button !== 0 || event.isPrimary === false) return;
       app.pointer.active = true;
       app.pointer.id = event.pointerId;
       app.pointer.lastX = event.clientX;
@@ -171,6 +182,7 @@ export function createCanvas({app, els}, deps) {
     });
   
     canvas.addEventListener("pointermove", (event) => {
+      deps.pixelPointerMove?.(event);
       if (!app.pointer.active || app.pointer.id !== event.pointerId || !app.source) return;
       const dx = event.clientX - app.pointer.lastX;
       const dy = event.clientY - app.pointer.lastY;
@@ -182,8 +194,10 @@ export function createCanvas({app, els}, deps) {
       deps.drawAll();
     });
   
-    canvas.addEventListener("pointerup", deps.endPointer);
-    canvas.addEventListener("pointercancel", deps.endPointer);
+    canvas.addEventListener("pointerup", event => { deps.endPointer(event); deps.pixelPointerUp?.(event); });
+    const cancel = event => { deps.endPointer(event); deps.cancelPixelPointer?.(); };
+    canvas.addEventListener("pointercancel", cancel);
+    canvas.addEventListener("lostpointercapture", cancel);
   }
   
   function endPointer(event) {
@@ -245,5 +259,5 @@ export function createCanvas({app, els}, deps) {
   
   function setComparisonScale(scale) { if(!app.source)return;app.view.absoluteScale=deps.clamp(scale,0.01,128);deps.drawAll(); }
 
-  return { resizeCanvases, drawAll, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
+  return { resizeCanvases, drawAll, redrawPreviews, drawVariant, drawBackground, drawImageFrame, drawOverlayMessage, roundRect, attachCanvasEvents, endPointer, getDrawScale, resetView, updateLayout, comparisonScale, setComparisonScale, getAnalysisViewport };
 }

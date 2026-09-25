@@ -950,6 +950,22 @@ select:disabled {
 .analysis-note, .analysis-info, .analysis-values { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .analysis-note { color: var(--muted); margin: 8px 0 0; }
 .analysis-note:empty, .analysis-values:empty { display: none; }
+.pixel-inspector { margin-top: 8px; min-width: 0; font-size: 12px; }
+.pixel-inspector > summary { cursor: pointer; width: fit-content; padding: 4px 0; font-size: 14px; font-weight: 600; }
+.pixel-inspector > summary:focus-visible, .pixel-table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pixel-coordinates { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 6px; }
+.pixel-coordinates label { display: flex; align-items: center; gap: 6px; }
+.pixel-coordinates input { width: 84px; }
+.pixel-coordinates [aria-invalid="true"] { border-color: var(--bad); }
+.pixel-coordinates .analysis-note { margin: 0; flex: 1 1 260px; }
+.pixel-table-scroll { max-width: 100%; overflow-x: auto; margin-top: 8px; }
+.pixel-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.pixel-table th, .pixel-table td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+.pixel-table th:first-child, .pixel-table td:nth-child(2) { text-align: left; }
+.pixel-table th:first-child { min-width: 90px; }
+.pixel-table .pixel-description { min-width: 170px; max-width: 320px; color: var(--muted); }
+.pixel-table small { display: block; font-size: inherit; color: var(--muted); margin-top: 3px; }
+.pixel-table td:nth-child(n+3) { white-space: nowrap; }
 .analysis-help { min-width: 32px; padding-inline: 8px; }
 .analysis-help-content { font-size: 12px; line-height: 1.5; padding: 8px 12px; margin-top: 8px; background: var(--panel-soft); border-radius: 5px; }
 .analysis-help-content p { margin: 4px 0; }

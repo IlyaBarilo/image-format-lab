@@ -37,6 +37,7 @@ export function createBootstrap({app, els}, deps) {
     deps.attachStudyEvents();
     deps.attachLicenseEvents();
     deps.attachAnalysisEvents();
+    deps.attachPixelInspectorEvents();
     deps.updateFileList();
     deps.updateCodecStatus();
     deps.detectEncoderSupport();
