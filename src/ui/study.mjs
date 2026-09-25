@@ -43,6 +43,7 @@ export function createStudy({app, els}, deps) {
   
   function attachStudyEvents() {
     const $ = id => document.getElementById(id);
+    deps.attachQualitySeriesEvents();
     app.profiles = [];
     try { const raw=localStorage.getItem(PROFILE_KEY); if(raw) app.profiles=deps.parseProfiles(JSON.parse(raw)); }
     catch { deps.studyNotice("Не удалось прочитать наборы. Можно импортировать исправный JSON или сохранить новые настройки."); }

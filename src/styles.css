@@ -871,6 +871,12 @@ select:disabled {
 .study-dialog table { border-collapse:collapse; width:100%; table-layout:fixed; overflow-wrap:anywhere; font-size:13px; }
 #batchBudgetFields { border:1px solid var(--line); border-radius:8px; padding:12px; margin:14px 0; min-width:0; }
 .study-dialog td, .study-dialog th { padding:7px; text-align:left; border-bottom:1px solid var(--line); }
+.quality-series-chart { display:block; width:100%; height:auto; margin:10px 0; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+.quality-series-chart[hidden] { display:none; }
+.quality-series-table-wrap { overflow-x:auto; }
+#qualitySeriesTable { min-width:560px; }
+#qualitySeriesTable tr[data-best="true"] { font-weight:700; }
+#qualitySeriesBudget { width:80px; }
 .study-dialog p { line-height:1.5; }
 .licenses-dialog { border:1px solid var(--line); border-radius:12px; color:var(--text); background:var(--panel); overflow-wrap:anywhere; }
 .licenses-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }

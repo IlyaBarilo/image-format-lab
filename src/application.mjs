@@ -25,6 +25,7 @@ import { createComparison } from './ui/comparison.mjs';
 import { createSource } from './ui/source.mjs';
 import { createCanvas } from './ui/canvas.mjs';
 import { createStudy } from './ui/study.mjs';
+import { createQualitySeries } from './ui/quality-series.mjs';
 import { createLicenses } from './ui/licenses.mjs';
 import { createReports } from './ui/reports.mjs';
 import { createAnalysis } from './ui/analysis.mjs';
@@ -255,6 +256,7 @@ export function createApplication() {
   Object.assign(actions, createStudy(context, dependencies([
     "addFiles",
     "applyComparison",
+    "attachQualitySeriesEvents",
     "buildCellControls",
     "buildMetrics",
     "captureComparison",
@@ -279,6 +281,12 @@ export function createApplication() {
     "updateLayout",
     "updateProfiles",
     "validateComparison"
+  ])));
+  Object.assign(actions, createQualitySeries(context, dependencies([
+    "decodeVariantForPreview",
+    "encodeFromSource",
+    "formatUnavailableReason",
+    "measurePixels"
   ])));
   Object.assign(actions, createReports(context, dependencies([
     "captureComparison",
