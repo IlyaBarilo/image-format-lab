@@ -1,5 +1,8 @@
 // Own image scopes UI, MIT. These are established analysis methods.
 import { differenceColor } from '../core/difference.mjs';
+import { histogramView, histogramScale, histogramBinAt, histogramTick, histogramInterval, histogramSummary } from '../core/histogram-view.mjs';
+import { analysisMaximum } from '../core/analysis-output.mjs';
+import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { profileBinAt } from '../core/line-profile.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′'];
@@ -48,10 +51,10 @@ export function createAnalysis({ app }, deps) {
     panel.dataset.type = type.value;
     help.title = spatial
       ? 'По горизонтали — положение в кадре, по вертикали — уровень 0–255. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
-      : 'По горизонтали — уровни 0–255, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
+      : 'По горизонтали — уровни или интервалы подписанной шкалы, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
     get('analysisMethod').textContent = spatial
       ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины кадра); в RGB Parade оно повторяется для R, G и B. По вертикали — кодовые уровни 0–255. Waveform: Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), коэффициенты BT.709 применены к RGB8 после смешивания с выбранной подложкой. Это оценка сигнала, не линейная физическая яркость, HDR или IRE. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп, уровни не усредняются. Плотность — доля пикселей группы на данном уровне. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума всех видимых графиков и каналов. Фон и масштаб просмотра на расчёт не влияют.'
-      : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни 0–255, по вертикали — доля пикселей канала в процентах. Шкала общая для всех видимых графиков. Считаются все пиксели кадра RGBA 8 бит. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
+      : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни целых отсчётов или явные интервалы float32, по вертикали — доля пикселей канала в процентах. Считаются все пиксели выбранной области. Целые уровни сохраняются точно; RGB после подложки округляется в исходной разрядности. При узком графике соседние уровни суммируются в общие группы, подписанные в сведениях. Для разных целых разрядностей используется общая нормированная шкала 0–1. Вне диапазона float32 отсчёты учитываются отдельно; крайние интервалы ими не заполняются. JSON сохраняет исходные счётчики и шкалу; PNG группирует их под размер отчёта. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
     if(difference) {
       help.title = 'Отличие каждой ячейки от исходного файла. Чёрный — совпадение, цвет — величина ошибки. Усиление общее. Нажмите для подробностей.';
       get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой; α: абсолютная разность прозрачности без подложки. Это различия кодовых значений RGBA8, не Delta E и не оценка восприятия. Чёрный означает нулевую разность, цвет показывает величину от 0 до 255. Общее усиление умножает только отображаемую разность; красный — достижение или превышение верхнего порога шкалы. Средние/максимумы считаются по всем выбранным пикселям без усиления. Карта ограничена 512 пикселями по длинной стороне; каждая её точка хранит максимальную ошибку группы, чтобы не терять единичные отличия. Размеры результата и исходника должны совпадать: масштабирования или выравнивания по содержимому нет.';
@@ -72,7 +75,7 @@ export function createAnalysis({ app }, deps) {
         ? 'Waveform и RGB Parade сохраняют горизонталь 0–100% ширины области и вертикаль кодовых уровней 0–255. Вычитаются доли пикселей на каждом уровне каждой группы столбцов, в процентных пунктах. При разном числе групп плотности сначала нормируются на размер своей группы, затем приводятся к общей относительной сетке с весами пересечения групп. Оранжевый — прибавление, голубой — уменьшение, тёмный фон — ноль. Интенсивность — корень четвёртой степени модуля разности относительно общего максимума выбранных каналов; предел подписан в легенде. При уменьшении Canvas сохраняется значение с наибольшим модулем в экранной точке, чтобы не погасить противоположные отличия усреднением.'
         : profile
           ? 'Профиль вычитает средние групп вдоль относительной линии A→B. При разном числе групп используется линейная интерполяция кривых в общих позициях; единственный отсчёт постоянен. По вертикали — разность кодовых уровней, шкала симметрична относительно нуля. Минимумы/максимумы групп не вычитаются: такой интервал не был бы диапазоном попиксельных ошибок. Указатель показывает разницу в текущей относительной позиции.'
-          : 'Гистограмма вычитает доли пикселей на каждом уровне 0–255. По вертикали — процентные пункты, например 12% − 10% = +2 п.п. Разное число пикселей само по себе не создаёт разницу. Шкала симметрична относительно нуля и общая для выбранных каналов; указатель показывает разницу на выбранном уровне.') + ' Сопоставление выполняется в координатах графиков, без выравнивания содержимого изображений. Режим не запускает новое кодирование или Worker. В JSON сохранены оба графика и подписанные массивы разницы; PNG содержит график, единицы и порядок вычитания.';
+          : 'Гистограмма вычитает доли пикселей на согласованной шкале уровней или интервалов. Соседние уровни суммируются под ширину графика; разницы внутри одной группы могут взаимно погаситься, точные массивы остаются в JSON. Вне диапазона float32 разницы учитываются отдельно. По вертикали — процентные пункты, например 12% − 10% = +2 п.п. Разное число пикселей само по себе не создаёт разницу. Шкала симметрична относительно нуля и общая для выбранных каналов; указатель показывает разницу на выбранном уровне.') + ' Сопоставление выполняется в координатах графиков, без выравнивания содержимого изображений. Режим не запускает новое кодирование или Worker. В JSON сохранены оба графика и подписанные массивы разницы; PNG содержит график, единицы и порядок вычитания.';
     }
     if(tradeoff){
       help.title='Точки текущих ячеек: размер по горизонтали, выбранная метрика по вертикали. Данные уже готовых результатов; нажмите для методики.';
@@ -108,7 +111,7 @@ export function createAnalysis({ app }, deps) {
       return {label,message:`Карта требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;
     if (followsViewport() && !viewport?.region) return { label, message: viewport?.message || 'Определяю видимую часть…' };
-    return { label, imageData: variant.imageData,region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
+    return { label, imageData: variant.imageData, pixelBuffer: variant.pixelBuffer, histogramOptions: variant.histogramOptions ? { ...variant.histogramOptions, ...(variant.histogramOptions.range ? { range: [...variant.histogramOptions.range] } : {}) } : undefined, region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
   }
 
   function clearPlots() {
@@ -181,17 +184,19 @@ export function createAnalysis({ app }, deps) {
     if (pending || followsViewport() && JSON.stringify(readViewports()) !== viewportKey) updateAnalysis();
   }
 
-  async function compute(imageData, background, kind, region, reference, line) {
+  async function compute(input, background, kind, reference, line) {
+    const { imageData, pixelBuffer, histogramOptions, region } = input;
+    const owner = kind === 'histogram' ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
-    let entry = cache.get(imageData);
-    const key = `${kind}:${background}:${JSON.stringify(region)}`;
+    let entry = cache.get(owner);
+    const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { imageData, matte: background, region, ...(kind === 'difference' ? {reference} : {}), ...(kind === 'profile' ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : { imageData }), matte: background, region, ...(kind === 'difference' ? {reference} : {}), ...(kind === 'profile' ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
-    if(cache === activeCache) cache.set(imageData, entry);
+    if(cache === activeCache) cache.set(owner, entry);
     return result;
   }
 
@@ -207,7 +212,7 @@ export function createAnalysis({ app }, deps) {
         const computed = [];
         for (const input of inputs) {
           if (input.imageData) {
-            try { computed.push({ ...input, data: kind==='tradeoff'?{width:input.imageData.width,height:input.imageData.height}:await compute(input.imageData, background, kind, input.region, reference, line) }); }
+            try { computed.push({ ...input, data: kind==='tradeoff'?{width:input.imageData.width,height:input.imageData.height}:await compute(input, background, kind, reference, line) }); }
             catch (error) { computed.push({ label: input.label, message: error.message || String(error) }); }
           } else computed.push(input);
           if (token !== generation || body.hidden || resizePaused) break;
@@ -240,17 +245,24 @@ export function createAnalysis({ app }, deps) {
     if (type.value === 'vectorscope' || type.value === 'profile') { drawExtraScopes(); return; }
     if (type.value !== 'histogram') { drawSpatial(); return; }
     const indices = CHANNELS[channel.value], bin = Number(level.value);
-    let maximum = 0;
-    for (const item of results) if (item.data) for (const index of indices) {
-      for (const count of item.data.channels[index]) maximum = Math.max(maximum, count / item.data.pixelCount * 100);
+    const widths = cards.flatMap((card, side) => {
+      if (card.element.hidden || !results[side]?.data) return [];
+      card.canvas.hidden = false;
+      return [Math.max(256, card.canvas.getBoundingClientRect().width - 72)];
+    });
+    let view;
+    try { view = histogramView(results, channel.value, Math.min(...widths), { allowUnknownColorSpace: true }); }
+    catch (error) {
+      for (const card of cards) { card.canvas.hidden = true; card.info.hidden = false; card.info.textContent = error.message; card.element.dataset.state = 'unavailable'; card.values.textContent = ''; }
+      details.textContent = error.message; return;
     }
-    maximum = maximum || 1;
-    get('analysisLevelValue').textContent = String(bin);
+    const maximum = analysisMaximum('histogram', view.items, channel.value);
+    get('analysisLevelValue').textContent = view.scale ? histogramTick(view.scale, bin / 255) : String(bin);
     matte.disabled = channel.value === 'alpha';
     const detailLines = [];
     cards.forEach((card, side) => {
       if (card.element.hidden) return;
-      const item = results[side], h = item?.data;
+      const item = view.items[side], h = item?.data;
       if (!h) {
         card.element.dataset.state = 'unavailable';
         card.info.textContent = item?.message || 'Нет результата.';
@@ -262,20 +274,21 @@ export function createAnalysis({ app }, deps) {
       card.element.dataset.state = 'ready';
       card.info.textContent = '';
       card.info.hidden = true;
-      const description = `${rasterDescription(h)} · ${channel.value === 'alpha' ? 'α без подложки' : `RGB на ${h.matte === 'white' ? 'белом' : 'чёрном'}`}`;
+      const interval = histogramInterval(view.scale, bin);
+      const description = `${rasterDescription(h)} · ${channel.value === 'alpha' ? 'α без подложки' : `RGB на ${h.matte === 'white' ? 'белом' : 'чёрном'}`} · ${histogramSummary(h, channel.value)}${view.scale.grouped ? ` Показано ${view.scale.bins} групп; доли суммируются.` : ''}`;
       card.badge.title = `${item.label}. ${description}`;
       card.canvas.hidden = false;
       card.canvas.dataset.yMax = String(maximum);
       card.canvas.dataset.kind = 'histogram';
-      const values = indices.map(index => `${NAMES[index]} ${number(h.channels[index][bin] / h.pixelCount * 100)}%`).join(' · ');
+      const values = indices.map(index => `${NAMES[index]} ${number(h.channels[index][histogramBinAt(view.scale, bin)] / h.pixelCount * 100)}%`).join(' · ');
       const means = indices.map(index => {
-        const mean = h.channels[index].reduce((sum, count, value) => sum + count * value, 0) / h.pixelCount;
+        const mean = h.means?.[index] ?? h.channels[index].reduce((sum, count, value) => sum + count * value, 0) / h.pixelCount;
         return `${NAMES[index]} ${number(mean)}`;
       }).join(' · ');
       card.values.textContent = values;
-      card.values.title = `Уровень ${bin}. Средние: ${means}.`;
+      card.values.title = `${interval}. Средние: ${means}.`;
       detailLines.push(`${item.label}: ${description}. Средние: ${means}.`);
-      card.canvas.setAttribute('aria-label', `${item.label}. ${description}. Гистограмма ${indices.map(i => NAMES[i]).join(', ')}. Уровень ${bin}: ${values}. Средние: ${means}.`);
+      card.canvas.setAttribute('aria-label', `${item.label}. ${description}. Гистограмма ${indices.map(i => NAMES[i]).join(', ')}. ${interval}: ${values}. Средние: ${means}.`);
       plot(card.canvas, h, indices, maximum, bin);
     });
     details.textContent = detailLines.join('\n');
@@ -474,7 +487,10 @@ export function createAnalysis({ app }, deps) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#101923'; ctx.fillRect(0, 0, width, height);
     const left = 56, top = 28, bottom = height - 25, right = width - 16;
-    const x = value => left + (right - left) * value / 255;
+    const scale = histogram.viewScale || histogramScale(histogram, indices[0] === 3 ? 'alpha' : 'rgb');
+    const x = value => left + (right - left) * value;
+    canvas.dataset.xMin = String(scale.min); canvas.dataset.xMax = String(scale.max); canvas.dataset.bins = String(scale.bins);
+    canvas.dataset.yMax = String(maximum);
     const y = percent => bottom - (bottom - top) * percent / maximum;
     ctx.font = '11px "Segoe UI", sans-serif';
     ctx.textBaseline = 'middle';
@@ -484,19 +500,20 @@ export function createAnalysis({ app }, deps) {
       ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'right';
       ctx.fillText(`${number(maximum * ratio)}%`, left - 5, py, left - 7);
     }
-    for (const value of [0, 64, 128, 192, 255]) {
-      ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center'; ctx.fillText(String(value), x(value), height - 10);
+    for (const ratio of scale.max === 255 ? [0, 64/255, 128/255, 192/255, 1] : [0, .25, .5, .75, 1]) {
+      ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center'; ctx.fillText(histogramTick(scale, ratio), x(ratio), height - 10);
     }
     for (const index of indices) {
       ctx.strokeStyle = COLORS[index]; ctx.lineWidth = 1.3; ctx.beginPath();
       histogram.channels[index].forEach((count, value) => {
         const py = y(count / histogram.pixelCount * 100);
-        if (value === 0) ctx.moveTo(x(value), py); else ctx.lineTo(x(value), py);
+        const px = x(value / (scale.bins - 1));
+        if (value === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       });
       ctx.stroke();
     }
     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(x(bin), top); ctx.lineTo(x(bin), bottom); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x(bin / 255), top); ctx.lineTo(x(bin / 255), bottom); ctx.stroke(); ctx.setLineDash([]);
     ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     indices.slice().reverse().forEach((index, offset) => {
       ctx.fillStyle = COLORS[index]; ctx.fillText(NAMES[index], right - offset * 20, 3);
@@ -507,7 +524,10 @@ export function createAnalysis({ app }, deps) {
   // It does not resize live canvases or recalculate the viewport/codec results.
   function renderAnalysisChart(canvas, item, settings, maximum, outputSize) {
     const data = item.data;
-    if (settings.type === 'histogram') plot(canvas, data, CHANNELS[settings.channel], maximum, settings.level, outputSize);
+    if (settings.type === 'histogram') {
+      const prepared = data.viewScale ? data : histogramView([item], settings.channel, Math.max(256, (outputSize || canvas.getBoundingClientRect()).width - 72), { allowUnknownColorSpace: true }).items[0].data;
+      plot(canvas, prepared, CHANNELS[settings.channel], data.viewScale ? maximum : Math.max(maximum || 0, analysisMaximum('histogram', [{data:prepared}], settings.channel)), settings.level, outputSize);
+    }
     else if (settings.type === 'waveform' || settings.type === 'parade') plotSpatial(canvas, data, settings.type === 'parade' ? [0,1,2] : [3], maximum, outputSize);
     else if (settings.type === 'vectorscope') deps.plotVectorscope(canvas, data, maximum, outputSize);
     else if (settings.type === 'profile') deps.plotLineProfile(canvas, data, CHANNELS[settings.profileChannel], settings.position, outputSize);

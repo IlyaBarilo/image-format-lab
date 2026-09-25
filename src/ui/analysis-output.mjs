@@ -1,5 +1,6 @@
 // Own analysis display/export controls, MIT. Modules are wired by application.
 import {analysisJSON,tradeoffData,analysisMaximum,ANALYSIS_CHANNELS} from '../core/analysis-output.mjs';
+import {histogramView,histogramBinAt,histogramTick,histogramInterval,histogramSummary,groupHistogramDelta} from '../core/histogram-view.mjs';
 import {profileBinAt} from '../core/line-profile.mjs';
 import {analysisDelta,deltaAt,DELTA_TYPES} from '../core/analysis-delta.mjs';
 const NAMES=['R','G','B','α','Y′'];
@@ -46,40 +47,53 @@ export function createAnalysisOutput({app},deps){
     let render = null;
     syncAnalysisOutput();const items=chosen(snapshot),shared=snapshot.settings.display!=='separate';
     if(snapshot.settings.display!=='delta')lastDelta=null;
-    let available=items.some(i=>i.data);
+    let available=items.some(i=>i.data),histView=null,histError='';
+    if(snapshot.settings.type==='histogram'&&available){
+      // A hidden canvas reports zero width. Show a ready pair before sizing its bins.
+      if(shared&&items.length===2&&items.every(i=>i.data))canvas.hidden=false;
+      try {histView=histogramView(items,snapshot.settings.channel,Math.max(256,canvas.getBoundingClientRect().width-74),{allowUnknownColorSpace:true});}
+      catch(error){histError=error.message;available=false;}
+    }
     if(shared){
       canvas.hidden=true;canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);canvas.removeAttribute('data-kind');canvas.removeAttribute('data-points');legend.replaceChildren();note.textContent='';
       if(['overlay','delta'].includes(snapshot.settings.display)){
         const delta=snapshot.settings.display==='delta';
-        available=items.length===2&&items.every(i=>i.data);
+        available=!histError&&items.length===2&&items.every(i=>i.data);
         if(available){canvas.hidden=false;
           if(delta){
-            const model=deltaModel(items,snapshot.settings),span=document.createElement('span');
-            render=()=>deps.renderAnalysisDelta(canvas,model,snapshot.settings);
+            const original=deltaModel(items,snapshot.settings),model=groupHistogramDelta(original,Math.max(256,canvas.getBoundingClientRect().width-90)),span=document.createElement('span');
+            render=()=>deps.renderAnalysisDelta(canvas,original,snapshot.settings);
             span.textContent=`Δ ${items[1].cell} − ${items[0].cell}`;span.title=`${items[1].label} минус ${items[0].label}`;legend.append(span);
             if(model.columns){
               for(const [text,color] of [['− уменьшение','var(--scope-first)'],['+ прибавление','var(--scope-second)']]){const marker=document.createElement('span');marker.textContent=text;marker.style.color=color;legend.append(marker);}
               const scale=document.createElement('span');scale.textContent=`Шкала ±${deltaFmt(model.maximum).replace(/^\+/,'')} п.п.`;legend.append(scale);
             }else for(const {index,values} of model.channels){
-              const value=model.type==='histogram'?values[snapshot.settings.level]:deltaAt(values,snapshot.settings.position/1000),marker=document.createElement('span');
+              const value=model.type==='histogram'?values[histogramBinAt(model.scale,snapshot.settings.level)]:deltaAt(values,snapshot.settings.position/1000),marker=document.createElement('span');
               marker.textContent=`${NAMES[index]} ${deltaFmt(value)} ${model.unit==='code-values'?'ур.':'п.п.'}`;legend.append(marker);
             }
-            if(model.maximum===0)note.textContent='Графики совпадают: разница равна нулю.';
+            if(model.maximum===0&&!model.outside?.some(c=>c.below||c.above))note.textContent=model.scale?.grouped?'Группы графиков совпадают; внутри группы различия могут компенсироваться.':'Графики совпадают: разница равна нулю.';
+            if(model.outside?.some(c=>c.below||c.above))note.textContent='За пределами диапазона: '+model.outside.map(c=>`${NAMES[c.index]} ниже ${deltaFmt(c.below)}, выше ${deltaFmt(c.above)} п.п.`).join('; ')+'.';
+            if(model.scale){get('analysisLevelValue').textContent=histogramTick(model.scale,snapshot.settings.level/255);if(model.scale.grouped||model.scale.normalized||model.scale.kind==='float')note.textContent+=(note.textContent?' ':'')+histogramInterval(model.scale,snapshot.settings.level)+(model.scale.grouped?`; ${model.bins} групп на графике.`:'.');}
           }else{
           render=()=>deps.renderAnalysisOverlay(canvas,items,snapshot.settings);
           const lines=['histogram','profile'].includes(snapshot.settings.type);
           items.forEach((item,i)=>{const span=document.createElement('span'),s=snapshot.settings,d=item.data;
             let values='';
-            if(s.type==='histogram')values=ANALYSIS_CHANNELS[s.channel].map(c=>`${NAMES[c]} ${fmt(d.channels[c][s.level]/d.pixelCount*100)}%`).join(' · ');
+            if(s.type==='histogram'){const viewed=histView.items[i].data,bin=histogramBinAt(histView.scale,s.level);values=ANALYSIS_CHANNELS[s.channel].map(c=>`${NAMES[c]} ${fmt(viewed.channels[c][bin]/d.pixelCount*100)}%`).join(' · ');}
             if(s.type==='profile'){const bin=profileBinAt(d,s.position);values=ANALYSIS_CHANNELS[s.profileChannel].map(c=>`${NAMES[c]} ${fmt(d.channels[c].mean[bin])}${d.counts[bin]>1?` [${d.channels[c].min[bin]}–${d.channels[c].max[bin]}]`:''}`).join(' · ');}
             span.textContent=`${item.cell} ${lines?(i?'□ контур':'■ заливка'):'●'}${values?' · '+values:''}`;if(!lines)span.style.color=i?'var(--scope-second)':'var(--scope-first)';span.title=item.label;legend.append(span);
           });
           }
-          const descriptions=items.map(i=>`${i.label}: ${i.data.width}×${i.data.height}, область ${i.data.bounds.x}, ${i.data.bounds.y}: ${i.data.bounds.width}×${i.data.bounds.height}${i.data.sampleCount?`, ${i.data.sampleCount} отсчётов`:''}`);
+          if(histView&&snapshot.settings.display==='overlay'){
+            get('analysisLevelValue').textContent=histogramTick(histView.scale,snapshot.settings.level/255);
+            if(histView.scale.grouped||histView.scale.normalized||histView.scale.kind==='float')note.textContent=histogramInterval(histView.scale,snapshot.settings.level)+`; ${histView.scale.bins} групп, доли суммируются.`;
+            if(items.some(i=>i.data.underflow?.some(n=>n)||i.data.overflow?.some(n=>n)))note.textContent+=' '+items.map(i=>`${i.cell}: ${histogramSummary(i.data,snapshot.settings.channel)}`).join(' ');
+          }
+          const descriptions=items.map(i=>`${i.label}: ${i.data.width}×${i.data.height}, область ${i.data.bounds.x}, ${i.data.bounds.y}: ${i.data.bounds.width}×${i.data.bounds.height}${i.data.sampleCount?`, ${i.data.sampleCount} отсчётов`:''}${histView?'. '+histogramSummary(i.data,snapshot.settings.channel):''}`);
           get('analysisDetails').textContent=descriptions.join('\n');
           const sizes=new Set(items.map(i=>`${i.data.width}×${i.data.height}`));get('analysisStatus').textContent=sizes.size>1?(snapshot.settings.scope==='viewport'?'Размеры различаются; анализируется видимая часть каждой ячейки без выравнивания содержимого.':'Размеры различаются; используются одинаковые относительные область и линия без выравнивания содержимого.'):'';
           canvas.setAttribute('aria-label',`${delta?`Разница: ячейка ${items[1].cell} минус ${items[0].cell}`:`Наложение ячеек ${items.map(i=>i.cell).join(' и ')}`}. ${snapshot.method} ${descriptions.join('. ')}. ${[...legend.children].map(s=>s.textContent).join('; ')}. ${note.textContent}`);
-        }else {lastDelta=null;note.textContent=items.filter(i=>!i.data).map(i=>`${i.cell}: ${i.message||'Расчёт…'}`).join(' ')||'Для сравнения нужны две готовые ячейки.';get('analysisStatus').textContent='';}
+        }else {lastDelta=null;note.textContent=histError||items.filter(i=>!i.data).map(i=>`${i.cell}: ${i.message||'Расчёт…'}`).join(' ')||'Для сравнения нужны две готовые ячейки.';get('analysisStatus').textContent='';}
       }else{
         const model=tradeoffData(items,snapshot.settings.metric,snapshot.source);available=model.points.length>0;
         if(available){canvas.hidden=false;render=()=>deps.renderAnalysisTradeoff(canvas,model);}
@@ -117,17 +131,32 @@ export function createAnalysisOutput({app},deps){
   }
   function makeAnalysisPNG(snapshot){
     const output=document.createElement('canvas');output.width=1200;let ctx=output.getContext('2d');ctx.font='16px "Segoe UI",sans-serif';
-    const selected=chosen(snapshot),shared=snapshot.settings.display!=='separate';
+    let selected=chosen(snapshot);const shared=snapshot.settings.display!=='separate';
     const title=`Анализ · ${get('analysisType').selectedOptions[0].textContent}`;
     const header=wrap(ctx,`${snapshot.source.name} · ${snapshot.source.width}×${snapshot.source.height} · ${snapshot.createdAt}`,1152);
     const s=snapshot.settings,b=s.region,line=s.line;
+    const reportView=s.type==='histogram'?histogramView(selected,s.channel,shared?1152-74:566-72,{allowUnknownColorSpace:true}):null;
+    const reportDelta=s.type==='histogram'&&s.display==='delta'?groupHistogramDelta(snapshot.delta||deltaModel(selected,s),1152-90):null;
+    if(reportView&&!shared)selected=reportView.items;
     const parameterText=s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
       `${s.display==='delta'?`Разница ячеек ${s.pair[1]} − ${s.pair[0]}`:s.display==='overlay'?`Наложение ячеек ${s.pair.join(' + ')}`:'Ячейки рядом'}; подложка: ${s.matte==='white'?'белая':'чёрная'}; область: ${s.scope==='viewport'?'видимая часть каждой ячейки':b?`${b.x0/10}%, ${b.y0/10}%, ${(b.x1-b.x0)/10}% × ${(b.y1-b.y0)/10}%`:'весь кадр'}`+
-      (s.channel?`; каналы: ${s.channel}, уровень ${s.level}`:'')+(line?`; каналы: ${s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
+      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(line?`; каналы: ${s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
     const method=wrap(ctx,snapshot.method,1152);
     const charts=shared?[{available:selected.some(i=>i.data),title:[...legend.children].map(s=>s.textContent).join(' · '),details:selected.map(i=>`${i.label}${i.data?` · ${i.data.width}×${i.data.height}`:''}${i.message?': '+i.message:''}`).join('; ')+(note.textContent?'. '+note.textContent:'')}]:selected.map(item=>({item,available:Boolean(item.data),title:item.label,details:item.message||document.querySelectorAll('.analysis-card canvas')[item.cell-1].getAttribute('aria-label')}));
+    if(reportView){
+      const scale=reportDelta?.scale||reportView.scale,groupNote=scale.grouped?` Показано ${scale.bins} групп; соседние доли суммируются.`:'';
+      const describe=item=>{const d=item.data,b=d.bounds;return `${item.label}: ${d.width}×${d.height}, ${fmt(d.pixelCount)} пикселей${b?`, область ${b.x}, ${b.y}: ${b.width}×${b.height}`:''}. ${histogramSummary(d,s.channel)}`;};
+      const values=item=>ANALYSIS_CHANNELS[s.channel].map(c=>`${NAMES[c]} ${fmt(item.data.channels[c][histogramBinAt(scale,s.level)]/item.data.pixelCount*100)}%`).join(' · ');
+      if(shared){
+        charts[0].title=s.display==='delta'?`Δ ${s.pair[1]} − ${s.pair[0]}`:selected.map((item,i)=>`${item.cell} ${i?'□ контур':'■ заливка'}`).join(' · ');
+        charts[0].details=selected.map(describe).join(' ')+groupNote;
+        if(reportDelta)charts[0].details+=' '+reportDelta.channels.map(c=>`${NAMES[c.index]} ${deltaFmt(c.values[histogramBinAt(scale,s.level)])} п.п.`).join(' · ');
+        else charts[0].details+=' '+reportView.items.map(item=>`${item.cell}: ${values(item)}`).join('; ');
+        if(reportDelta?.outside.some(c=>c.below||c.above))charts[0].details+=' Разница вне диапазона: '+reportDelta.outside.map(c=>`${NAMES[c.index]} ниже ${deltaFmt(c.below)}, выше ${deltaFmt(c.above)} п.п.`).join('; ')+'.';
+      }else for(const chart of charts)if(chart.item.data){const d=chart.item.data;chart.details=describe(chart.item)+groupNote+' '+values(chart.item)+(d.means?' Средние: '+ANALYSIS_CHANNELS[s.channel].map(c=>`${NAMES[c]} ${fmt(d.means[c])}`).join(' · ')+'.':'');}
+    }
     const columns=shared?1:2,chartWidth=(1152-(columns-1)*20)/columns,rows=[];
     const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type,selected,s.channel);
     for(let i=0;i<charts.length;i+=columns){const row=charts.slice(i,i+columns).map(c=>({...c,head:wrap(ctx,c.title,chartWidth),tail:wrap(ctx,c.details||'',chartWidth)}));rows.push({items:row,height:Math.max(...row.map(c=>c.head.length*22+300+c.tail.length*22+20))});}

@@ -42,7 +42,7 @@ function recordingCanvas(width=600,height=300) {
   assert.ok(Math.abs(analysisDelta(rare,{...settings,channel:'r'}).maximum-.0000025)<1e-10,'one changed pixel in 40 MP remains visible');
   const transparent={width:1,height:1,data:Uint8ClampedArray.from([23,65,99,0])};
   assert.equal(analysisDelta(pair(computeHistogram(transparent,'white'),hist([255])),settings).maximum,0);
-  assert.equal(analysisDelta(pair(computeHistogram(transparent,'black'),hist([0])),settings).maximum,0);
+  assert.equal(analysisDelta(pair(computeHistogram(transparent,'black'),computeHistogram(gray([0]),'black')),settings).maximum,0);
   console.log('PASS normalized histogram, signed channel values, reversed pair, alpha/matte and immutable inputs');
 
   const ps={type:'profile',profileChannel:'r',position:500};

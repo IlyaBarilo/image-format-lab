@@ -127,4 +127,16 @@ const assert=require('node:assert/strict');
   assert.deepEqual(output.captureAnalysisOutputPreferences().displays,savedModes.displays);
   assert.equal(output.getAnalysisOutputSettings().metric,'processingMs');
   console.log('PASS restoring independent display choices and metric from preferences');
+  selectKind('histogram');choose('overlay');
+  const chart=get('analysisCombinedChart');chart.hidden=true;
+  chart.getBoundingClientRect=()=>({width:chart.hidden?0:600,height:300});
+  const precise={width:256,height:256,pixelCount:65536,bounds:{x:0,y:0,width:256,height:256},colorSpace:'srgb',bitDepth:16,
+    channels:Array.from({length:4},()=>new Uint32Array(65536).fill(1)),scale:{kind:'integer',min:0,max:65535,bins:65536,alphaMax:65535,white:65535}};
+  output.presentAnalysis({...snapshot,settings:{...snapshot.settings,level:0},items:[{cell:1,label:'First',data:precise},{cell:2,label:'Second',data:precise}]});
+  assert.match(get('analysisCombinedInfo').textContent,/526 групп/,'a newly visible chart uses its real width');
+  assert.match(get('analysisCombinedLegend').children[0].textContent,/0,191%/);
+  output.presentAnalysis({...snapshot,items:[{cell:1,label:'First',data:precise},{cell:2,label:'Second',data:{...precise,colorSpace:'display-p3'}}]});
+  assert.equal(chart.hidden,true);assert.equal(get('analysisPNG').disabled,true);assert.equal(get('analysisJSON').disabled,true);
+  assert.match(get('analysisCombinedInfo').textContent,/пространства/);
+  console.log('PASS precise overlay legend on first reveal and disabled export for incompatible colour spaces');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -8,11 +8,13 @@ const assert = require('node:assert/strict');
     emit(name){this.events.get(name)?.({target:this});}
     setAttribute(name,value){this.attrs.set(name,String(value));}
     removeAttribute(name){this.attrs.delete(name);}
-    getContext(){return {clearRect(){}};}
+    getContext(){return new Proxy({}, {get:()=>()=>{},set:()=>true});}
+    getBoundingClientRect(){return {width:this.hidden?0:600,height:300};}
     focus(){document.activeElement=this;}
   }
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
   globalThis.document={getElementById:get,activeElement:null};
+  globalThis.devicePixelRatio=1;
   globalThis.Worker=class {};
   const observers=[];
   globalThis.ResizeObserver=class {constructor(callback){observers.push(callback);}observe(){}};
@@ -43,7 +45,7 @@ const assert = require('node:assert/strict');
   const tick=async()=>{await new Promise(resolve=>setImmediate(resolve));const pending=frames;frames=[];pending.forEach(fn=>fn());await new Promise(resolve=>setImmediate(resolve));};
   const source=name=>{
     app.source={name,width:2,height:1,size:8};
-    app.variants=Array.from({length:2},(_,i)=>({config:{format:'png'},resultConfig:{format:'png'},measurement:{},imageData:{name:name+i,width:2,height:1}}));
+    app.variants=Array.from({length:2},(_,i)=>({config:{format:'png'},resultConfig:{format:'png'},measurement:{},imageData:{name:name+i,width:2,height:1,data:new Uint8ClampedArray(8)}}));
   };
   ui.attachAnalysisEvents();await tick();
   assert.equal(body.hidden,false);assert.equal(panel.hidden,false);assert.equal(calls,0);
@@ -60,7 +62,7 @@ const assert = require('node:assert/strict');
   assert.ok(ui.getAnalysisSnapshot().items.every(item=>!item.data));
   assert.ok(published.every(snapshot=>snapshot.items.every(item=>item.data?.name!=='obsolete')));
   ui.expandAnalysis();await tick();assert.equal(body.hidden,false);assert.equal(collapse.hidden,false);assert.equal(calls,2);
-  assert.equal(jobs[0].payload.imageData.name,'new0');assert.equal(jobs[0].payload.matte,'black');
+  assert.equal(jobs[0].payload.pixelBuffer.data,app.variants[0].imageData.data);assert.equal('imageData' in jobs[0].payload,false);assert.equal(jobs[0].payload.matte,'black');
   jobs.shift().resolve({name:'new0'});await tick();assert.equal(calls,3);
   jobs.shift().resolve({name:'new1'});await tick();
   assert.deepEqual(ui.getAnalysisSnapshot().items.map(item=>item.data.name),['new0','new1']);
@@ -146,4 +148,33 @@ const assert = require('node:assert/strict');
     assert.equal('scope' in ui.getAnalysisSnapshot().settings,false);
   } finally { globalThis.setTimeout=realSetTimeout;globalThis.clearTimeout=realClearTimeout; }
   console.log('PASS per-cell viewport scheduling, debounce, stale-result rejection, crop cache isolation, export bounds, empty views and whole-image metrics');
+  deps.getAnalysisScope=()=> 'full';get('analysisType').value='histogram';source('precise');
+  const {createPixelBuffer}=await import('../src/core/pixel-buffer.mjs');
+  const exact=createPixelBuffer({width:2,height:1,sampleType:'uint16',colorSpace:'srgb',data:new Uint16Array([100,101,102,65535,101,102,103,65535])});
+  for(const variant of app.variants)variant.pixelBuffer=exact;
+  ui.updateAnalysis();await tick();
+  assert.equal(jobs[0].payload.pixelBuffer,exact);assert.equal('imageData' in jobs[0].payload,false);
+  const precisionCalls=calls;jobs.shift().resolve({name:'precise'});await tick();assert.equal(calls,precisionCalls,'shared descriptor is cached once');
+  const floating=createPixelBuffer({width:2,height:1,sampleType:'float32',colorSpace:'srgb',data:new Float32Array([0,0,0,1,1,1,1,1])});
+  const range=[-1,1];
+  for(const variant of app.variants){variant.pixelBuffer=floating;variant.histogramOptions={range,bins:1024,floatPeak:1};}
+  ui.updateAnalysis();await tick();assert.deepEqual(jobs[0].payload.options,{range:[-1,1],bins:1024,floatPeak:1});
+  assert.notEqual(jobs[0].payload.options.range,range,'options are captured before asynchronous work');
+  jobs.shift().resolve({name:'float'});await tick();const firstFloatCalls=calls;
+  for(const variant of app.variants)variant.histogramOptions={range:[0,1],bins:1024,floatPeak:1};
+  ui.updateAnalysis();await tick();assert.equal(calls,firstFloatCalls+1,'changed float range invalidates the cached histogram');
+  jobs.shift().resolve({name:'float-new-range'});await tick();
+  assert.equal(exact.data[0],100);assert.equal(floating.data.byteLength,32);
+  console.log('PASS typed descriptor handoff, snapshot of float options and cache isolation from the display raster');
+  source('individual');for(const variant of app.variants)variant.pixelBuffer=exact;
+  settings.display='separate';deps.getAnalysisRegion=()=>null;
+  ui.updateAnalysis();await tick();
+  const {computeHistogram}=await import('../src/core/histogram.mjs');
+  jobs.shift().resolve(computeHistogram(exact,'black'));await tick();
+  for(const card of cards.slice(0,2)){
+    assert.equal(card.querySelector('canvas').dataset.bins,'528','first separate rendering measures a visible canvas');
+    assert.equal(card.querySelector('canvas').dataset.xMax,'65535');
+    assert.equal(card.querySelector('canvas').dataset.yMax,'100');
+  }
+  console.log('PASS first separate rendering has the correct native axis, group count and common vertical scale');
 })().catch(error=>{console.error(error);process.exitCode=1;});

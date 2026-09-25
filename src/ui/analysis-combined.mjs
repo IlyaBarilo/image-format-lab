@@ -1,5 +1,6 @@
 // Own combined scopes and size/metric scatter plot, MIT. Inputs are explicit.
 import {ANALYSIS_CHANNELS,analysisMaximum} from '../core/analysis-output.mjs';
+import {histogramView,histogramTick,groupHistogramDelta} from '../core/histogram-view.mjs';
 import {chromaCoordinates} from '../core/vectorscope.mjs';
 const COLORS=['#ff4b55','#27e36c','#3594ff','#f1f5f9','#facc15'],NAMES=['R','G','B','α','Y′'];
 const FILL_COLORS=['#e8b4bc','#afd6ba','#b2c8e8','#c9d1db','#e4dbaf'];
@@ -59,6 +60,8 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom},filled){
 export function createAnalysisCombined(){
   function renderAnalysisDelta(canvas,model,settings,outputSize){
     const {ctx,width,height,dpr}=prepare(canvas,outputSize),left=72,right=width-18,top=32,bottom=height-28;
+    model=groupHistogramDelta(model,Math.max(256,right-left));
+    if(model.scale){canvas.dataset.xMin=String(model.scale.min);canvas.dataset.xMax=String(model.scale.max);canvas.dataset.bins=String(model.bins);}
     const limit=model.maximum||1,profile=model.type==='profile',spatial=Boolean(model.columns);
     canvas.dataset.kind=model.type;canvas.dataset.mode='delta';canvas.dataset.maxAbs=String(model.maximum);
     canvas.dataset.unit=model.unit;canvas.dataset.yMax=String(spatial?255:limit);canvas.dataset.yMin=String(spatial?0:-limit);
@@ -104,13 +107,15 @@ export function createAnalysisCombined(){
         }
         ctx.restore();
       }
-      for(const ratio of [0,.5,1]){ctx.fillStyle='#cbd5e1';ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:String(Math.round(ratio*255)),left+ratio*(right-left),height-12);}
+      for(const ratio of [0,.5,1]){ctx.fillStyle='#cbd5e1';ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:histogramTick(model.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);
       ctx.textAlign='right';model.channels.slice().reverse().forEach(({index},i)=>{ctx.fillStyle=COLORS[index];ctx.fillText(NAMES[index],right-i*22,13);});
     }
   }
   function renderAnalysisOverlay(canvas,items,settings,outputSize){
     const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',hist=kind==='histogram';
+    const view=hist?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
+    if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}
     const channel=profile?settings.profileChannel:settings.channel,indices=ANALYSIS_CHANNELS[channel];
     const maximum=analysisMaximum(kind,items,channel),left=56,right=width-18,top=30,bottom=height-28;
     canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:255);canvas.dataset.densityMax=String(maximum);
@@ -118,7 +123,7 @@ export function createAnalysisCombined(){
       const limit=hist?maximum:255;grid(ctx,left,right,top,bottom,limit,hist);
       items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom},layer===0));
       ctx.setLineDash([]);ctx.fillStyle='#cbd5e1';
-      for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:String(Math.round(ratio*255)),left+ratio*(right-left),height-12);}
+      for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:histogramTick(view.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);
       ctx.textAlign='right';indices.slice().reverse().forEach((c,i)=>{ctx.fillStyle=COLORS[c];ctx.fillText(NAMES[c],right-i*22,12);});
     }else if(kind==='vectorscope'){

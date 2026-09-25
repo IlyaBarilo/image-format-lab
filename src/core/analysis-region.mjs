@@ -4,6 +4,14 @@ export function analysisBounds(imageData, region = null) {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
       width * height > 40000000 || !(data instanceof Uint8Array || data instanceof Uint8ClampedArray) ||
       data.length !== width * height * 4) throw new Error('Некорректные пиксели для анализа.');
+  return analysisRegionBounds(width, height, region);
+}
+
+// Geometry shared with typed-pixel analyses; older scopes keep their RGBA8 validation.
+export function analysisRegionBounds(width, height, region = null) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width * height > 40000000) {
+    throw new Error('Некорректные размеры для анализа.');
+  }
   if (region == null) return { x: 0, y: 0, width, height };
   if (region.unit === 'pixels') {
     const { x, y, width: w, height: h } = region;

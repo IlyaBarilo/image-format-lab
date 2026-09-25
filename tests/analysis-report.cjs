@@ -42,7 +42,7 @@ async function makeSnapshot(type, display, count = 2) {
 }
 
 // A supplied Canvas factory also permits visual inspection using a native renderer.
-async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canvasFactory = recordingCanvas} = {}) {
+async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canvasFactory = recordingCanvas, includeJSON = false} = {}) {
   const {createAnalysis} = await import('../src/ui/analysis.mjs');
   const {createAnalysisOutput} = await import('../src/ui/analysis-output.mjs');
   const {createAnalysisCombined} = await import('../src/ui/analysis-combined.mjs');
@@ -94,7 +94,9 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     assert.deepEqual(liveCanvases.map(c => [c.width, c.height]), sizesBefore, 'PNG leaves live canvas sizes intact');
     const report = created.slice(previousCount).find(c => c.width === 1200);
     assert.ok(report); assert.ok(report.height > 400);
-    return {report, blob:downloads[0].blob, liveCanvases};
+    let json;
+    if (includeJSON) { await get('analysisJSON').fire('click'); json = JSON.parse(await downloads[1].blob.text()); }
+    return {report, blob:downloads[0].blob, liveCanvases, json};
   } finally { globalThis.document = oldDocument; globalThis.devicePixelRatio = oldDpr; }
 }
 
