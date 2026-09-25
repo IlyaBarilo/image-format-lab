@@ -32,6 +32,17 @@ export function visibleCodecBlockLines(offset,scale,pixels,viewport,cssScale,blo
   return visibleGridLines(offset,blockSize*scale,Math.ceil(pixels/blockSize),viewport,blockSize*cssScale);
 }
 
+export function visibleCodecBlockCells(offset,scale,pixels,viewport,cssScale,blockSize){
+  if(!Number.isFinite(offset)||!Number.isFinite(scale)||scale<=0||
+     !Number.isFinite(pixels)||pixels<=0||!Number.isFinite(viewport)||viewport<=0||
+     !Number.isFinite(cssScale)||!Number.isInteger(blockSize)||blockSize<1||
+     blockSize*cssScale<24)return null;
+  const step=blockSize*scale,count=Math.ceil(pixels/blockSize);
+  const first=Math.max(0,Math.ceil(-offset/step)-1);
+  const last=Math.min(count-1,Math.floor((viewport-offset)/step));
+  return last<first||last-first>300?null:{first,last};
+}
+
 export function codecGridSpec(config,blockGrid){
   if(!config)return null;
   if(config.format==='jpeg')return {kind:'jpeg',step:8,...jpegBlockSize(config.jpegSubsampling)};

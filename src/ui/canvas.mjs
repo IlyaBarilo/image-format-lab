@@ -1,6 +1,6 @@
 import { BACKGROUNDS } from "./../core/config.mjs";
 import { visibleAnalysisRegion } from '../core/analysis-viewport.mjs';
-import { codecGridSpec, visibleCodecBlockLines, visibleGridLines, wipePair } from '../core/wipe-view.mjs';
+import { codecGridSpec, visibleCodecBlockCells, visibleCodecBlockLines, visibleGridLines, wipePair } from '../core/wipe-view.mjs';
 import { analysisGuideGeometry } from '../core/analysis-guides.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -159,38 +159,15 @@ export function createCanvas({app, els}, deps) {
     if(!rect.width)return;
     const columns=visibleGridLines(x,scale,width,canvas.width,scale*rect.width/canvas.width);
     const rows=visibleGridLines(y,scale,height,canvas.height,scale*rect.height/canvas.height);
-    if(!columns||!rows)return;
+    if(!columns&&!rows)return;
     ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
-    if(spec.kind==='jxl'){
-      const firstX=Math.max(0,columns.first-1),lastX=Math.min(spec.columns-1,columns.last);
-      const firstY=Math.max(0,rows.first-1),lastY=Math.min(spec.rows-1,rows.last);
-      if((lastX-firstX+1)*(lastY-firstY+1)>20000){ctx.restore();return;}
-      ctx.beginPath();
-      for(let cy=firstY;cy<=lastY;cy++)for(let cx=firstX;cx<=lastX;cx++){
-        const owner=spec.owners[cy*spec.columns+cx];
-        if(!owner)continue;
-        if(cx+1<spec.columns&&owner!==spec.owners[cy*spec.columns+cx+1]){
-          const gx=Math.floor(x+(cx+1)*8*scale)+.5;
-          ctx.moveTo(gx,y+cy*8*scale);
-          ctx.lineTo(gx,y+Math.min(height,(cy+1)*8)*scale);
-        }
-        if(cy+1<spec.rows&&owner!==spec.owners[(cy+1)*spec.columns+cx]){
-          const gy=Math.floor(y+(cy+1)*8*scale)+.5;
-          ctx.moveTo(x+cx*8*scale,gy);
-          ctx.lineTo(x+Math.min(width,(cx+1)*8)*scale,gy);
-        }
-      }
-      ctx.setLineDash([]);
-      ctx.strokeStyle='rgba(64,82,94,.88)';ctx.lineWidth=2;ctx.stroke();
-      ctx.restore();return;
-    }
     ctx.beginPath();
-    for(let i=columns.first;i<=columns.last;i++){
+    if(columns)for(let i=columns.first;i<=columns.last;i++){
       if(i<=0||i>=width)continue;
       const gx=Math.floor(x+i*scale)+.5;
       ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);
     }
-    for(let i=rows.first;i<=rows.last;i++){
+    if(rows)for(let i=rows.first;i<=rows.last;i++){
       if(i<=0||i>=height)continue;
       const gy=Math.floor(y+i*scale)+.5;
       ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);
@@ -208,19 +185,43 @@ export function createCanvas({app, els}, deps) {
     const rect=canvas.getBoundingClientRect();
     if(!rect.width)return;
     const cssScale=scale*rect.width/canvas.width;
+    if(spec.kind==='jxl'){
+      const columns=visibleCodecBlockCells(x,scale,width,canvas.width,cssScale,spec.step);
+      const rows=visibleCodecBlockCells(y,scale,height,canvas.height,cssScale,spec.step);
+      if(!columns||!rows||(columns.last-columns.first+1)*(rows.last-rows.first+1)>20000)return;
+      ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
+      ctx.beginPath();
+      for(let cy=rows.first;cy<=rows.last;cy++)for(let cx=columns.first;cx<=columns.last;cx++){
+        const owner=spec.owners[cy*spec.columns+cx];
+        if(!owner)continue;
+        if(cx+1<spec.columns&&owner!==spec.owners[cy*spec.columns+cx+1]){
+          const gx=Math.floor(x+(cx+1)*8*scale)+.5;
+          ctx.moveTo(gx,y+cy*8*scale);
+          ctx.lineTo(gx,y+Math.min(height,(cy+1)*8)*scale);
+        }
+        if(cy+1<spec.rows&&owner!==spec.owners[(cy+1)*spec.columns+cx]){
+          const gy=Math.floor(y+(cy+1)*8*scale)+.5;
+          ctx.moveTo(x+cx*8*scale,gy);
+          ctx.lineTo(x+Math.min(width,(cx+1)*8)*scale,gy);
+        }
+      }
+      ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(64,82,94,.88)';ctx.lineWidth=2;ctx.stroke();
+      ctx.restore();return;
+    }
     const columns=visibleCodecBlockLines(x,scale,width,canvas.width,cssScale,spec.step);
     const rows=visibleCodecBlockLines(y,scale,height,canvas.height,cssScale,spec.step);
-    if(!columns||!rows)return;
+    if(!columns&&!rows)return;
     ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
     for(const major of spec.kind==='jpeg'?[false,true]:[true]){
       ctx.beginPath();
-      for(let i=columns.first;i<=columns.last;i++){
+      if(columns)for(let i=columns.first;i<=columns.last;i++){
         const pixel=i*spec.step;
         if(pixel<=0||pixel>=width||(spec.kind==='jpeg'&&(pixel%spec.width===0)!==major))continue;
         const gx=Math.floor(x+pixel*scale)+.5;
         ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);
       }
-      for(let i=rows.first;i<=rows.last;i++){
+      if(rows)for(let i=rows.first;i<=rows.last;i++){
         const pixel=i*spec.step;
         if(pixel<=0||pixel>=height||(spec.kind==='jpeg'&&(pixel%spec.height===0)!==major))continue;
         const gy=Math.floor(y+pixel*scale)+.5;
