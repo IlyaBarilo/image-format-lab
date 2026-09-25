@@ -284,6 +284,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createQualitySeries(context, dependencies([
     "decodeVariantForPreview",
+    "downloadBlob",
     "encodeFromSource",
     "formatUnavailableReason",
     "measurePixels"

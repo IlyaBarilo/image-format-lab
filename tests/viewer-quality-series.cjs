@@ -34,12 +34,21 @@ const artifacts=require('./support/artifacts.cjs');
     assert.equal(await page.locator('#qualitySeriesRows tr[data-best="true"]').count(),0);
     await page.locator('#qualitySeriesBudget').fill('100000');
     assert.equal(await page.locator('#qualitySeriesRows tr[data-best="true"]').count(),1);
+    const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#qualitySeriesExport').click()]);
+    const chunks=[];for await(const chunk of await download.createReadStream())chunks.push(chunk);
+    const report=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    assert.equal(download.suggestedFilename(),'quality-series.json');
+    assert.equal(report.progress.state,'complete');assert.equal(report.progress.partial,false);
+    assert.equal(report.progress.attempted,10);assert.equal(report.conditions.budgetBytes,100000000);
+    assert.equal(report.result.bestUnderBudget,await page.locator('#qualitySeriesRows tr[data-best="true"]').evaluate(row=>row.cells[0].textContent==='JPEG'?'jpeg-'+row.cells[1].textContent:'webp-'+row.cells[1].textContent));
+    const sourceHash=await page.evaluate(async()=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await app.source.file.arrayBuffer())),value=>value.toString(16).padStart(2,'0')).join(''));
+    assert.equal(report.input.sha256,sourceHash);
     if(process.env.IMAGE_TEST_LOGS){const folder=artifacts.folder(process.env.IMAGE_TEST_LOGS);fs.mkdirSync(folder,{recursive:true});await page.locator('#qualitySeriesChart').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(folder,artifacts.runId+'-quality-series.png')});}
     await page.locator('#qualitySeriesStart').click();
     await page.locator('#qualitySeriesCancel').click();
     await page.waitForFunction(()=>!document.querySelector('#qualitySeriesStart').disabled);
     assert.match(await page.locator('#qualitySeriesStatus').textContent(),/Остановлено/);
     assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
-    console.log('PASS offline quality series, measured budget/Pareto, unchanged cells and cancellation');
+    console.log('PASS offline quality series, measured budget/Pareto, JSON export, unchanged cells and cancellation');
   }finally{await context.close();await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

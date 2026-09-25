@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 (async()=>{
-  const {SERIES_QUALITIES,SERIES_FORMATS,seriesBudgetBytes,summarizeQualitySeries,runSeriesProbes}=await import('../src/core/quality-series.mjs');
+  const {SERIES_QUALITIES,SERIES_FORMATS,seriesBudgetBytes,summarizeQualitySeries,runSeriesProbes,qualitySeriesReport}=await import('../src/core/quality-series.mjs');
   assert.deepEqual(SERIES_QUALITIES,[30,45,60,75,90]);
   assert.equal(SERIES_FORMATS.length,5);
   assert.equal(seriesBudgetBytes('12,5'),12500);
@@ -35,5 +35,20 @@ const assert=require('node:assert/strict');
   assert.equal(partial.points.length,10);assert.equal(partial.points[1].status,'error');
   assert.equal(partial.points[2].status,'ready');
   await assert.rejects(runSeriesProbes(['jpeg','jpeg'],()=>{},()=>true,()=>{}),/два разных/);
+  const sha='a'.repeat(64),run={formats:['jpeg','webp'],points:complete.points,createdAt:new Date(0).toISOString(),
+    input:{name:'source.png',bytes:123,mimeType:'image/png',bitDepth:8},width:10,height:10,running:false,stopReason:''};
+  const report=qualitySeriesReport(run,10000,sha,'test browser');
+  assert.equal(report.progress.state,'complete');assert.equal(report.progress.partial,false);
+  assert.equal(report.points.length,10);assert.equal(report.points.filter(p=>p.bestUnderBudget).length,1);
+  assert.equal(report.input.sha256,sha);assert.equal(report.conditions.budgetBytes,10000);
+  assert.equal(JSON.parse(JSON.stringify(report)).points.length,10);
+  const stopped=qualitySeriesReport({...run,points:partial.points.slice(0,3),stopReason:'Остановлено'},1,sha);
+  assert.equal(stopped.progress.state,'stopped');assert.equal(stopped.progress.partial,true);
+  assert.equal(stopped.progress.attempted,3);assert.equal(stopped.progress.errors,1);
+  assert.equal(stopped.points[1].error,'кодек недоступен');
+  assert.equal(stopped.result.bestUnderBudget,null);
+  const exact=qualitySeriesReport({...run,points:[{id:'exact',order:0,format:'jpeg',quality:90,status:'ready',bytes:100,bpp:8,psnrRGB:Infinity,alphaErrorPercent:0}]},1000,sha);
+  assert.equal(exact.points[0].psnrRGB,'Infinity');
+  assert.throws(()=>qualitySeriesReport(run,10000,'invalid'),/Недостаточно/);
   console.log('PASS quality-series budget, measured winner, Pareto frontier, ties and invalid points');
 })().catch(error=>{console.error(error);process.exitCode=1;});

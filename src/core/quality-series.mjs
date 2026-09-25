@@ -36,3 +36,25 @@ export async function runSeriesProbes(formats,probe,isCurrent,publish){
   }
   return {points,cancelled:false};
 }
+
+export function qualitySeriesReport(run,budgetBytes,sha256,browser=''){
+  if(!run||!Array.isArray(run.points)||!Array.isArray(run.formats)||!run.input||
+     !/^[0-9a-f]{64}$/.test(sha256))throw new Error('Недостаточно данных для протокола серии.');
+  const summary=summarizeQualitySeries(run.points,budgetBytes);
+  const expected=run.formats.length*SERIES_QUALITIES.length;
+  const errors=run.points.filter(point=>point.status==='error').length;
+  const partial=run.running||Boolean(run.stopReason)||run.points.length<expected||errors>0;
+  const state=run.running?'running':run.stopReason?'stopped':errors?'completed-with-errors':partial?'partial':'complete';
+  return {version:1,kind:'image-format-lab-quality-series',createdAt:run.createdAt,
+    input:{name:run.input.name,bytes:run.input.bytes,mimeType:run.input.mimeType,width:run.width,height:run.height,bitDepth:run.input.bitDepth,sha256},
+    conditions:{formats:[...run.formats],qualities:[...SERIES_QUALITIES],budgetBytes,
+      sameRaster:true,resize:false,metadataPolicy:'none',jpegMatte:'white',
+      metric:'PSNR RGB по декодированным пикселям на белой подложке; исходный размер и одинаковые координаты. Большее значение означает меньшую ошибку.'},
+    progress:{state,partial,expected,attempted:run.points.length,ready:summary.readyCount,errors,stopReason:run.stopReason||null},
+    points:run.points.map(point=>({id:point.id,order:point.order,format:point.format,quality:point.quality,status:point.status,
+      ...(point.status==='ready'?{bytes:point.bytes,bpp:point.bpp,psnrRGB:point.psnrRGB===Infinity?'Infinity':point.psnrRGB,alphaErrorPercent:point.alphaErrorPercent}:{}),
+      ...(point.status==='error'?{error:point.error}:{}),frontier:summary.frontier.has(point.id),bestUnderBudget:summary.best?.id===point.id})),
+    result:{bestUnderBudget:summary.best?.id||null,frontier:[...summary.frontier]},
+    environment:{browser},
+    reproducibility:'Файлы результатов не вложены. Байты кодеков и время обработки могут различаться между браузерами и устройствами; выводы относятся только к измеренным точкам.'};
+}

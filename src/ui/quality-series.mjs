@@ -1,5 +1,5 @@
 import { DEFAULT_VARIANTS, FORMAT_DEFS } from '../core/config.mjs';
-import { SERIES_QUALITIES, runSeriesProbes, seriesBudgetBytes, summarizeQualitySeries } from '../core/quality-series.mjs';
+import { SERIES_QUALITIES, qualitySeriesReport, runSeriesProbes, seriesBudgetBytes, summarizeQualitySeries } from '../core/quality-series.mjs';
 
 const SVG_NS='http://www.w3.org/2000/svg';
 const get=id=>document.getElementById(id);
@@ -7,7 +7,8 @@ const psnrText=value=>value===Infinity?'∞':Number.isFinite(value)?value.toFixe
 const pointColor=(format,formats)=>format===formats[0]?'var(--scope-first)':'var(--scope-second)';
 
 export function createQualitySeries({app},deps){
-  let active=null;
+  let active=null,exporting=false;
+  const sourceHashes=new WeakMap();
 
   function svgElement(tag,attributes={},label=''){
     const element=document.createElementNS(SVG_NS,tag);
@@ -56,6 +57,7 @@ export function createQualitySeries({app},deps){
   function render(){
     const run=active,start=get('qualitySeriesStart'),cancel=get('qualitySeriesCancel');
     start.disabled=Boolean(run?.running);cancel.hidden=!run?.running;cancel.disabled=Boolean(run?.cancelRequested);
+    get('qualitySeriesExport').disabled=exporting||!run||run.running||!run.points.length;
     const table=get('qualitySeriesTable'),rows=get('qualitySeriesRows'),status=get('qualitySeriesStatus'),description=get('qualitySeriesSummary');
     if(!run){status.textContent='Откройте исходное изображение и запустите серию.';description.textContent='';rows.replaceChildren();table.hidden=true;get('qualitySeriesChart').setAttribute('hidden','');return;}
     status.textContent=run.running?(run.cancelRequested?'Останавливаю после текущей пробы…':`Обработано ${run.points.length}/10${run.current?` · ${run.current}`:''}`):
@@ -102,8 +104,9 @@ export function createQualitySeries({app},deps){
       for(const format of formats){const reason=deps.formatUnavailableReason(format);if(reason)throw new Error(reason);}
     }catch(error){get('qualitySeriesStatus').textContent=error.message;return;}
     const generation=app.sourceGeneration;
-    const run={sourceName:source.name,width:source.width,height:source.height,formats,points:[],running:true,cancelRequested:false,stopReason:'',current:''};
-    active=run;render();
+    const run={sourceName:source.name,width:source.width,height:source.height,formats,points:[],running:true,cancelRequested:false,stopReason:'',current:'',
+      createdAt:new Date().toISOString(),inputFile:source.file,input:{name:source.name,bytes:source.file?.size??source.size,mimeType:source.file?.type||source.type||'unknown',bitDepth:source.pixelBuffer?.bitDepth??8}};
+    active=run;get('qualitySeriesExportStatus').textContent='';render();
     const current=()=>active===run&&!run.cancelRequested&&app.source===source&&app.sourceGeneration===generation&&!app.batchRun?.running&&
       get('qualitySeriesFirst').value===formats[0]&&get('qualitySeriesSecond').value===formats[1];
     const probe=async(format,quality)=>{
@@ -129,14 +132,40 @@ export function createQualitySeries({app},deps){
     finally{run.running=false;run.current='';render();}
   }
 
+  async function saveQualitySeriesJSON(){
+    const run=active,status=get('qualitySeriesExportStatus');
+    if(exporting||!run||run.running||!run.points.length)return;
+    exporting=true;render();status.textContent='Готовлю протокол серии…';
+    try{
+      const budgetBytes=seriesBudgetBytes(get('qualitySeriesBudget').value);
+      const file=run.inputFile,pointCount=run.points.length,stopReason=run.stopReason;
+      if(!(file instanceof Blob))throw new Error('Исходный файл серии недоступен.');
+      if(file.size>128*1024*1024)throw new Error('Экспорт серии поддерживает исходный файл до 128 МиБ.');
+      if(!globalThis.crypto?.subtle)throw new Error('Для SHA-256 нужен браузер с Web Crypto.');
+      let sha256=sourceHashes.get(file);
+      if(!sha256){
+        const digest=await globalThis.crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+        sha256=Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('');
+        sourceHashes.set(file,sha256);
+      }
+      if(active!==run||run.running||run.points.length!==pointCount||run.stopReason!==stopReason||
+         seriesBudgetBytes(get('qualitySeriesBudget').value)!==budgetBytes)throw new Error('Серия или бюджет изменились во время экспорта. Повторите сохранение.');
+      const report=qualitySeriesReport(run,budgetBytes,sha256,globalThis.navigator?.userAgent||'');
+      deps.downloadBlob(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),'quality-series.json');
+      status.textContent=report.progress.partial?'Частичный протокол серии сохранён.':'Протокол серии сохранён.';
+    }catch(error){status.textContent=error.message||String(error);}
+    finally{exporting=false;render();}
+  }
+
   function attachQualitySeriesEvents(){
     get('qualitySeriesStart').addEventListener('click',startQualitySeries);
     get('qualitySeriesCancel').addEventListener('click',()=>cancelQualitySeries());
+    get('qualitySeriesExport').addEventListener('click',saveQualitySeriesJSON);
     for(const id of ['qualitySeriesFirst','qualitySeriesSecond'])get(id).addEventListener('change',()=>cancelQualitySeries('Форматы изменились; готовые точки сохранены.'));
     get('qualitySeriesBudget').addEventListener('input',render);
     get('studyDialog').addEventListener('close',()=>cancelQualitySeries('Окно закрыто; готовые точки сохранены.'));
     render();
   }
 
-  return {attachQualitySeriesEvents,cancelQualitySeries,startQualitySeries};
+  return {attachQualitySeriesEvents,cancelQualitySeries,startQualitySeries,saveQualitySeriesJSON};
 }
