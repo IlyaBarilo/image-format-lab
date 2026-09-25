@@ -2,6 +2,15 @@ import { FORMAT_DEFS, OPTIONAL_CODECS } from "./../core/config.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createReports({app, els}, deps) {
+  const fileHashes=new WeakMap();
+  async function hashBlob(blob) {
+    let hash=fileHashes.get(blob);
+    if(hash)return hash;
+    const digest=await globalThis.crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
+    hash=Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('');
+    fileHashes.set(blob,hash);
+    return hash;
+  }
   function comparisonReport() {
     const source = app.source;
     if (!source || app.sourceLoading) throw new Error("Дождитесь открытия исходника.");
@@ -37,5 +46,43 @@ export function createReports({app, els}, deps) {
     deps.downloadBlob(new Blob(["\ufeff",[headers,...rows].map(row=>row.map(deps.csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}),"comparison-report.csv");
   }
 
-  return { comparisonReport, codecLabel, csvCell, saveComparisonReport };
+  async function experimentProtocol() {
+    const source=app.source;
+    if(!source||app.sourceLoading)throw new Error('Дождитесь открытия исходника.');
+    if(!source.file||!Number.isSafeInteger(source.file.size))throw new Error('Исходный файл недоступен для протокола.');
+    if(source.file.size>128*1024*1024)throw new Error('Протокол поддерживает исходный файл до 128 МиБ.');
+    if(!globalThis.crypto?.subtle)throw new Error('Для SHA-256 нужен браузер с Web Crypto.');
+    const comparison=deps.captureComparison(),analysisSnapshot=deps.getAnalysisSnapshot();
+    const report=comparisonReport();
+    if(!report.variants.every(v=>v.status==='ready'))throw new Error('Дождитесь готовности всех видимых вариантов.');
+    const visible=app.variants.filter(v=>!v.cell.classList.contains('hidden'));
+    const outputBlobs=visible.map(v=>v.blob);
+    if(outputBlobs.some(blob=>!(blob instanceof Blob)))throw new Error('Сохранённые результаты ещё недоступны. Дождитесь завершения обработки.');
+    if(outputBlobs.some(blob=>blob.size>128*1024*1024))throw new Error('Протокол поддерживает результат ячейки до 128 МиБ.');
+    const generations=app.variants.map(v=>v.generation),sourceGeneration=app.sourceGeneration;
+    const sha256=await hashBlob(source.file);
+    const outputHashes=[];
+    for(const blob of outputBlobs)outputHashes.push(await hashBlob(blob));
+    if(app.source!==source||app.sourceGeneration!==sourceGeneration||app.variants.some((v,i)=>v.generation!==generations[i])||
+       visible.some((v,i)=>v.blob!==outputBlobs[i]||!deps.isVariantReady(v))||
+       JSON.stringify(deps.captureComparison())!==JSON.stringify(comparison)||
+       JSON.stringify(deps.getAnalysisSnapshot().settings)!==JSON.stringify(analysisSnapshot.settings)){
+      throw new Error('Исходник или настройки изменились во время подготовки протокола. Повторите сохранение.');
+    }
+    return {version:1,kind:'image-format-lab-experiment',createdAt:report.createdAt,
+      input:{...report.source,mimeType:source.file.type||'unknown',sha256},
+      comparison,analysis:{settings:analysisSnapshot.settings,method:analysisSnapshot.method},
+      observations:report.variants.map((observation,i)=>({...observation,sha256:outputHashes[i]})),methodology:report.methodology,
+      reproducibility:{input:'SHA-256 относится к исходному файлу, а не к декодированным пикселям.',
+        settings:'Сохранены настройки четырёх ячеек и текущего анализа; исходное изображение в JSON не включено.',
+        results:'SHA-256 результата относится к файлу для скачивания. Байты кодеков, декодирование и время обработки могут различаться между браузерами, версиями кодеков и устройствами.'},
+      environment:{browser:report.browser}};
+  }
+
+  async function saveExperimentProtocol() {
+    const protocol=await experimentProtocol();
+    deps.downloadBlob(new Blob([JSON.stringify(protocol,null,2)],{type:'application/json'}),'experiment-protocol.json');
+  }
+
+  return { comparisonReport, codecLabel, csvCell, saveComparisonReport, experimentProtocol, saveExperimentProtocol };
 }

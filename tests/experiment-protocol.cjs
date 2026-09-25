@@ -1,0 +1,54 @@
+const assert=require('node:assert/strict');
+const {createHash}=require('node:crypto');
+const {File}=require('node:buffer');
+
+(async()=>{
+  const {createReports}=await import('../src/ui/reports.mjs');
+  const file=new File(['abc'],'input.png',{type:'image/png'}),downloads=[];
+  const comparison={layout:2,background:'checker',metadataPolicy:'panorama',variants:[{format:'original'},{format:'jpeg',quality:85},{format:'png'},{format:'webp'}]};
+  const analysis={type:'errorHistogram',scope:'full',display:'overlay',errorChannel:'rgb',level:0};
+  const variant=i=>({index:i,generation:1,cell:{classList:{contains:()=>i>=2}},config:comparison.variants[i],resultConfig:comparison.variants[i],blob:new Blob([i===0?'abc':`output-${i}`]),error:null,processing:false,
+    measurement:{bytes:100-i*10,width:1,height:1,psnrRGB:i?42:Infinity,alphaErrorPercent:0,processingMs:i}});
+  const app={source:{file,name:file.name,size:file.size,type:file.type,width:1,height:1,pixelBuffer:{bitDepth:8,colorSpace:'srgb'}},sourceLoading:false,sourceGeneration:1,variants:[0,1,2,3].map(variant)};
+  let controller;
+  const deps={isVariantReady:()=>true,captureComparison:()=>structuredClone(comparison),getAnalysisSnapshot:()=>({settings:structuredClone(analysis),method:'Попиксельное сравнение.'}),
+    codecLabel:(...args)=>controller.codecLabel(...args),downloadBlob:(blob,name)=>downloads.push({blob,name})};
+  controller=createReports({app,els:{metadataPolicy:{value:'panorama'}}},deps);
+  const protocol=await controller.experimentProtocol();
+  assert.equal(protocol.kind,'image-format-lab-experiment');
+  assert.equal(protocol.input.sha256,'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  assert.equal(protocol.input.bytes,3);assert.equal(protocol.input.mimeType,'image/png');
+  assert.deepEqual(protocol.comparison,comparison);assert.deepEqual(protocol.analysis.settings,analysis);
+  assert.equal(protocol.observations.length,2);assert.equal(protocol.observations[0].metrics.psnrRGB,'Infinity');
+  assert.equal(protocol.observations[0].sha256,protocol.input.sha256);
+  assert.equal(protocol.observations[1].sha256,createHash('sha256').update('output-1').digest('hex'));
+  assert.match(protocol.reproducibility.results,/различаться/);
+  await controller.saveExperimentProtocol();
+  assert.equal(downloads.length,1);assert.equal(downloads[0].name,'experiment-protocol.json');
+  assert.equal(JSON.parse(await downloads[0].blob.text()).input.sha256,protocol.input.sha256);
+  assert.equal(JSON.parse(await downloads[0].blob.text()).observations[1].sha256,protocol.observations[1].sha256);
+  app.variants[1].error='ошибка';
+  const bad=createReports({app,els:{metadataPolicy:{value:'panorama'}}},{...deps,isVariantReady:v=>!v.error});
+  await assert.rejects(bad.experimentProtocol(),/готовности/);
+  app.variants[1].error=null;
+  const other=new File(['other'],'other.png',{type:'image/png'}),previous=app.source;
+  app.source={...previous,file:other,name:other.name,size:other.size};
+  let release;
+  const delayed={size:3,type:'image/png',arrayBuffer:()=>new Promise(resolve=>{release=()=>resolve(new TextEncoder().encode('abc').buffer);})};
+  app.source={...previous,file:delayed};
+  const pending=controller.experimentProtocol();
+  await Promise.resolve();
+  app.variants[1].generation++;
+  release();
+  await assert.rejects(pending,/изменились/);
+  assert.equal(downloads.length,1);
+  app.source={...previous,file:{size:128*1024*1024+1,type:'image/png'}};
+  await assert.rejects(controller.experimentProtocol(),/128 МиБ/);
+  app.source=previous;
+  const previousBlob=app.variants[1].blob;
+  app.variants[1].blob=new(class extends Blob{get size(){return 128*1024*1024+1;}})();
+  await assert.rejects(controller.experimentProtocol(),/результат ячейки до 128 МиБ/);
+  app.variants[1].blob=previousBlob;
+  assert.deepEqual(comparison.variants[1],{format:'jpeg',quality:85},'protocol never mutates current settings');
+  console.log('PASS source SHA-256, four-cell settings, analysis scope, ready observations, JSON and stale/oversized rejection');
+})().catch(error=>{console.error(error);process.exitCode=1;});

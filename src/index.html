@@ -446,8 +446,13 @@
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
     <h2 id="studyTitle">Эксперименты</h2>
     <section>
+      <label for="referenceSampleSelect">Контрольный образец</label>
+      <div class="study-tools"><select class="select" id="referenceSampleSelect"><option value="gradient">Градиенты и резкие границы</option><option value="alpha">Прозрачность и цвет</option><option value="palette">Палитра и дизеринг</option></select><button class="text-btn" id="referenceSampleCreate" type="button">Открыть и применить</button></div>
+      <p class="batch-note">Образцы создаются из точных пикселей без фотографий и шрифтов. Кнопка добавляет PNG в список файлов и применяет подходящий готовый эксперимент. Один и тот же образец имеет одинаковые пиксели и имя файла.</p>
+    </section>
+    <section>
       <label for="experimentSelect">Готовый эксперимент</label>
-      <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Фото: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">GIF: палитра и дизеринг</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
+      <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Детали: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">GIF: палитра и дизеринг</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
       <p id="experimentQuestion"></p><p class="batch-note">Для фотографии добавьте свой снимок. Для прозрачности и палитры подходит кнопка «Образец». Эксперимент меняет настройки сравнения; параметры пакета сохраняются.</p>
     </section>
     <section>
@@ -459,8 +464,9 @@
     </section>
     <section>
       <h3>Отчёт текущего сравнения</h3>
-      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button></div>
+      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button></div>
       <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
+      <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>
     </section>
     <section><details><summary>Форматы и ограничения</summary>
       <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>

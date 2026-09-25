@@ -1,4 +1,5 @@
 import { DEFAULT_VARIANTS, EXPERIMENTS, PROFILE_KEY } from "./../core/config.mjs";
+import { REFERENCE_SAMPLES, createReferenceSamplePixels } from '../core/reference-samples.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStudy({app, els}, deps) {
@@ -19,6 +20,13 @@ export function createStudy({app, els}, deps) {
   }
   
   function studyNotice(message) { document.getElementById("studyNotice").textContent = message; }
+
+  function applyExperiment(key) {
+    const experiment=EXPERIMENTS[key];
+    if(!experiment)throw new Error('Неизвестный эксперимент.');
+    const variants=experiment.formats.map((format,i)=>({...DEFAULT_VARIANTS[i],format,quality:85,gifColors:key==='palette'&&i<3?16:256,gifDither:key==='palette'?i!==1:true}));
+    deps.applyComparison({layout:4,background:'checker',autoApply:true,metadataPolicy:'panorama',variants});
+  }
   
   function saveProfiles() {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify({version:1, profiles:app.profiles})); deps.studyNotice("Наборы сохранены в этом браузере."); }
@@ -43,10 +51,24 @@ export function createStudy({app, els}, deps) {
     action("studyOpen",()=>{deps.updateFormatHelp();$("studyDialog").showModal();});
     const question=()=>{$("experimentQuestion").textContent=EXPERIMENTS[$("experimentSelect").value].question;}; question();
     $("experimentSelect").addEventListener("change",question);
-    action("experimentApply",()=>{
-      const key=$("experimentSelect").value, experiment=EXPERIMENTS[key];
-      const variants=experiment.formats.map((format,i)=>({...DEFAULT_VARIANTS[i],format,quality:85,gifColors:key==="palette"&&i<3?16:256,gifDither:key==="palette"?i!==1:true}));
-      deps.applyComparison({layout:4,background:"checker",autoApply:true,metadataPolicy:"panorama",variants});
+    action("experimentApply",()=>applyExperiment($("experimentSelect").value));
+    $("referenceSampleCreate").addEventListener('click',async()=>{
+      const button=$("referenceSampleCreate"),id=$("referenceSampleSelect").value,definition=REFERENCE_SAMPLES[id];
+      if(button.disabled||!definition||app.batchRun?.running)return;
+      const listGeneration=app.listGeneration;
+      button.disabled=true;
+      try{
+        const pixels=createReferenceSamplePixels(id);
+        const blob=await deps.encodeExactPng(pixels,8);
+        if(listGeneration!==app.listGeneration)return;
+        const file=new File([blob],definition.fileName,{type:'image/png'});
+        deps.addFiles([file]);
+        $("experimentSelect").value=definition.experiment;question();
+        applyExperiment(definition.experiment);
+        deps.studyNotice(`Контрольный образец «${definition.label}» открыт; соответствующий эксперимент применён.`);
+        $("studyDialog").close();
+      }catch(error){deps.studyNotice(error.message||String(error));}
+      finally{button.disabled=false;}
     });
     action("profileSave",()=>{
       const name=$("profileName").value.trim(); if(!name) throw new Error("Введите название набора.");
@@ -71,6 +93,12 @@ export function createStudy({app, els}, deps) {
       }catch(error){deps.studyNotice(error.message);}
     });
     action("reportJSON",()=>deps.saveComparisonReport("json")); action("reportCSV",()=>deps.saveComparisonReport("csv"));
+    $("reportProtocol").addEventListener('click',async()=>{
+      const button=$("reportProtocol");if(button.disabled)return;button.disabled=true;
+      try{await deps.saveExperimentProtocol();deps.studyNotice('Протокол опыта сохранён.');}
+      catch(error){deps.studyNotice(error.message||String(error));}
+      finally{button.disabled=false;}
+    });
     action("zoomIn",()=>deps.setComparisonScale(deps.comparisonScale()*1.25));
     action("zoomOut",()=>deps.setComparisonScale(deps.comparisonScale()/1.25));
     action("zoom100",()=>deps.setComparisonScale(1));

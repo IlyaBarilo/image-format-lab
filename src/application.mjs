@@ -253,6 +253,7 @@ export function createApplication() {
     "roundRect"
   ])));
   Object.assign(actions, createStudy(context, dependencies([
+    "addFiles",
     "applyComparison",
     "buildCellControls",
     "buildMetrics",
@@ -260,6 +261,7 @@ export function createApplication() {
     "comparisonScale",
     "disposeVariantOutput",
     "downloadBlob",
+    "encodeExactPng",
     "drawAll",
     "formatUnavailableReason",
     "markDirty",
@@ -267,6 +269,7 @@ export function createApplication() {
     "resetView",
     "retryBatchErrors",
     "saveComparisonReport",
+    "saveExperimentProtocol",
     "saveProfiles",
     "setBatchSelection",
     "setComparisonScale",
@@ -278,10 +281,12 @@ export function createApplication() {
     "validateComparison"
   ])));
   Object.assign(actions, createReports(context, dependencies([
+    "captureComparison",
     "codecLabel",
     "comparisonReport",
     "csvCell",
     "downloadBlob",
+    "getAnalysisSnapshot",
     "isVariantReady"
   ])));
   Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing"])));

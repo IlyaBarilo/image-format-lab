@@ -165,7 +165,7 @@ export const OPTIONAL_CODECS = {
 export const PROFILE_KEY = "image-format-viewer.comparison-profiles.v1";
 
 export const EXPERIMENTS = {
-  photo: { question: "Сравните детали фотографии: какое качество даёт меньший файл без заметных артефактов?", formats: ["original", "jpeg", "webp", "png"] },
+  photo: { question: "Сравните детали и плавные переходы: какое качество даёт меньший файл без заметных артефактов?", formats: ["original", "jpeg", "webp", "png"] },
   alpha: { question: "Поменяйте фон на чёрный и белый. Где теряется прозрачность и как меняется Δα?", formats: ["original", "jpeg", "png", "gif"] },
   palette: { question: "Сравните градиенты при 16 и 256 цветах. Что меняет дизеринг при одинаковой палитре?", formats: ["original", "gif", "gif", "gif"] }
 };
