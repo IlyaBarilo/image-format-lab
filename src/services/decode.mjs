@@ -1,11 +1,24 @@
 import { largestIcoPng } from '../core/ico.mjs';
+import { pixelBufferByteLength } from '../core/pixel-buffer.mjs';
+import { pixelBufferFromImageData } from '../core/pixels.mjs';
+
+function validateDecodedRaster(decoded) {
+  const bytes = pixelBufferByteLength(decoded.width, decoded.height);
+  if (bytes > 40000000 * 4) throw new Error('Изображение больше 40 мегапикселей. Уменьшите исходник перед добавлением, чтобы ограничить расход памяти.');
+  if (decoded.imageData) {
+    pixelBufferFromImageData(decoded.imageData);
+    if (decoded.imageData.width !== decoded.width || decoded.imageData.height !== decoded.height) {
+      throw new Error('Размеры декодированных пикселей не совпадают с размерами изображения.');
+    }
+  }
+}
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createDecode({}, deps) {
   async function decodeSourceFile(file) {
     const decoded = await deps.decodeImageBlobOrOptional(file);
     try {
-      if(decoded.width*decoded.height>40000000) throw new Error("Изображение больше 40 мегапикселей. Уменьшите исходник перед добавлением, чтобы ограничить расход памяти.");
+      validateDecodedRaster(decoded);
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
       canvas.height = decoded.height;
@@ -15,7 +28,7 @@ export function createDecode({}, deps) {
       const imageData = decoded.imageData || ctx.getImageData(0, 0, canvas.width, canvas.height);
       const metadata = await deps.readPanoramaMetadata(file);
       return { ...metadata, file, name: file.name || "image", size: file.size || 0, type: file.type || "unknown",
-        width: canvas.width, height: canvas.height, canvas, ctx, imageData,
+        width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: pixelBufferFromImageData(imageData),
         hasAlpha: deps.detectAlpha(imageData.data) };
     } finally { if (decoded.close) decoded.close(); }
   }
@@ -105,9 +118,10 @@ export function createDecode({}, deps) {
   }
   
   async function imageDataToPreview(imageData) {
+    const pixelBuffer = pixelBufferFromImageData(imageData);
     return {
       bitmap: await createImageBitmap(imageData),
-      imageData
+      imageData, pixelBuffer
     };
   }
   
@@ -115,6 +129,7 @@ export function createDecode({}, deps) {
     // A preview is valid only if the actual output file can be decoded.
     const decoded = await deps.decodeImageBlobOrOptional(blob);
     try {
+      validateDecodedRaster(decoded);
       if (decoded.imageData) return await deps.imageDataToPreview(decoded.imageData);
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
@@ -122,7 +137,7 @@ export function createDecode({}, deps) {
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.drawImage(decoded.image, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      return { bitmap: await createImageBitmap(imageData), imageData };
+      return await deps.imageDataToPreview(imageData);
     } finally { if (decoded.close) decoded.close(); }
   }
 

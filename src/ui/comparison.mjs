@@ -8,6 +8,7 @@ export function createComparison({app, els}, deps) {
     variant.url = null;
     variant.bitmap = null;
     variant.imageData = null;
+    variant.pixelBuffer = null;
     variant.blob = null;
     variant.resultConfig = null;
     variant.resultSource = null;
@@ -59,6 +60,7 @@ export function createComparison({app, els}, deps) {
       variant.url = URL.createObjectURL(encoded.blob);
       variant.bitmap = decoded.bitmap;
       variant.imageData = decoded.imageData;
+      variant.pixelBuffer = decoded.pixelBuffer;
       variant.resultConfig = config;
       variant.resultSource = source;
       variant.dirty = false;

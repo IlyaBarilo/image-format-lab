@@ -1,5 +1,6 @@
 import { FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 import { encodeIco, ICO_SIZES } from '../core/ico.mjs';
+import { pixelBufferFromImageData } from '../core/pixels.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createEncode({}, deps) {
@@ -19,7 +20,8 @@ export function createEncode({}, deps) {
     const width = Math.max(1, Math.round(dims.width * scale)), height = Math.max(1, Math.round(dims.height * scale));
     ctx.drawImage(source.canvas, icon ? Math.floor((256 - width) / 2) : 0, icon ? Math.floor((256 - height) / 2) : 0, width, height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    return { ...source, width: canvas.width, height: canvas.height, canvas, ctx, imageData, hasAlpha: deps.detectAlpha(imageData.data) };
+    return { ...source, width: canvas.width, height: canvas.height, canvas, ctx, imageData,
+      pixelBuffer: pixelBufferFromImageData(imageData), hasAlpha: deps.detectAlpha(imageData.data) };
   }
   
   async function encodeOne(config, source) {
@@ -73,7 +75,8 @@ export function createEncode({}, deps) {
   }
   
   function withEncodedMeta(encoded, source) {
-    return { ...encoded, sourceImageData: source.imageData, width: source.width, height: source.height };
+    return { ...encoded, sourceImageData: source.imageData, sourcePixelBuffer: source.pixelBuffer ?? pixelBufferFromImageData(source.imageData),
+      width: source.width, height: source.height };
   }
   
   function prepareCanvasForFormat(def, matteKey, source) {
@@ -114,7 +117,7 @@ export function createEncode({}, deps) {
     const pixels = new Uint8Array(source.imageData.data);
     const data = pixels.slice().buffer;
     const encoded = UPNG.encode([data], source.width, source.height, 0);
-    const preview = new ImageData(new Uint8ClampedArray(source.imageData.data), source.width, source.height);
+    const preview = deps.cloneImageData(source.imageData);
     return {
       blob: new Blob([encoded], { type: "image/png" }),
       previewImageData: preview
