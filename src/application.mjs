@@ -305,7 +305,7 @@ export function createApplication() {
     "getAnalysisSnapshot",
     "isVariantReady"
   ])));
-  Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing"])));
+  Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing", "encodeExactPng", "registerExactPngFile", "addFiles", "showStatus"])));
   Object.assign(actions, createPixelInspector(context, dependencies(["isVariantReady", "outputFormatLabel", "getDrawScale", "redrawPreviews", "redrawAnalysis"])));
   Object.assign(actions, createFilePassport(context, dependencies(["inspectFile", "workingRasterInfo", "fileBitsPerPixel", "formatBytes", "isVariantReady", "outputFormatLabel"])));
   Object.assign(actions, createScopePlots());

@@ -1,16 +1,19 @@
 // Own region/line editor, MIT. Application wires this module to the analysis panel.
 import { analysisBounds } from '../core/analysis-region.mjs';
 import { DEFAULT_ANALYSIS_LINE, profileEndpoints } from '../core/line-profile.mjs';
+import { cropSourcePixels, croppedSourceName } from '../core/crop-source.mjs';
 const FULL = { x0: 0, y0: 0, x1: 1000, y1: 1000 };
 export function createAnalysisRegion({ app }, deps) {
   const get = id => document.getElementById(id);
   const editor = get('analysisRegionEditor'), canvas = get('analysisRegionCanvas');
   const lineButton = get('analysisLineOpen');
+  const cropButton = get('analysisCropSource');
   const scope = get('analysisScope');
   const fields = ['X','Y','Width','Height'].map(name=>get('analysisRegion'+name));
   const error = get('analysisRegionError');
   let region = null, draft = { ...FULL }, source = null, box = null, drag = null;
   let mode = 'region', line = { ...DEFAULT_ANALYSIS_LINE };
+  let cropBusy = false;
   let restoreFirstSource = false;
   function getAnalysisScope() { return scope.value; }
   function getAnalysisRegion() { return scope.value === 'region' && region ? { ...region } : null; }
@@ -21,12 +24,17 @@ export function createAnalysisRegion({ app }, deps) {
     source=app.source;restoreFirstSource=!source;region=value.region?{...value.region}:null;line={...value.line};scope.value=value.scope;
     closeAnalysisRegion();syncAnalysisRegion();
   }
+  function syncCropButton(){
+    cropButton.hidden = !editor.hidden || !source || app.sourceLoading || scope.value !== 'region' || !region;
+    cropButton.disabled = cropBusy || Boolean(app.batchRun?.running);
+  }
   function closeAnalysisRegion(focus = false) {
     editor.hidden = true; lineButton.setAttribute('aria-expanded','false'); drag = null;
     // Keep the current label in a hidden option so choosing the visible item
     // again changes the selection and reopens the editor with native controls.
     get('analysisRegionCurrent').selected = scope.value === 'region';
     canvas.width = canvas.height = 1; box = null;
+    syncCropButton();
     if(focus)(mode==='line'?lineButton:scope).focus();
   }
   function syncAnalysisRegion() {
@@ -37,6 +45,7 @@ export function createAnalysisRegion({ app }, deps) {
       closeAnalysisRegion();
     }
     lineButton.disabled = !source || app.sourceLoading;
+    syncCropButton();
     if (scope.value === 'viewport' && source) lineButton.disabled ||= !lineRegion();
     lineButton.textContent = Object.keys(line).every(key=>line[key]===DEFAULT_ANALYSIS_LINE[key])?'Линия…':'Линия ✓';
     lineButton.title=`A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%) внутри выбранной области`;
@@ -97,9 +106,9 @@ export function createAnalysisRegion({ app }, deps) {
     get('analysisRegionApply').textContent=isLine?'Применить линию':'Применить область';
     get('analysisRegionReset').textContent=isLine?'По центру':'Весь кадр';
     get('analysisLinePresets').hidden=!isLine;
-    get('analysisGeometryHint').textContent=isLine?'Проведите линию A→B внутри выбранной области или задайте её концы в процентах. Она общая для всех профилей; экспорт не меняется.':'Выделите область на исходнике или задайте её в процентах. Она применяется ко всем графикам; сохраняемый файл не кадрируется.';
+    get('analysisGeometryHint').textContent=isLine?'Проведите линию A→B внутри выбранной области или задайте её концы в процентах. Она общая для всех профилей; экспорт не меняется.':'Выделите область на исходнике или задайте её в процентах. Графики используют область без кадрирования файла; после применения отдельный исходник можно создать кнопкой рядом со списком областей.';
     fillFields();error.textContent='';
-    editor.hidden=false;if(isLine)lineButton.setAttribute('aria-expanded','true');drawAnalysisRegion();fields[0].focus();
+    editor.hidden=false;syncCropButton();if(isLine)lineButton.setAttribute('aria-expanded','true');drawAnalysisRegion();fields[0].focus();
   }
   function apply(value) {
     if(mode==='line')line={...value};
@@ -108,6 +117,29 @@ export function createAnalysisRegion({ app }, deps) {
   }
   function submit() {
     try {apply(readFields());} catch(e){error.textContent=e.message;}
+  }
+  async function createSourceFromRegion(){
+    if(app.batchRun?.running){deps.showStatus('Дождитесь завершения пакета или отмените обработку.');return;}
+    if(cropBusy || !app.source || app.sourceLoading)return;
+    const selectedRegion=getAnalysisRegion();
+    if(!selectedRegion)return;
+    const currentSource=app.source,sourceGeneration=app.sourceGeneration;
+    const selectedFileId=app.selectedFileId,listGeneration=app.listGeneration;
+    cropBusy=true;syncAnalysisRegion();
+    try{
+      const {bounds,pixels}=cropSourcePixels(currentSource.pixelBuffer,selectedRegion);
+      const blob=await deps.encodeExactPng(pixels,pixels.bitDepth>8?16:8);
+      if(currentSource!==app.source || sourceGeneration!==app.sourceGeneration ||
+          selectedFileId!==app.selectedFileId || listGeneration!==app.listGeneration ||
+          app.batchRun?.running || JSON.stringify(selectedRegion)!==JSON.stringify(getAnalysisRegion()))return;
+      const file=new File([blob],croppedSourceName(currentSource.name,bounds),{type:'image/png'});
+      deps.registerExactPngFile(file);
+      const newId=String(app.nextFileId);
+      deps.addFiles([file],{openFirst:true});
+      app.fileRows.get(newId)?.querySelector('.file-select')?.focus();
+      deps.showStatus(`Создан отдельный исходник ${bounds.width}×${bounds.height} из выбранной области. Метаданные не перенесены.`);
+    }catch(error){deps.showStatus(`Не удалось создать исходник из области: ${error.message||error}`,true);}
+    finally{cropBusy=false;syncAnalysisRegion();}
   }
   function point(event) {
     if(!box)return null;
@@ -124,6 +156,7 @@ export function createAnalysisRegion({ app }, deps) {
     fillFields();error.textContent='';drawAnalysisRegion();
   }
   function attachAnalysisRegionEvents() {
+    cropButton.addEventListener('click',createSourceFromRegion);
     scope.addEventListener('change', () => {
       closeAnalysisRegion(); syncAnalysisRegion(); deps.updateAnalysis();
       if (scope.value==='region') openEditor('region');

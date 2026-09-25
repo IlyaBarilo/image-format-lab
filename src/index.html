@@ -214,6 +214,7 @@
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
           <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport" selected>Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
+          <button class="text-btn" id="analysisCropSource" type="button" title="Добавить применённую область как новый исходный PNG без переноса метаданных" hidden>Создать исходник</button>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField"><span id="analysisLevelLabel">Уровень</span> <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
@@ -225,7 +226,7 @@
         </div>
       </div>
       <section class="analysis-region" id="analysisRegionEditor" aria-label="Общая область анализа" hidden>
-        <p class="analysis-note" id="analysisGeometryHint">Выделите область на исходнике или задайте её в процентах. Она применяется ко всем графикам; сохраняемый файл не кадрируется.</p>
+        <p class="analysis-note" id="analysisGeometryHint">Выделите область на исходнике или задайте её в процентах. Графики используют область без кадрирования файла; после применения отдельный исходник можно создать кнопкой рядом со списком областей.</p>
         <div class="analysis-region-body">
           <canvas id="analysisRegionCanvas" width="1" height="1" role="img" aria-label="Область на исходном изображении; координаты доступны в полях рядом"></canvas>
           <div>
