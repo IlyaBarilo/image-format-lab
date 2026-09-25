@@ -40,6 +40,8 @@ export function codecGridSpec(config,blockGrid){
     return {kind:'avif',step:blockGrid.width,width:blockGrid.width,height:blockGrid.width};
   if(config.format==='heic'&&blockGrid?.kind==='heic-ctu'&&[16,32,64].includes(blockGrid.width))
     return {kind:'heic',step:blockGrid.width,width:blockGrid.width,height:blockGrid.width};
-  if(config.format==='jxl')return {kind:'guide',step:8,width:8,height:8};
+  if((config.format==='jxl'||config.format==='jxlLossless')&&blockGrid?.kind==='jxl-vardct'&&
+     blockGrid.owners instanceof Uint32Array&&blockGrid.owners.length===blockGrid.columns*blockGrid.rows)
+    return {kind:'jxl',step:8,columns:blockGrid.columns,rows:blockGrid.rows,owners:blockGrid.owners};
   return null;
 }

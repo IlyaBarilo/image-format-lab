@@ -18,6 +18,13 @@ its compiler and standard runtime sources available. Build directories must be
 separate from this source package. `--jobs` defaults to 4. Replace the project's
 `vendor/modern-codecs.js`, then run `node scripts/build-vendor.cjs` and
 `npm --prefix scripts run build`. The root HTML is rebuilt with the replacement.
+The optional `--cache PATH` keeps Emscripten's generated system libraries on
+the same drive as the SDK when the build work directory is on another drive.
+
+`block-map.inc` is the project's small libjxl decoder extension. `build.py`
+appends it to a freshly extracted `decode.cc`; the pinned upstream archive is
+unchanged. It exposes the VarDCT strategy map for the first full, untransformed
+frame. Modular images do not have that map.
 
 The C interface accepts 8-bit straight RGBA up to 40 million pixels. A fresh
 Worker owns the heap and is terminated after each operation. WebP has an

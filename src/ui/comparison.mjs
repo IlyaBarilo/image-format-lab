@@ -72,7 +72,7 @@ export function createComparison({app, els}, deps) {
       variant.pixelBuffer = decoded.pixelBuffer;
       variant.resultConfig = config;
       variant.resultSource = source;
-      variant.blockGrid = blockGrid;
+      variant.blockGrid = format === 'jxl' || format === 'jxlLossless' ? decoded.blockGrid || null : blockGrid;
       variant.dirty = false;
       variant.measurement = {bytes:encoded.blob.size,width:encoded.width,height:encoded.height,
         percentOfSource:source.size?encoded.blob.size/source.size*100:null,psnrRGB:psnr,alphaErrorPercent:alphaError,

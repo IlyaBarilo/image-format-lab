@@ -11,6 +11,8 @@
 
 # Vendored bytes are pinned by SHA-256; never normalize them on checkout.
 /vendor/** -text !eol
+# The generated codec script retains its pinned CRLF bytes.
+/vendor/modern-codecs.js whitespace=-trailing-space
 
 *.png binary
 *.jpg binary

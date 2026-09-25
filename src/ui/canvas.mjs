@@ -161,6 +161,29 @@ export function createCanvas({app, els}, deps) {
     const rows=visibleGridLines(y,scale,height,canvas.height,scale*rect.height/canvas.height);
     if(!columns||!rows)return;
     ctx.save();ctx.beginPath();ctx.rect(x,y,width*scale,height*scale);ctx.clip();
+    if(spec.kind==='jxl'){
+      const firstX=Math.max(0,columns.first-1),lastX=Math.min(spec.columns-1,columns.last);
+      const firstY=Math.max(0,rows.first-1),lastY=Math.min(spec.rows-1,rows.last);
+      if((lastX-firstX+1)*(lastY-firstY+1)>20000){ctx.restore();return;}
+      ctx.beginPath();
+      for(let cy=firstY;cy<=lastY;cy++)for(let cx=firstX;cx<=lastX;cx++){
+        const owner=spec.owners[cy*spec.columns+cx];
+        if(!owner)continue;
+        if(cx+1<spec.columns&&owner!==spec.owners[cy*spec.columns+cx+1]){
+          const gx=Math.floor(x+(cx+1)*8*scale)+.5;
+          ctx.moveTo(gx,y+cy*8*scale);
+          ctx.lineTo(gx,y+Math.min(height,(cy+1)*8)*scale);
+        }
+        if(cy+1<spec.rows&&owner!==spec.owners[(cy+1)*spec.columns+cx]){
+          const gy=Math.floor(y+(cy+1)*8*scale)+.5;
+          ctx.moveTo(x+cx*8*scale,gy);
+          ctx.lineTo(x+Math.min(width,(cx+1)*8)*scale,gy);
+        }
+      }
+      ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(64,82,94,.88)';ctx.lineWidth=2;ctx.stroke();
+      ctx.restore();return;
+    }
     ctx.beginPath();
     for(let i=columns.first;i<=columns.last;i++){
       if(i<=0||i>=width)continue;
@@ -203,14 +226,8 @@ export function createCanvas({app, els}, deps) {
         const gy=Math.floor(y+pixel*scale)+.5;
         ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);
       }
-      if(spec.kind==='guide'){
-        const device=canvas.width/rect.width;
-        ctx.setLineDash([4*device,4*device]);
-        ctx.strokeStyle='rgba(64,82,94,.88)';ctx.lineWidth=2;
-      }else{
-        ctx.strokeStyle=major?'rgba(64,82,94,.88)':'rgba(112,120,128,.65)';
-        ctx.lineWidth=major?2:1;
-      }
+      ctx.strokeStyle=major?'rgba(64,82,94,.88)':'rgba(112,120,128,.65)';
+      ctx.lineWidth=major?2:1;
       ctx.stroke();
     }
     ctx.restore();
@@ -497,7 +514,7 @@ export function createCanvas({app, els}, deps) {
   function syncGridModeUI(){
     els.pixelGrid?.setAttribute('aria-pressed',String(Boolean(app.pixelGrid)));
     els.pixelGrid?.classList.toggle('active',Boolean(app.pixelGrid));
-    if(els.pixelGrid)els.pixelGrid.title=app.gridMode==='codec-blocks'?'Блоки формата: JPEG/WebP/AVIF/HEIC — подтверждённые верхние блоки, JPEG XL — пунктирный ориентир':'Пиксели: показать или скрыть при большом увеличении';
+    if(els.pixelGrid)els.pixelGrid.title=app.gridMode==='codec-blocks'?'Блоки формата: JPEG/WebP/AVIF/HEIC — подтверждённые блоки, JPEG XL — границы VarDCT; для Modular сетки нет':'Пиксели: показать или скрыть при большом увеличении';
     els.gridModePixels?.setAttribute('aria-checked',String(app.gridMode!=='codec-blocks'));
     els.gridModeCodec?.setAttribute('aria-checked',String(app.gridMode==='codec-blocks'));
   }

@@ -27,7 +27,15 @@ self.onmessage = async ({ data: request }) => {
       const width = codec._viewer_modern_width(), height = codec._viewer_modern_height();
       if (at <= 0 || size < 1 || size > 256 * 1024 * 1024 || at + size > codec.HEAPU8.length || !Number.isSafeInteger(width * height) || width <= 0 || height <= 0 || width * height > 40000000 || (type === 'decode' && size !== width * height * 4)) throw new Error('Некорректный результат кодека');
       result = { type: type === 'encode' ? 'encoded' : 'decoded', id, width, height, buffer: codec.HEAPU8.slice(at, at + size).buffer };
+      if (type === 'decode' && format === 'jxl') {
+        const count = codec._viewer_modern_block_count();
+        const expected = Math.ceil(width / 8) * Math.ceil(height / 8);
+        const pointer = codec._viewer_modern_block_owners();
+        if (count === expected && count > 0 && pointer > 0 && pointer + count * 4 <= codec.HEAPU8.length) {
+          result.blockOwners = codec.HEAPU8.slice(pointer, pointer + count * 4).buffer;
+        }
+      }
     } finally { codec._viewer_modern_clear(); codec._free(pointer); }
-    self.postMessage(result, [result.buffer]);
+    self.postMessage(result, result.blockOwners ? [result.buffer, result.blockOwners] : [result.buffer]);
   } catch (error) { self.postMessage({ type: 'error', id, message: error?.message || String(error) }); }
 };

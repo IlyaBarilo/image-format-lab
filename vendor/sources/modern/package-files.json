@@ -3,6 +3,7 @@
     "README.md",
     "PROJECT-LICENSE",
     "bridge.cpp",
+    "block-map.inc",
     "build.py",
     "sources.lock.json",
     "package-files.json",

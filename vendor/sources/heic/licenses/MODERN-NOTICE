@@ -27,8 +27,9 @@ The wrapper handles the first displayed frame in RGBA8. Lossless applies to
 these input samples, not to metadata, animation, HDR or prior canvas conversions.
 
 Build provenance: sources/modern/sources.lock.json pins upstream URLs, commits,
-original archive SHA-256 and selected-source SHA-256. Sources are unmodified;
-the project provides its own bridge.cpp and offline build.py. The selected
+original archive SHA-256 and selected-source SHA-256. The upstream archives are
+unmodified. The project appends its MIT block-map.inc extension to the extracted
+libjxl decoder during the build and provides its own bridge.cpp and offline build.py. The selected
 archives omit image fixtures and unused dependencies. CMake/Ninja/Python and
 the portable Emscripten SDK are build tools, not included application scripts.
 

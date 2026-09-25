@@ -137,7 +137,7 @@ export function createDecode({}, deps) {
     const decoded = exactPng ? await deps.decodePngFile(blob,true) : await deps.decodeImageBlobOrOptional(blob);
     try {
       validateDecodedRaster(decoded);
-      if (decoded.imageData) return await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer);
+      if (decoded.imageData) return { ...await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer), blockGrid: decoded.blockGrid || null };
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
       canvas.height = decoded.height;

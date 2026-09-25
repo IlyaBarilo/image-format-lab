@@ -71,8 +71,11 @@ export function createModern() {
   async function decode(file, format = 'jxl') {
     if (!file.size || file.size > 256 * 1024 * 1024) throw new Error('WebP / JPEG XL: пустой файл или размер более 256 МиБ');
     const result = await operate('decode', () => file.arrayBuffer(), { format });
+    const columns = Math.ceil(result.width / 8), rows = Math.ceil(result.height / 8);
+    const owners = result.blockOwners ? new Uint32Array(result.blockOwners) : null;
     return { width: result.width, height: result.height,
-      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null };
+      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null,
+      blockGrid: owners?.length === columns * rows ? { kind: 'jxl-vardct', columns, rows, owners } : null };
   }
   async function encode(imageData, quality, format = 'jxl') {
     const { width, height, data } = imageData;

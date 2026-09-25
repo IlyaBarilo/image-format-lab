@@ -370,8 +370,8 @@
     {
       "file": "sources/heic/licenses/MODERN-NOTICE",
       "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
-      "bytes": 2826,
-      "sha256": "0993cfd5a46e67ed102b27cf1cf799582b66fec6024609fb74bef66983581601"
+      "bytes": 2933,
+      "sha256": "f53aa769423f4e5723b9487137c304de665c90e3d151b03a5d70fdc81cada23e"
     },
     {
       "file": "sources/heic/licenses/modern-aom-AUTHORS",
@@ -520,8 +520,8 @@
     {
       "file": "heic-sources.zip",
       "url": "Deterministic package of sources/heic/package-files.json",
-      "bytes": 6764436,
-      "sha256": "e33924ef4dda01f4eab42d9132123993adc3166877283e56624bbd1193352cd7"
+      "bytes": 6764486,
+      "sha256": "08a790ba392aa6d52502493163ba077aa4a3c4fe66275e8384f25fbb597a2e3f"
     },
     {
       "file": "gifenc-1.0.3-sources.zip",
@@ -616,8 +616,8 @@
     {
       "file": "sources/modern/README.md",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 1701,
-      "sha256": "4be048b21013aab684300d567cce8d2dad9877750ca9a9480db745eb80415be3"
+      "bytes": 2134,
+      "sha256": "3acf5ab4f185ae97325b3a52e46c74f1ad2fa25abc0159cd8861c292100c0cb9"
     },
     {
       "file": "sources/modern/PROJECT-LICENSE",
@@ -628,14 +628,20 @@
     {
       "file": "sources/modern/bridge.cpp",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 6327,
-      "sha256": "2e52cdcc50c9c22e549b9fece1e5b0ceb7c1d349a4815850e56684b03c279f9b"
+      "bytes": 7060,
+      "sha256": "a6b3b949508a6a868ac94ed55c5889a6d1ab9af6651389cf4633a77f6978e903"
+    },
+    {
+      "file": "sources/modern/block-map.inc",
+      "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
+      "bytes": 1957,
+      "sha256": "bceb9b72e297c865f7f07d99565d14b8c055bf32c2909c30eeda56d1cdb391da"
     },
     {
       "file": "sources/modern/build.py",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 4849,
-      "sha256": "d4d8dde40356df0c53c67e99f1720ee95d53b315b9e2b7da4dca5c9f447ecaaf"
+      "bytes": 5281,
+      "sha256": "0afb2045b41f50b497066144057c7157cdd2e2c1281b08f70bcc337c2603f7b0"
     },
     {
       "file": "sources/modern/sources.lock.json",
@@ -646,8 +652,8 @@
     {
       "file": "sources/modern/package-files.json",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 994,
-      "sha256": "fb2de5219e9878e818c7e5bd4b7341c8451fb0d3667ec5c020718322f2f4c1b2"
+      "bytes": 1014,
+      "sha256": "c1dc6c020569adb44711bc23f95cbc3a791e1295a1edb827ce6c47b04d397e97"
     },
     {
       "file": "sources/modern/upstream/webp-1.6.0-sources.tar.gz",
@@ -682,8 +688,8 @@
     {
       "file": "MODERN-NOTICE",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 2826,
-      "sha256": "0993cfd5a46e67ed102b27cf1cf799582b66fec6024609fb74bef66983581601"
+      "bytes": 2933,
+      "sha256": "f53aa769423f4e5723b9487137c304de665c90e3d151b03a5d70fdc81cada23e"
     },
     {
       "file": "modern-aom-AUTHORS",
@@ -790,8 +796,8 @@
     {
       "file": "modern-codecs.js",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 3825751,
-      "sha256": "70937529796a61c0fca9ac01e5dde50d7ebb594416722ffbebeaff1753adde4d"
+      "bytes": 3827854,
+      "sha256": "824eafb92ff39b7f8660e6cc77365e4594cb51aefd6c52dcaca397aee57d998b"
     },
     {
       "file": "sources/raster/bmp-bridge.c",

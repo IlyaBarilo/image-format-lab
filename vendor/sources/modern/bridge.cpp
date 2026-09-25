@@ -12,19 +12,24 @@
 #include <vector>
 namespace {
 std::vector<uint8_t> output;
+std::vector<uint32_t> block_owners;
 int width=0,height=0;
 char error[256]={};
 constexpr size_t limit=256u*1024*1024;
 int fail(const char* text) { std::snprintf(error,sizeof(error),"%s",text);return 1; }
 bool dimensions(int w,int h) {return w>0 && h>0 && uint64_t(w)*h<=40000000;}
 }
+extern "C" size_t viewer_jxl_block_map(JxlDecoder*, uint32_t*, size_t,
+                                        uint32_t, uint32_t);
 extern "C" {
-void viewer_modern_clear() {std::vector<uint8_t>().swap(output);width=height=0;error[0]=0;}
+void viewer_modern_clear() {std::vector<uint8_t>().swap(output);std::vector<uint32_t>().swap(block_owners);width=height=0;error[0]=0;}
 const char* viewer_modern_error(){return error;}
 const uint8_t* viewer_modern_output(){return output.data();}
 size_t viewer_modern_output_size(){return output.size();}
 int viewer_modern_width(){return width;}
 int viewer_modern_height(){return height;}
+const uint32_t* viewer_modern_block_owners(){return block_owners.data();}
+size_t viewer_modern_block_count(){return block_owners.size();}
 // kind: 1 WebP lossless, 2 JPEG XL lossy, 3 JPEG XL lossless.
 int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind) {
  viewer_modern_clear();
@@ -83,6 +88,7 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
  std::unique_ptr<JxlDecoder,decltype(&JxlDecoderDestroy)> dec(JxlDecoderCreate(nullptr),JxlDecoderDestroy);
  if(!dec) return fail("Cannot allocate JPEG XL decoder");
  JxlPixelFormat pixels{4,JXL_TYPE_UINT8,JXL_NATIVE_ENDIAN,0};
+ bool grid_allowed=false;
  if(JxlDecoderSubscribeEvents(dec.get(),JXL_DEC_BASIC_INFO|JXL_DEC_COLOR_ENCODING|JXL_DEC_FULL_IMAGE)!=JXL_DEC_SUCCESS || JxlDecoderSetInput(dec.get(),input,length)!=JXL_DEC_SUCCESS) return fail("JPEG XL input rejected");
  JxlDecoderCloseInput(dec.get());
  for(;;) {
@@ -91,6 +97,7 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
    JxlBasicInfo info;
    if(JxlDecoderGetBasicInfo(dec.get(),&info)!=JXL_DEC_SUCCESS || info.xsize>40000000 || info.ysize>40000000 || !dimensions(info.xsize,info.ysize)) return fail("JPEG XL exceeds 40 megapixels");
    width=info.xsize;height=info.ysize;
+   grid_allowed=info.orientation==JXL_ORIENT_IDENTITY && !info.have_animation;
   } else if(status==JXL_DEC_COLOR_ENCODING) {
    JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
    if(JxlDecoderSetPreferredColorProfile(dec.get(),&color)!=JXL_DEC_SUCCESS) return fail("JPEG XL color conversion failed");
@@ -99,7 +106,17 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
    if(!dimensions(width,height) || JxlDecoderImageOutBufferSize(dec.get(),&pixels,&size)!=JXL_DEC_SUCCESS || size!=size_t(width)*height*4) return fail("Invalid JPEG XL pixel allocation");
    output.resize(size);
    if(JxlDecoderSetImageOutBuffer(dec.get(),&pixels,output.data(),size)!=JXL_DEC_SUCCESS) return fail("JPEG XL output rejected");
-  } else if(status==JXL_DEC_FULL_IMAGE) return 0; // First coalesced frame, with orientation applied.
+  } else if(status==JXL_DEC_FULL_IMAGE) {
+   if(grid_allowed){
+    const size_t count=(size_t(width)+7)/8*((size_t(height)+7)/8);
+    if(count<=625000){
+     block_owners.resize(count);
+     if(viewer_jxl_block_map(dec.get(),block_owners.data(),count,width,height)!=count)
+      block_owners.clear();
+    }
+   }
+   return 0; // First coalesced frame, with orientation applied.
+  }
   else return fail("Invalid or truncated JPEG XL");
  }
 }
