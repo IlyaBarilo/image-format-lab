@@ -23,6 +23,7 @@ export function createBatchDialog({els, app}, deps) {
   function openBatchDialog() {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
+    document.getElementById('batchPngDepth').value=config.pngDepth || 'auto';
     document.getElementById("batchBmpDepth").value = config.format === "bmp32" ? "32" : "24";
     app.batchTiffDraft = normalizeTiffOptions(config);
     document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
@@ -54,6 +55,7 @@ export function createBatchDialog({els, app}, deps) {
     const quality = Number(els.batchQualityNumber.value);
     const colors = Number(els.batchGifColors.value);
     return {
+      pngDepth:document.getElementById('batchPngDepth').value,
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
@@ -87,6 +89,7 @@ export function createBatchDialog({els, app}, deps) {
     const gif = config.format === "gif" || config.format === "gifenc";
     document.getElementById("batchBmpField").hidden = !isBmpFormat(config.format);
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
+    document.getElementById('batchPngField').hidden=config.format!=='png';
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;
@@ -95,6 +98,7 @@ export function createBatchDialog({els, app}, deps) {
     els.batchDimensions.hidden = els.batchResizeMode.value !== "limit";
     els.batchMetadataHint.textContent = config.format === "jpeg"
       ? "В JPEG можно сохранить только GPano. EXIF и остальные метаданные удаляются."
+      : config.format === 'png' ? 'Исходные метаданные удаляются. Точный PNG записывает известную метку sRGB; GPano применяется только к JPEG.'
       : "В выбранном формате метаданные удаляются. Сохранение GPano применяется только к JPEG.";
     const count = deps.selectedBatchFiles().length;
     els.batchDialogCount.textContent = `Будет обработано: ${deps.batchFilesLabel(count)} из ${app.files.length} — отметки общего списка.`;

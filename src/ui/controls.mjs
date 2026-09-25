@@ -55,6 +55,17 @@ export function createControls({els, app}, deps) {
     bmpDepth.value = variant.config.format === "bmp32" ? "32" : "24";
     bmpDepthWrap.append(document.createTextNode("Разрядность"), bmpDepth);
     head.append(bmpDepthWrap);
+    const pngDepthWrap=document.createElement('label');
+    pngDepthWrap.className='png-depth-wrap';
+    pngDepthWrap.hidden=variant.config.format!=='png';
+    pngDepthWrap.title='Авто сохраняет разрядность рабочих пикселей. PNG16 — только исходные размеры; показ на экране остаётся 8-битным. Перевод 8 → 16 не восстанавливает детали.';
+    const pngDepth=document.createElement('select');pngDepth.className='select png-depth';
+    for(const [value,label] of [['auto','Авто'],['8','8 бит/канал'],['16','16 бит/канал']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;pngDepth.append(option);
+    }
+    pngDepth.value=variant.config.pngDepth || 'auto';
+    pngDepthWrap.append(document.createTextNode('Разрядность'),pngDepth);head.append(pngDepthWrap);
+    pngDepth.addEventListener('change',()=>{variant.config.pngDepth=pngDepth.value;deps.markDirty(variant);});
   
     const qualityWrap = document.createElement("label");
     qualityWrap.className = "quality-wrap";
@@ -163,6 +174,8 @@ export function createControls({els, app}, deps) {
     tiffPredictorWrap.append(tiffPredictor, document.createTextNode("Предиктор"));
     head.append(tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
     variant.controls = {
+      pngDepthWrap,
+      pngDepth,
       bmpDepthWrap,
       bmpDepth,
       tiffCompressionWrap,
@@ -272,6 +285,7 @@ export function createControls({els, app}, deps) {
       if (isBmpFormat(format)) variant.controls.bmpDepth.value = format === "bmp32" ? "32" : "24";
       variant.controls.select.value = formatOptionValue(format);
     }
+    if(variant.controls.pngDepthWrap){variant.controls.pngDepthWrap.hidden=format!=='png';variant.controls.pngDepth.value=variant.config.pngDepth || 'auto';}
   
     if (variant.controls.tiffCompressionWrap) {
       const options = normalizeTiffOptions(variant.config);
@@ -374,12 +388,13 @@ export function createControls({els, app}, deps) {
     deps.updateAnalysis();
   }
   
-  function alphaLabel(format, imageData) {
+  function alphaLabel(format, imageData, pixelBuffer) {
     const sourceHasAlpha = app.source && app.source.hasAlpha;
     if (!sourceHasAlpha) return "alpha нет";
     const def = FORMAT_DEFS[format];
     if (def.alpha === "none") return "alpha потерян";
     if (def.alpha === "binary") return "alpha 1-bit";
+    if(pixelBuffer?.bitDepth>8)return pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**pixelBuffer.bitDepth-1)?'alpha':'alpha?';
     if (!imageData) return "alpha";
     return deps.detectAlpha(imageData.data) ? "alpha" : "alpha?";
   }
@@ -387,6 +402,8 @@ export function createControls({els, app}, deps) {
   function updateFormatHelp() {
     const webpRead = "Браузер; при отказе — встроенный libwebp";
     const read = {
+      png: "PNG16: точные серые/RGB/RGBA, Adam7, sRGB или без цветовых блоков; до 8 Мп / 128 МиБ. PNG8 — браузер",
+      pngUpng: "Как PNG; PNG opt сохраняет только 8 бит/канал",
       original: "По правилам формата исходника",
       webp: webpRead, webpLossless: webpRead,
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
@@ -399,8 +416,8 @@ export function createControls({els, app}, deps) {
     const write = {
       original: "Исходные байты без перекодирования; все метаданные сохраняются",
       jpeg: "Браузер; качество 1–100, с потерями; прозрачность заменяется заливкой",
-      png: "Браузер; без потерь, полная прозрачность",
-      pngUpng: "Встроенные UPNG / pako; без потерь, полная прозрачность",
+      png: "Авто / 8 / 16 бит на канал. PNG16: собственный код + pako, точные отсчёты и alpha; исходные размеры, до 8 Мп. Обычный PNG8 — браузер",
+      pngUpng: "Встроенные UPNG / pako; 8 бит/канал, полная прозрачность; PNG16 предварительно сводится к 8 битам",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность",
       avif: "Встроенные libheif / libaom; качество 1–100, поддерживает прозрачность",

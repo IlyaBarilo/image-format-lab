@@ -1,6 +1,7 @@
 import { FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 import { encodeIco, ICO_SIZES } from '../core/ico.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
+import { resolvedPngDepth } from '../core/png.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createEncode({}, deps) {
@@ -21,6 +22,7 @@ export function createEncode({}, deps) {
     ctx.drawImage(source.canvas, icon ? Math.floor((256 - width) / 2) : 0, icon ? Math.floor((256 - height) / 2) : 0, width, height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return { ...source, width: canvas.width, height: canvas.height, canvas, ctx, imageData,
+      precisionNote: source.pixelBuffer?.bitDepth>8 ? `Уменьшение и кодирование по 8 бит/канал (исходник ${source.pixelBuffer.bitDepth} бит)` : source.precisionNote,
       pixelBuffer: pixelBufferFromImageData(imageData), hasAlpha: deps.detectAlpha(imageData.data) };
   }
   
@@ -29,6 +31,19 @@ export function createEncode({}, deps) {
     const format = config.format;
     if (format === "original") return deps.withEncodedMeta({ blob: source.file,
       previewImageData: deps.cloneImageData(source.imageData), previewOnly: true, panoramaPreserved: Boolean(source.panorama) }, source);
+    const pixels=source.pixelBuffer ?? pixelBufferFromImageData(source.imageData);
+    const highDepth=pixels.bitDepth>8;
+    if(format==='png') {
+      const depth=resolvedPngDepth(config.pngDepth,pixels);
+      const dims=deps.outputDimensionsForConfig(config,source);
+      if(depth===16&&(dims.width!==source.width||dims.height!==source.height))throw new Error('PNG16 пока сохраняется только в исходном размере. Уберите уменьшение или явно выберите 8 бит на канал.');
+      if(depth===16||highDepth){
+        const prepared=deps.outputSourceForConfig(config,source);
+        const input=prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
+        return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth),exactPng:true,
+          precisionNote:depth===16?'16 бит/канал · показ 8 бит':`8 бит/канал · из ${pixels.bitDepth} бит`,panoramaPreserved:false},prepared);
+      }
+    }
     const outputSource = deps.outputSourceForConfig(config, source);
     if (["bmp24", "bmp32", "gif"].includes(format)) {
       const encoded = await deps.computeImage(format, config, outputSource);
@@ -76,6 +91,7 @@ export function createEncode({}, deps) {
   
   function withEncodedMeta(encoded, source) {
     return { ...encoded, sourceImageData: source.imageData, sourcePixelBuffer: source.pixelBuffer ?? pixelBufferFromImageData(source.imageData),
+      precisionNote: encoded.precisionNote || (source.pixelBuffer?.bitDepth>8 ? encoded.previewOnly ? `${source.pixelBuffer.bitDepth} бит/канал · показ 8 бит` : `8 бит/канал · из ${source.pixelBuffer.bitDepth} бит` : source.precisionNote || ''),
       width: source.width, height: source.height };
   }
   

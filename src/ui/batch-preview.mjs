@@ -72,7 +72,7 @@ export function createBatchPreview({app, els}, deps) {
       deps.validateExportConfig(config);
       const encoded = await deps.encodeFromSource(config, source, current);
       if (!current()) return;
-      decoded = await deps.decodeVariantForPreview(encoded.blob);
+      decoded = await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
       if (!current()) return;
       if (decoded.imageData.width !== encoded.width || decoded.imageData.height !== encoded.height) throw new Error("Размеры результата не совпадают с ожидаемыми.");
       const { psnr, alpha } = await deps.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
@@ -89,6 +89,7 @@ export function createBatchPreview({app, els}, deps) {
       els.batchPreviewMetrics.textContent = `PSNR RGB: ${psnr === Infinity ? "∞" : psnr === null ? "—" : psnr.toFixed(2)} dB · Δα: ${alpha === null ? "—" : alpha.toFixed(2)}%`;
       els.batchPreviewMetrics.title = app.variants[0].metricsEls.psnr.parentElement.title;
       els.batchPreviewStatus.textContent = `${FORMAT_DEFS[config.format].label} · ${encoded.panoramaPreserved ? "GPano сохранены" : "без GPano"}`;
+      if(encoded.precisionNote)els.batchPreviewStatus.textContent += ' · '+encoded.precisionNote;
       if (encoded.selectedQuality !== undefined) els.batchPreviewStatus.textContent += ` · подобрано качество ${encoded.selectedQuality}, проб: ${encoded.attempts}`;
     } catch (error) {
       if (!current()) return;

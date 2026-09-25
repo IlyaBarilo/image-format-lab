@@ -528,6 +528,7 @@ select:disabled {
 
 .quality-wrap,
 .gif-wrap,
+.png-depth-wrap,
 .bmp-depth-wrap,
 .tiff-compression-wrap,
 .matte-wrap {
@@ -559,6 +560,7 @@ select:disabled {
   min-width: 66px;
 }
 
+.png-depth-wrap,
 .bmp-depth-wrap,
 .tiff-compression-wrap,
 .tiff-level-wrap,
@@ -573,6 +575,7 @@ select:disabled {
   width: 132px;
 }
 
+.cell-head .png-depth,
 .cell-head .bmp-depth {
   flex: 0 0 auto;
   min-width: 152px;

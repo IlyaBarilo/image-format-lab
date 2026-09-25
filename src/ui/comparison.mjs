@@ -43,8 +43,8 @@ export function createComparison({app, els}, deps) {
       const encoded = await deps.encodeFromSource(config, source, current);
       if (!current()) return;
       const decoded = encoded.previewOnly
-        ? await deps.imageDataToPreview(encoded.previewImageData)
-        : await deps.decodeVariantForPreview(encoded.blob);
+        ? await deps.imageDataToPreview(encoded.previewImageData, encoded.sourcePixelBuffer?.bitDepth>8?encoded.sourcePixelBuffer:undefined)
+        : await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
       pendingBitmap = decoded.bitmap;
       if (!current()) return;
       if (decoded.imageData.width !== encoded.width || decoded.imageData.height !== encoded.height) {
@@ -53,7 +53,7 @@ export function createComparison({app, els}, deps) {
       // Legacy RGBA8 ImageData may lack a colour label; its code-value comparison remains available.
       const {psnr, alpha:alphaError} = await deps.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
       if(!current()) return;
-      const alphaInfo = deps.alphaLabel(format, decoded.imageData);
+      const alphaInfo = deps.alphaLabel(format, decoded.imageData, decoded.pixelBuffer);
       variant.blob = encoded.blob;
       variant.url = URL.createObjectURL(encoded.blob);
       variant.bitmap = decoded.bitmap;
@@ -65,9 +65,10 @@ export function createComparison({app, els}, deps) {
       variant.dirty = false;
       variant.measurement = {bytes:encoded.blob.size,width:encoded.width,height:encoded.height,
         percentOfSource:source.size?encoded.blob.size/source.size*100:null,psnrRGB:psnr,alphaErrorPercent:alphaError,
+        bitDepth:decoded.pixelBuffer.bitDepth,precisionNote:encoded.precisionNote || '',
         processingMs:encoded.previewOnly?0:Math.round(performance.now()-started)};
       variant.metrics = {
-        format: deps.outputFormatLabel(format) + " • " + alphaInfo
+        format: deps.outputFormatLabel(format) + (encoded.precisionNote ? " • " + encoded.precisionNote : "") + " • " + alphaInfo
           + (source.panorama || source.panoramaError ? (encoded.panoramaPreserved ? " • GPano" : " • без GPano") : ""),
         size: deps.formatBytes(encoded.blob.size),
         resolution: encoded.width + "×" + encoded.height,

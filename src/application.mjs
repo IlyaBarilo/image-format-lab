@@ -39,6 +39,7 @@ import { createHeic } from './services/heic.mjs';
 import { createTiff } from './services/tiff.mjs';
 import { createSupport } from './services/support.mjs';
 import { createDecode } from './services/decode.mjs';
+import { createPng } from './services/png.mjs';
 import { createEncode } from './services/encode.mjs';
 import { createCompute } from './services/compute.mjs';
 
@@ -302,7 +303,9 @@ export function createApplication() {
     "drawAll",
     "updateFormatOptions"
   ])));
+  Object.assign(actions, createPng(context, dependencies(["loadScript"])));
   Object.assign(actions, createDecode(context, dependencies([
+    "decodePngFile",
     "decodeHeicFile",
     "decodeImageBlob",
     "decodeImageBlobOrOptional",
@@ -315,6 +318,7 @@ export function createApplication() {
     "showStatus"
   ])));
   Object.assign(actions, createEncode(context, dependencies([
+    "encodeExactPng",
     "canvasToBlobStrict",
     "clamp",
     "cloneImageData",

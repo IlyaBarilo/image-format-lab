@@ -100,7 +100,7 @@ async function finished(page) {
       await page.locator('#batchDialogHeight').fill('70');
       await page.locator('#batchMetadata').selectOption('none');
       await page.locator('#batchSaveSettings').click();
-      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true};
+      const expected={format:'gif',quality:72,gifColors:32,gifDither:false,matte:'blue',resizeWidth:'100',resizeHeight:'70',metadataPolicy:'none',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto'};
       assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),storageKey),{version:1,config:expected});
       assert.equal(await page.evaluate(()=>downloads.length),0);
       await page.reload();
@@ -155,6 +155,27 @@ async function finished(page) {
       await page.reload();
       assert.equal(await page.evaluate(()=>app.exportConfig.resizeWidth),'100');
       assert.equal(await page.evaluate(()=>app.batchRun),null);
+    });
+
+    await check('PNG depth follows independent comparison and batch controls and survives saved-file decoding', async page => {
+      await page.locator('#fileInput').setInputFiles(files[0]);await ready(page);
+      const cell=page.locator('.cell').nth(1);
+      await cell.locator('.format-select').selectOption('png');await ready(page);
+      await cell.locator('.png-depth').selectOption('16');await ready(page);
+      assert.deepEqual(await page.evaluate(()=>[app.variants[1].pixelBuffer.bitDepth,app.variants[1].measurement.psnrRGB]),[16,Infinity]);
+      const header=await page.evaluate(async()=>Array.from(new Uint8Array(await app.variants[1].blob.slice(0,33).arrayBuffer())));
+      assert.equal(header[24],16);
+      await page.locator('#convertAll').click();await page.locator('#batchFormat').selectOption('png');
+      assert.equal(await page.locator('#batchPngField').isVisible(),true);
+      await page.locator('#batchPngDepth').selectOption('16');
+      await page.waitForFunction(()=>isBatchPreviewReady()&&app.batchPreview.resultConfig.pngDepth==='16');
+      assert.equal(await page.evaluate(async()=>new Uint8Array(await app.batchPreview.blob.slice(0,33).arrayBuffer())[24]),16);
+      await page.locator('#batchSaveSettings').click();
+      await cell.locator('.png-depth').selectOption('8');await ready(page);
+      await page.locator('#convertAll').click();assert.equal(await page.locator('#batchPngDepth').inputValue(),'16');
+      await page.locator('#batchStart').click();await finished(page);
+      assert.equal(await page.evaluate(()=>app.batchRun.failed),0);
+      assert.equal(await cell.locator('.png-depth').inputValue(),'8');
     });
 
     await check('conditional controls match format capabilities and no unsupported format is offered as usable', async page => {
@@ -225,7 +246,7 @@ async function finished(page) {
     await check('invalid stored fields are sanitized individually and extra data never reaches saved settings', async page => {
       await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({version:1,config:{format:'__proto__',quality:101,gifColors:1,gifDither:'false',matte:'__proto__',metadataPolicy:'all',resizeWidth:'-2',resizeHeight:80,tiffCompression:'unknown',tiffLevel:100,tiffPredictor:'false',files:['private.png'],unexpected:'ignored'}})),storageKey);
       await page.reload();
-      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true});
+      assert.deepEqual(await page.evaluate(()=>({...app.exportConfig})),{format:'jpeg',quality:85,gifColors:256,gifDither:true,matte:'white',metadataPolicy:'panorama',resizeWidth:'',resizeHeight:'80',delivery:'files',targetKB:'',minQuality:40,tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true,pngDepth:'auto'});
       await page.locator('#fileInput').setInputFiles(files[0]); await ready(page);
       await page.locator('#convertAll').click(); await page.locator('#batchSaveSettings').click();
       const stored=await page.evaluate(key=>localStorage.getItem(key),storageKey);

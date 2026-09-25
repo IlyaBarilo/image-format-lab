@@ -99,7 +99,7 @@ export function createBatchRun({app, els}, deps) {
         try {
           const source = await deps.decodeSourceFile(entry.file);
           const encoded = await deps.encodeFromSource(config, source);
-          const verified = await deps.decodeVariantForPreview(encoded.blob);
+          const verified = await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
           try {
             if (verified.imageData.width !== encoded.width || verified.imageData.height !== encoded.height)
               throw new Error("Размеры сохранённого файла не совпадают с ожидаемыми");

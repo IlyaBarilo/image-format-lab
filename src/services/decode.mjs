@@ -1,8 +1,12 @@
 import { largestIcoPng } from '../core/ico.mjs';
-import { pixelBufferByteLength } from '../core/pixel-buffer.mjs';
+import { pixelBufferByteLength, createPixelBuffer } from '../core/pixel-buffer.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 
 function validateDecodedRaster(decoded) {
+  if (decoded.pixelBuffer) {
+    const pixels=createPixelBuffer(decoded.pixelBuffer);
+    if(pixels.width!==decoded.width||pixels.height!==decoded.height) throw new Error('Размер точных пикселей не совпадает с изображением.');
+  }
   const bytes = pixelBufferByteLength(decoded.width, decoded.height);
   if (bytes > 40000000 * 4) throw new Error('Изображение больше 40 мегапикселей. Уменьшите исходник перед добавлением, чтобы ограничить расход памяти.');
   if (decoded.imageData) {
@@ -28,12 +32,14 @@ export function createDecode({}, deps) {
       const imageData = decoded.imageData || ctx.getImageData(0, 0, canvas.width, canvas.height);
       const metadata = await deps.readPanoramaMetadata(file);
       return { ...metadata, file, name: file.name || "image", size: file.size || 0, type: file.type || "unknown",
-        width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: pixelBufferFromImageData(imageData),
-        hasAlpha: deps.detectAlpha(imageData.data) };
+        width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: decoded.pixelBuffer || pixelBufferFromImageData(imageData),
+        hasAlpha: decoded.pixelBuffer ? decoded.pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**decoded.pixelBuffer.bitDepth-1) : deps.detectAlpha(imageData.data) };
     } finally { if (decoded.close) decoded.close(); }
   }
   
   async function decodeImageBlobOrOptional(file) {
+    // Sniff bytes as well as names: an empty or misleading MIME must not lose PNG16 precision.
+    if(deps.decodePngFile){const png=await deps.decodePngFile(file);if(png)return png;}
     const kind = deps.fileKind(file);
     if (kind === 'bmp') return (await deps.loadOptionalCodec('utif')).decodeBmp(file);
     if (kind === 'tiff') return deps.decodeTiffFile(file);
@@ -117,20 +123,21 @@ export function createDecode({}, deps) {
     });
   }
   
-  async function imageDataToPreview(imageData) {
-    const pixelBuffer = pixelBufferFromImageData(imageData);
+  async function imageDataToPreview(imageData, exactPixels) {
+    const pixelBuffer = exactPixels ? createPixelBuffer(exactPixels) : pixelBufferFromImageData(imageData);
+    if(pixelBuffer.width!==imageData.width||pixelBuffer.height!==imageData.height)throw new Error('Размеры точных пикселей и предпросмотра различаются.');
     return {
       bitmap: await createImageBitmap(imageData),
       imageData, pixelBuffer
     };
   }
   
-  async function decodeVariantForPreview(blob) {
+  async function decodeVariantForPreview(blob, exactPng = false) {
     // A preview is valid only if the actual output file can be decoded.
-    const decoded = await deps.decodeImageBlobOrOptional(blob);
+    const decoded = exactPng ? await deps.decodePngFile(blob,true) : await deps.decodeImageBlobOrOptional(blob);
     try {
       validateDecodedRaster(decoded);
-      if (decoded.imageData) return await deps.imageDataToPreview(decoded.imageData);
+      if (decoded.imageData) return await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer);
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
       canvas.height = decoded.height;
