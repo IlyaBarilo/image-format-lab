@@ -30,7 +30,7 @@ self.onmessage = event => {
       const encoded = kind === 'gif' ? encodeGif(config.gifColors, config.gifDither, source, false)
         : kind === 'bmp8' ? encodeBmp8(config.bmpColors, config.bmpCompression, config.matte, source, false)
         : encodeBmp(kind === 'bmp32', config.matte, source, false);
-      result = { blob: encoded.blob };
+      result = { blob: encoded.blob, paletteInfo: encoded.paletteInfo };
     }
     self.postMessage({ result });
   } catch (error) { self.postMessage({ error: error.message || String(error) }); }

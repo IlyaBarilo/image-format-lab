@@ -21,12 +21,14 @@ export function createReports({app, els}, deps) {
         const ready=deps.isVariantReady(v);
         return {cell:v.index+1, status:ready?"ready":v.error?"error":v.processing?"processing":"stale",
           config:{...(ready?v.resultConfig:v.config)}, codec:deps.codecLabel(v.config.format,ready?v.resultConfig:v.config),
-          error:v.error || null, metrics:ready?{...v.measurement, psnrRGB:v.measurement?.psnrRGB===Infinity?"Infinity":v.measurement?.psnrRGB}:null};
+          error:v.error || null, palette:ready?v.paletteInfo||null:null,
+          metrics:ready?{...v.measurement, psnrRGB:v.measurement?.psnrRGB===Infinity?"Infinity":v.measurement?.psnrRGB}:null};
       })};
   }
   
   function codecLabel(format, config = {}) {
     if(format==='png'&&(config.pngDepth==='16'||app.source?.pixelBuffer?.bitDepth>8))return 'Собственный PNG + pako';
+    if(format==='pngIndexed')return 'Собственный PNG с палитрой + pako';
     if(format==='jpeg')return 'Встроенный libjpeg-turbo 3.2.0';
     const codec = FORMAT_DEFS[format]?.codec;
     if (codec) return OPTIONAL_CODECS[codec].label + " " + (OPTIONAL_CODECS[codec].version || "");
@@ -42,8 +44,8 @@ export function createReports({app, els}, deps) {
   function saveComparisonReport(type) {
     const report = deps.comparisonReport();
     if (type === "json") { deps.downloadBlob(new Blob([JSON.stringify(report,null,2)], {type:"application/json"}), "comparison-report.json"); return; }
-    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_colors","bmp_compression"];
-    const rows = report.variants.map(v => {const m=v.metrics || {};return [report.source.name,report.source.width,report.source.height,report.source.bytes,report.createdAt,report.browser,v.cell,v.status,v.config.format,v.config.quality,v.config.format==='bmp8'?(v.config.bmpColors??256):v.config.gifColors,v.config.format==='bmp8'?'':v.config.gifDither,v.config.matte,v.config.metadataPolicy || els.metadataPolicy.value,v.codec,v.config.format==="tiff"?(v.config.tiffCompression||"deflate"):"",v.config.format==="tiff"?(v.config.tiffLevel??6):"",v.config.format==="tiff"?(v.config.tiffPredictor??true):"",m.bytes,m.width,m.height,m.percentOfSource,m.psnrRGB,m.alphaErrorPercent,m.processingMs,v.error,v.config.format==='png'?(v.config.pngDepth||'auto'):'',report.source.bitDepth,m.bitDepth,m.precisionNote,v.config.format==='jpeg'?(v.config.jpegSubsampling||'420'):'',v.config.format==='jpeg'?(v.config.jpegProgressive??false):'',v.config.format==='bmp8'?(v.config.bmpColors??256):'',v.config.format==='bmp8'?(v.config.bmpCompression||'none'):''];});
+    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_colors","bmp_compression","palette_defined_entries","palette_stored_entries","palette_used_entries","palette_transparent_used"];
+    const rows = report.variants.map(v => {const m=v.metrics || {},paletted=['gif','gifenc','pngIndexed','bmp8'].includes(v.config.format);return [report.source.name,report.source.width,report.source.height,report.source.bytes,report.createdAt,report.browser,v.cell,v.status,v.config.format,v.config.quality,paletted?(v.config.format==='bmp8'?(v.config.bmpColors??256):v.config.gifColors):'',["gif","pngIndexed"].includes(v.config.format)?v.config.gifDither:'',v.config.matte,v.config.metadataPolicy || els.metadataPolicy.value,v.codec,v.config.format==="tiff"?(v.config.tiffCompression||"deflate"):"",v.config.format==="tiff"?(v.config.tiffLevel??6):"",v.config.format==="tiff"?(v.config.tiffPredictor??true):"",m.bytes,m.width,m.height,m.percentOfSource,m.psnrRGB,m.alphaErrorPercent,m.processingMs,v.error,v.config.format==='png'?(v.config.pngDepth||'auto'):'',report.source.bitDepth,m.bitDepth,m.precisionNote,v.config.format==='jpeg'?(v.config.jpegSubsampling||'420'):'',v.config.format==='jpeg'?(v.config.jpegProgressive??false):'',v.config.format==='bmp8'?(v.config.bmpColors??256):'',v.config.format==='bmp8'?(v.config.bmpCompression||'none'):'',v.palette?.definedEntries??'',v.palette?.storedEntries??'',v.palette?.usedEntries??'',v.palette?.transparentUsed??''];});
     deps.downloadBlob(new Blob(["\ufeff",[headers,...rows].map(row=>row.map(deps.csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}),"comparison-report.csv");
   }
 

@@ -351,6 +351,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createEncode(context, dependencies([
     "encodeExactPng",
+    "encodePalettePng",
     "canvasToBlobStrict",
     "clamp",
     "cloneImageData",

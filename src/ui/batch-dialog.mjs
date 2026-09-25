@@ -68,7 +68,7 @@ export function createBatchDialog({els, app}, deps) {
       jpegProgressive:document.getElementById('batchJpegProgressive').checked,
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
-      gifColors: format === "gif" || format === "gifenc" || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
+      gifColors: ["gif", "gifenc", "pngIndexed"].includes(format) || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
       gifDither: els.batchGifDither.checked,
       bmpColors: format === 'bmp8' ? bmpColors : app.exportConfig.bmpColors,
       bmpCompression: format === 'bmp8' ? document.getElementById('batchBmpCompression').value : app.exportConfig.bmpCompression,
@@ -97,7 +97,7 @@ export function createBatchDialog({els, app}, deps) {
     if (!els.batchDialog.open) return;
     const config = deps.readBatchDialogConfig();
     const def = FORMAT_DEFS[config.format];
-    const gif = config.format === "gif" || config.format === "gifenc";
+    const gif = ["gif", "gifenc", "pngIndexed"].includes(config.format);
     document.getElementById("batchBmpField").hidden = !isBmpFormat(config.format);
     document.getElementById('batchBmpColorsField').hidden = config.format !== 'bmp8';
     document.getElementById('batchBmpCompressionField').hidden = config.format !== 'bmp8';
@@ -108,7 +108,7 @@ export function createBatchDialog({els, app}, deps) {
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;
-    els.batchDitherField.hidden = config.format !== "gif";
+    els.batchDitherField.hidden = config.format !== "gif" && config.format !== "pngIndexed";
     els.batchMatteField.hidden = def?.alpha !== "none";
     els.batchDimensions.hidden = els.batchResizeMode.value !== "limit";
     els.batchMetadataHint.textContent = config.format === "jpeg"

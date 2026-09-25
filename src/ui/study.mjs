@@ -25,7 +25,8 @@ export function createStudy({app, els}, deps) {
   function applyExperiment(key) {
     const experiment=EXPERIMENTS[key];
     if(!experiment)throw new Error('Неизвестный эксперимент.');
-    const variants=experiment.formats.map((format,i)=>({...DEFAULT_VARIANTS[i],format,quality:85,gifColors:key==='palette'&&i<3?16:256,gifDither:key==='palette'?i!==1:true}));
+    const variants=experiment.formats.map((format,i)=>({...DEFAULT_VARIANTS[i],format,quality:85,
+      gifColors:key==='palette'?16:256,gifDither:key==='palette'?i===3:true}));
     deps.applyComparison({layout:4,background:'checker',autoApply:true,metadataPolicy:'panorama',variants});
   }
   

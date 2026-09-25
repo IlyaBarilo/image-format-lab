@@ -12,6 +12,7 @@ export function createComparison({app, els}, deps) {
     variant.imageData = null;
     variant.pixelBuffer = null;
     variant.blob = null;
+    variant.paletteInfo = null;
     variant.resultConfig = null;
     variant.resultSource = null;
     variant.blockGrid = null;
@@ -65,6 +66,7 @@ export function createComparison({app, els}, deps) {
       if(!current()) return;
       const alphaInfo = deps.alphaLabel(format, decoded.imageData, decoded.pixelBuffer);
       variant.blob = encoded.blob;
+      variant.paletteInfo = encoded.paletteInfo || null;
       variant.url = URL.createObjectURL(encoded.blob);
       variant.bitmap = decoded.bitmap;
       pendingBitmap = null;

@@ -15,7 +15,7 @@ export function createFilePassport({ app }, deps) {
     const variant = app.variants[Number(target)];
     if (!variant || !deps.isVariantReady(variant)) return { ...common, generation: variant?.generation,
       message: variant?.error ? 'Ошибка обработки. Паспорт результата недоступен.' : 'Дождитесь пересчёта результата.' };
-    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer, generation: variant.generation,
+    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer, paletteInfo:variant.paletteInfo, generation: variant.generation,
       label: variant.resultConfig.format === 'original' ? source.name : `Ячейка ${variant.index + 1} · ${deps.outputFormatLabel(variant.resultConfig.format)}` };
   }
   function fields(element, pairs) {
@@ -68,6 +68,14 @@ export function createFilePassport({ app }, deps) {
         ['Палитра PLTE', info.paletteEntries === null ? (info.status === 'ok' ? 'Нет' : 'Не определено') : `${info.paletteEntries} записей · RGB по 8 бит`],
         ['Прозрачность в файле', info.transparency === 'alpha' ? 'Канал alpha' : info.transparency === 'tRNS' ? 'Блок tRNS' : info.status === 'ok' ? 'Не объявлена' : 'Не определено'],
         ['Цветовые метки PNG', info.colorLabels.join(', ') || (info.status === 'ok' ? 'Не найдены' : 'Не определено')]);
+    }
+    if (snapshot.paletteInfo) {
+      const palette=snapshot.paletteInfo;
+      rows.push(['Палитра в файле', `${palette.storedEntries} записей`],
+        ['Получено цветов', String(palette.definedEntries)],
+        ['Использовано индексов', `${palette.usedEntries} из ${palette.storedEntries}`],
+        ['Заданный предел цветов', String(palette.requestedColors)],
+        ['Прозрачный индекс', palette.transparentUsed ? 'Использован' : 'Не использован']);
     }
     if (info.format === 'JPEG' && info.mode) {
       rows.push(['Тип кодирования', info.mode], ['Прогрессивный', info.progressive ? 'Да' : 'Нет'],

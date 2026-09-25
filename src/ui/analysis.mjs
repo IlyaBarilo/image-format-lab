@@ -145,7 +145,7 @@ export function createAnalysis({ app }, deps) {
   function selected(side) {
     const variant = app.variants[side], c = variant?.config;
     const quality = c && ['jpeg', 'webp', 'heic', 'avif', 'jxl'].includes(c.format) ? ` · качество ${c.quality}`
-      : c && ['gif', 'gifenc'].includes(c.format) ? ` · ${c.gifColors} цветов` : '';
+      : c && ['gif', 'gifenc', 'pngIndexed'].includes(c.format) ? ` · ${c.gifColors} цветов` : '';
     const depth=variant?.pixelBuffer?.bitDepth;
     const precision=depth&&(depth>8||app.source?.pixelBuffer?.bitDepth>8)?` · ${depth} бит/канал`:'';
     const label = `${side + 1} · ${c ? deps.outputFormatLabel(c.format) : 'Нет результата'}${quality}${precision}`;

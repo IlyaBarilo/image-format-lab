@@ -45,6 +45,8 @@ export function createEncode({}, deps) {
       }
     }
     const outputSource = deps.outputSourceForConfig(config, source);
+    if (format === 'pngIndexed') return deps.withEncodedMeta(
+      await deps.encodePalettePng(outputSource,config.gifColors,config.gifDither),outputSource);
     if (["bmp8", "bmp24", "bmp32", "gif"].includes(format)) {
       const encoded = await deps.computeImage(format, config, outputSource);
       return deps.withEncodedMeta(encoded, outputSource);

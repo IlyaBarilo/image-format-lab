@@ -24,6 +24,14 @@ export const FORMAT_DEFS = {
     alpha: "full",
     native: true
   },
+  pngIndexed: {
+    label: "PNG · палитра",
+    mime: "image/png",
+    ext: "png",
+    lossy: false,
+    alpha: "binary",
+    native: false
+  },
   pngUpng: {
     label: "PNG opt",
     mime: "image/png",
@@ -176,5 +184,5 @@ export const PROFILE_KEY = "image-format-viewer.comparison-profiles.v1";
 export const EXPERIMENTS = {
   photo: { question: "Сравните детали и плавные переходы: какое качество даёт меньший файл без заметных артефактов?", formats: ["original", "jpeg", "webp", "png"] },
   alpha: { question: "Поменяйте фон на чёрный и белый. Где теряется прозрачность и как меняется Δα?", formats: ["original", "jpeg", "png", "gif"] },
-  palette: { question: "Сравните градиенты при 16 и 256 цветах. Что меняет дизеринг при одинаковой палитре?", formats: ["original", "gif", "gif", "gif"] }
+  palette: { question: "Сравните GIF и PNG с одинаковой палитрой и дизерингом. Отличаются ли размер файла и цвета?", formats: ["original", "gif", "pngIndexed", "pngIndexed"] }
 };

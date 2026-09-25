@@ -1,4 +1,5 @@
 import { createPixelBuffer } from './pixel-buffer.mjs';
+import { indexedPalette } from './gif.mjs';
 
 // Exact static PNG samples; display conversion is deliberately separate.
 // Container, byte order, filters and Adam7: https://www.w3.org/TR/png-3/
@@ -116,6 +117,35 @@ function chunk(name,data){
   const out=new Uint8Array(data.length+12),v=view(out);v.setUint32(0,data.length);
   for(let i=0;i<4;i++)out[4+i]=name.charCodeAt(i);
   out.set(data,8);v.setUint32(out.length-4,crc(out.subarray(4,out.length-4)));return out;
+}
+export function encodeIndexedPng(source,maxColors,useDither,pako){
+  checkPngSize(source.width,source.height);
+  if(typeof pako?.deflate!=='function')fail('кодировщик Deflate недоступен.');
+  const {palette,indexed,transparentIndex,paletteInfo}=indexedPalette(maxColors,useDither,source);
+  const depth=palette.length<=2?1:palette.length<=4?2:palette.length<=16?4:8;
+  const rowSize=Math.ceil(source.width*depth/8);
+  const raw=new Uint8Array((rowSize+1)*source.height);
+  for(let y=0;y<source.height;y++){
+    const row=(rowSize+1)*y;
+    // Filter 0: packed indices must remain unchanged before Deflate.
+    for(let x=0;x<source.width;x++){
+      const index=indexed[y*source.width+x],at=row+1+(x*depth>>3);
+      raw[at]|=index<<(8-depth-(x*depth&7));
+    }
+  }
+  const header=new Uint8Array(13),v=view(header);
+  v.setUint32(0,source.width);v.setUint32(4,source.height);
+  header[8]=depth;header[9]=3;
+  const plte=new Uint8Array(palette.length*3);
+  palette.forEach((color,i)=>plte.set([color.r,color.g,color.b],i*3));
+  const compressed=pako.deflate(raw);
+  const pieces=[new Uint8Array(signature),chunk('IHDR',header),chunk('PLTE',plte)];
+  if(transparentIndex>=0)pieces.push(chunk('tRNS',Uint8Array.of(0)));
+  for(let at=0;at<compressed.length;at+=1048576)
+    pieces.push(chunk('IDAT',compressed.subarray(at,at+1048576)));
+  pieces.push(chunk('IEND',new Uint8Array()));
+  return {blob:new Blob(pieces,{type:'image/png'}),previewImageData:null,
+    paletteInfo:{...paletteInfo,storedEntries:palette.length,indexDepth:depth}};
 }
 export function pngDepth(value='auto'){
   if(!['auto','8','16'].includes(value))fail('выберите Авто, 8 или 16 бит на канал.');

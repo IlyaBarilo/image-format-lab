@@ -3,23 +3,13 @@ import { clamp } from "./utils.mjs";
 export function encodeGif(maxColors, useDither, source, makePreview = true) {
   const width = source.width;
   const height = source.height;
-  const input = source.imageData.data;
-  const transparentIndex = source.hasAlpha ? 0 : -1;
-  const colorSlots = source.hasAlpha ? clamp(maxColors - 1, 1, 255) : clamp(maxColors, 2, 256);
-  const quant = quantizeUniform(input, colorSlots, source.hasAlpha);
-  const palette = source.hasAlpha
-    ? [{ r: 0, g: 0, b: 0 }, ...quant.palette]
-    : quant.palette;
+  const {palette, indexed, transparentIndex, paletteInfo} = indexedPalette(maxColors, useDither, source);
   const colorDepth = minGifColorDepth(palette.length);
   const paletteSize = 1 << colorDepth;
 
   while (palette.length < paletteSize) {
     palette.push({ r: 0, g: 0, b: 0 });
   }
-
-  const indexed = useDither
-    ? indexWithDither(input, width, height, quant, source.hasAlpha, transparentIndex)
-    : indexWithoutDither(input, width, height, quant, source.hasAlpha, transparentIndex);
 
   const lzwMinCodeSize = Math.max(2, colorDepth);
   const lzwData = gifLzwEncode(indexed, lzwMinCodeSize);
@@ -55,8 +45,30 @@ export function encodeGif(maxColors, useDither, source, makePreview = true) {
   const preview = makePreview ? indexedToImageData(indexed, palette, width, height, transparentIndex) : null;
   return {
     blob: new Blob([new Uint8Array(bytes)], { type: "image/gif" }),
-    previewImageData: preview
+    previewImageData: preview,
+    paletteInfo: {...paletteInfo, storedEntries:paletteSize}
   };
+}
+
+// The same palette and indices are used by static GIF and indexed PNG.
+export function indexedPalette(maxColors, useDither, source) {
+  if (!Number.isInteger(maxColors) || maxColors < 2 || maxColors > 256)
+    throw new Error('Количество цветов должно быть от 2 до 256.');
+  const {width, height, imageData, hasAlpha} = source;
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+    imageData?.data?.length !== width * height * 4)
+    throw new Error('Некорректный размер изображения для палитры.');
+  const input = imageData.data;
+  const transparentIndex = hasAlpha ? 0 : -1;
+  const colorSlots = hasAlpha ? clamp(maxColors - 1, 1, 255) : clamp(maxColors, 2, 256);
+  const quant = quantizeUniform(input, colorSlots, hasAlpha);
+  const palette = hasAlpha ? [{r:0,g:0,b:0}, ...quant.palette] : quant.palette;
+  const indexed = useDither
+    ? indexWithDither(input, width, height, quant, hasAlpha, transparentIndex)
+    : indexWithoutDither(input, width, height, quant, hasAlpha, transparentIndex);
+  return {palette, indexed, transparentIndex,
+    paletteInfo:{requestedColors:maxColors,definedEntries:palette.length,
+      usedEntries:new Set(indexed).size,transparentUsed:hasAlpha && indexed.includes(0)}};
 }
 
 export function quantizeUniform(data, maxColors, hasAlpha, preferFullPalette = false) {

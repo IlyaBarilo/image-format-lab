@@ -360,10 +360,10 @@
           <span class="batch-note" id="batchQualityHint">1–100 — настройка кодировщика. Большее значение отдаёт приоритет качеству, а не уменьшению файла.</span>
         </div>
         <div class="batch-field" id="batchGifField" hidden>
-          <label for="batchGifColors">Количество цветов: 2–256</label>
+          <label for="batchGifColors">Цвета палитры: 2–256</label>
           <input class="small-input" id="batchGifColors" type="number" min="2" max="256" step="1">
           <label class="switch" id="batchDitherField"><input id="batchGifDither" type="checkbox"> Дизеринг — передача оттенков точками</label>
-          <span class="batch-note">Сохраняется статичное изображение. GIF не поддерживает полупрозрачность.</span>
+          <span class="batch-note">GIF и PNG с палитрой сохраняют один кадр; полупрозрачность при этом превращается в прозрачный или непрозрачный пиксель.</span>
         </div>
         <label class="batch-field" for="batchResizeMode">Размеры
           <select class="select" id="batchResizeMode">
@@ -477,7 +477,7 @@
     </section>
     <section>
       <label for="experimentSelect">Готовый эксперимент</label>
-      <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Детали: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">GIF: палитра и дизеринг</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
+      <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Детали: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">Палитра: GIF и PNG</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
       <p id="experimentQuestion"></p><p class="batch-note">Для фотографии добавьте свой снимок. Для прозрачности и палитры подходит кнопка «Образец». Эксперимент меняет настройки сравнения; параметры пакета сохраняются.</p>
     </section>
     <section aria-labelledby="qualitySeriesTitle">
@@ -506,7 +506,7 @@
     </section>
     <section><details><summary>Форматы и ограничения</summary>
       <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>
-      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16 сохраняет точные 16-битные отсчёты и alpha. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF может изменить цвета. Поддержка всех разновидностей TIFF, HEIC и JPEG XL не гарантируется.</p>
+      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16 сохраняет точные 16-битные отсчёты и alpha. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC и JPEG XL не гарантируется.</p>
       <p class="batch-note">Режим «GPano в JPEG» переносит поддерживаемые данные панорамы из исходного JPEG только в JPEG. Прочие исходные метаданные не копируются; перенос исходного ICC не реализован. «Исходный файл» скачивается без изменения байтов и сохраняет все метаданные.</p>
       <p class="batch-note">Все дополнительные библиотеки находятся внутри HTML и запускаются автоматически, без обращения к интернету. AVIF, JPEG XL и WebP lossless кодируются встроенными библиотеками. Обычный WebP зависит от возможностей браузера. JPEG, PNG и другие базовые операции доступны также при ошибке запуска дополнительных кодеков.</p>
       <p class="batch-note">HEIC сохраняет неподвижное изображение с HEVC: SDR 8-bit, 4:2:0, качество 1–100. Качество 100 не означает отсутствие потерь; прозрачность также может сжиматься с потерями. HDR, Live Photos и метаданные камеры не сохраняются.</p>

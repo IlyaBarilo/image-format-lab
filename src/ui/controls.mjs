@@ -134,7 +134,7 @@ export function createControls({els, app}, deps) {
   
     const gifWrap = document.createElement("label");
     gifWrap.className = "gif-wrap";
-    gifWrap.title = "Размер палитры GIF";
+    gifWrap.title = "Максимальное число цветов палитры GIF или PNG";
     gifWrap.append(document.createTextNode("Цвета"));
   
     const gifColors = document.createElement("input");
@@ -149,7 +149,7 @@ export function createControls({els, app}, deps) {
   
     const ditherLabel = document.createElement("label");
     ditherLabel.className = "switch";
-    ditherLabel.title = "Floyd-Steinberg dithering для GIF";
+    ditherLabel.title = "Дизеринг Флойда — Стейнберга для GIF или PNG с палитрой";
     const gifDither = document.createElement("input");
     gifDither.type = "checkbox";
     gifDither.checked = variant.config.gifDither;
@@ -376,7 +376,7 @@ export function createControls({els, app}, deps) {
     const format = variant.config.format;
     const def = FORMAT_DEFS[format];
     const isQuality = Boolean(def.lossy);
-    const isGif = format === "gif" || format === "gifenc";
+    const isGif = format === "gif" || format === "gifenc" || format === "pngIndexed";
     const needsMatte = def.alpha === "none";
 
     if (variant.controls.bmpDepthWrap) {
@@ -411,7 +411,7 @@ export function createControls({els, app}, deps) {
     }
     variant.controls.qualityWrap.style.display = isQuality ? "" : "none";
     variant.controls.gifWrap.style.display = isGif ? "" : "none";
-    variant.controls.ditherLabel.style.display = format === "gif" ? "" : "none";
+    variant.controls.ditherLabel.style.display = format === "gif" || format === "pngIndexed" ? "" : "none";
     variant.controls.matteWrap.style.display = needsMatte ? "" : "none";
   }
   
@@ -527,6 +527,7 @@ export function createControls({els, app}, deps) {
     const webpRead = "Браузер; при отказе — встроенный libwebp";
     const read = {
       png: "PNG16: точные серые/RGB/RGBA, Adam7, sRGB или без цветовых блоков; до 8 Мп / 128 МиБ. PNG8 — браузер",
+      pngIndexed: "Палитровый PNG — браузер",
       pngUpng: "Как PNG; PNG opt сохраняет только 8 бит/канал",
       original: "По правилам формата исходника",
       webp: webpRead, webpLossless: webpRead,
@@ -541,6 +542,7 @@ export function createControls({els, app}, deps) {
       original: "Исходные байты без перекодирования; все метаданные сохраняются",
       jpeg: "Встроенный libjpeg-turbo; качество 1–100, 4:4:4 / 4:2:2 / 4:2:0, обычный или прогрессивный JPEG; прозрачность заменяется заливкой",
       png: "Авто / 8 / 16 бит на канал. PNG16: собственный код + pako, точные отсчёты и alpha; исходные размеры, до 8 Мп. Обычный PNG8 — браузер",
+      pngIndexed: "Собственный кодировщик + pako; 2–256 цветов, индекс 1/2/4/8 бит, переключаемый дизеринг, двоичная прозрачность; до 8 Мп",
       pngUpng: "Встроенные UPNG / pako; 8 бит/канал, полная прозрачность; PNG16 предварительно сводится к 8 битам",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность",
