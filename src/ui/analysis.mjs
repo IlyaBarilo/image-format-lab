@@ -4,6 +4,7 @@ import { histogramView, histogramScale, histogramBinAt, histogramTick, histogram
 import { analysisMaximum } from '../core/analysis-output.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { profileBinAt } from '../core/line-profile.mjs';
+import { errorBinInterval, errorHistogramSummary } from '../core/error-histogram.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0'];
@@ -36,18 +37,19 @@ export function createAnalysis({ app }, deps) {
     const tradeoff=type.value==='tradeoff',output=deps.getAnalysisOutputSettings();
     get('analysisScope').hidden=tradeoff;
     get('analysisMatteField').hidden=tradeoff;
-    const difference = type.value === 'difference', spatial = ['waveform','parade'].includes(type.value);
+    const difference = type.value === 'difference', errorHistogram = type.value === 'errorHistogram', spatial = ['waveform','parade'].includes(type.value);
     const profile = type.value === 'profile', vector = type.value === 'vectorscope';
     get('analysisChannelField').hidden = type.value !== 'histogram';
-    get('analysisLevelField').hidden = type.value !== 'histogram';
+    get('analysisLevelField').hidden = type.value !== 'histogram' && !errorHistogram;
+    get('analysisLevelLabel').textContent = errorHistogram ? 'Ошибка' : 'Уровень';
     get('analysisProfileField').hidden = !profile;
     get('analysisPositionField').hidden = !profile;
     get('analysisLineOpen').hidden = !profile;
-    get('analysisDifferenceField').hidden = !difference;
+    get('analysisDifferenceField').hidden = !difference && !errorHistogram;
     get('analysisGainField').hidden = !difference;
     get('analysisDifferenceLegend').hidden = !difference;
     get('analysisDifferenceLimit').textContent = `≥ ${number(255/Number(gain.value))}`;
-    matte.disabled = profile ? profileChannel.value === 'alpha' : vector ? false : difference ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
+    matte.disabled = profile ? profileChannel.value === 'alpha' : vector ? false : difference || errorHistogram ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
     panel.dataset.type = type.value;
     help.title = spatial
       ? 'По горизонтали — положение в кадре, по вертикали — уровень 0–255. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
@@ -55,9 +57,13 @@ export function createAnalysis({ app }, deps) {
     get('analysisMethod').textContent = spatial
       ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины кадра); в RGB Parade оно повторяется для R, G и B. По вертикали — кодовые уровни 0–255. Waveform: Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), коэффициенты BT.709 применены к RGB8 после смешивания с выбранной подложкой. Это оценка сигнала, не линейная физическая яркость, HDR или IRE. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп, уровни не усредняются. Плотность — доля пикселей группы на данном уровне. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума всех видимых графиков и каналов. Фон и масштаб просмотра на расчёт не влияют.'
       : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни целых отсчётов или явные интервалы float32, по вертикали — доля пикселей канала в процентах. Считаются все пиксели выбранной области. Целые уровни сохраняются точно; RGB после подложки округляется в исходной разрядности. При узком графике соседние уровни суммируются в общие группы, подписанные в сведениях. Для разных целых разрядностей используется общая нормированная шкала 0–1. Вне диапазона float32 отсчёты учитываются отдельно; крайние интервалы ими не заполняются. JSON сохраняет исходные счётчики и шкалу; PNG группирует их под размер отчёта. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
-    if(difference) {
+     if(difference) {
       help.title = 'Отличие каждой ячейки от исходного файла. Чёрный — совпадение, цвет — величина ошибки. Усиление общее. Нажмите для подробностей.';
       get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой; α: абсолютная разность прозрачности без подложки. Это различия кодовых значений RGBA8, не Delta E и не оценка восприятия. Чёрный означает нулевую разность, цвет показывает величину от 0 до 255. Общее усиление умножает только отображаемую разность; красный — достижение или превышение верхнего порога шкалы. Средние/максимумы считаются по всем выбранным пикселям без усиления. Карта ограничена 512 пикселями по длинной стороне; каждая её точка хранит максимальную ошибку группы, чтобы не терять единичные отличия. Размеры результата и исходника должны совпадать: масштабирования или выравнивания по содержимому нет.';
+     }
+    if(errorHistogram){
+      help.title='Попиксельная ошибка каждой ячейки относительно исходника. Нулевая группа означает точное совпадение. Нажмите для методики.';
+      get('analysisMethod').textContent='Каждая ячейка сопоставляется с исходником в тех же координатах без масштабирования. Нужны одинаковые размеры; разные известные цветовые пространства не смешиваются. RGB: для каждого пикселя берётся максимум абсолютных разностей R/G/B после композиции с выбранной подложкой и округления в разрядности соответствующего растра; α: абсолютная разность прозрачности без подложки. Сравниваются нормированные кодовые значения точных RGBA8/16 отсчётов; при неизвестной цветовой метке преобразование цвета не предполагается. Группа 0 содержит только точные совпадения. Положительные ошибки распределяются по 255 интервалам (предыдущая граница, текущая граница] на шкале 0–100%; младшие биты учитываются до группировки. По вертикали — доля пикселей области в процентах. MAE RGB — среднее абсолютной ошибки по трём каналам и всем пикселям; RMSE RGB — корень из среднего квадрата ошибки по этим каналам. Для α MAE/RMSE считаются отдельно. Это не среднее максимума RGB на карте различий, не Delta E и не оценка восприятия.';
     }
     if(vector){
       help.title='Центр — нейтральные цвета. Направление и удаление показывают цветность. Плотность и шкалы общие для всех ячеек. Нажмите для подробностей.';
@@ -68,7 +74,7 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent='Профиль показывает ближайшие пиксели дискретной линии A→B внутри выбранной области. Шаг — один пиксель по её более длинной проекции, оба конца включены. По горизонтали положение от A (0%) до B (100%), по вертикали кодовые уровни 0–255. RGB смешивается с выбранной подложкой, α измеряется отдельно; Y′ = round(0,2126 R + 0,7152 G + 0,0722 B). До 1024 групп: линия графика показывает среднее группы, вертикальные отрезки — её минимум/максимум, чтобы сохранить узкие пики длинной линии. Указатель выбирает группу ближайшего пикселя. Одна точка или растр 1×1 дают один отсчёт. При разных размерах относительная линия одинакова, число отсчётов и координаты отличаются. «Линия…» редактирует черновик; применение обновляет все профили, отмена отбрасывает изменения. Это кодовые значения, не линейная физическая яркость.';
     }
     get('analysisMethod').textContent += ' Пункт «Заданная область» в списке области анализа открывает редактор общего прямоугольника в долях кадра для всех графиков. Повторный выбор этого пункта открывает сохранённую область для правки. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; сохраняемые изображения и основные метрики не кадрируются.';
-    if(output.display==='overlay')get('analysisMethod').textContent+=' Наложение сравнивает выбранную пару ячеек. Для гистограммы и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют каналам: пастельные R/G/B у заливки, насыщенные R/G/B у контура. Числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform/Parade/вектороскопа первый след голубой, второй оранжевый; пересечение складывает свет обоих следов. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.';
+     if(output.display==='overlay')get('analysisMethod').textContent+=' Наложение сравнивает выбранную пару ячеек. Для гистограмм и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют выбранным каналам; числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform/Parade/вектороскопа первый след голубой, второй оранжевый; пересечение складывает свет обоих следов. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.';
     if(output.display==='delta'){
       help.title='Разница графиков: вторая выбранная ячейка минус первая. Ноль означает совпадение графиков. Нажмите для методики и единиц.';
       get('analysisMethod').textContent='«Разница» вычитает график первой выбранной ячейки из второй; порядок подписан, например Δ 2 − 1. Используются уже рассчитанные графики текущих результатов и выбранной области. Плюс означает увеличение во второй ячейке, минус — уменьшение. RGB учитывает подложку анализа, α измеряется отдельно. ' + (spatial
@@ -81,7 +87,7 @@ export function createAnalysis({ app }, deps) {
       help.title='Точки текущих ячеек: размер по горизонтали, выбранная метрика по вертикали. Данные уже готовых результатов; нажмите для методики.';
       get('analysisMethod').textContent='Точки соответствуют текущим готовым ячейкам, номера совпадают. По горизонтали размер файла в КБ (1000 байт), по вертикали выбранная метрика: PSNR RGB на белой подложке (выше — меньше ошибка), средняя абсолютная ошибка alpha в процентах от полного диапазона канала (ниже — лучше) или время обработки в мс, включая ожидание, декодирование и метрики. Это не изолированная скорость кодировщика. PSNR ∞ означает совпадение видимого RGB и показан в отдельной полосе, без подмены конечным числом. Одинаковые точки не сдвигаются, разнесены только номера; все значения есть в легенде. Точки не соединяются: перебора качества и интерполяции нет. Метрики взяты из основного сравнения всего изображения с декодированным исходником, область/линия/подложка панели на них не влияют. При несовпадении размеров PSNR/ошибка alpha недоступны. Устаревшие, ошибочные или отсутствующие метрики не получают точек.';
     }
-    get('analysisCaveat').textContent=tradeoff?'Числа не заменяют визуальную оценку; время зависит от устройства и нагрузки. Подробности по текущим ячейкам:':'Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:';
+    get('analysisCaveat').textContent=tradeoff?'Числа не заменяют визуальную оценку; время зависит от устройства и нагрузки. Подробности по текущим ячейкам:':errorHistogram?'Здесь считаются ошибки одних и тех же координат, поэтому размеры кадров должны совпадать. Подробности по текущим ячейкам:':'Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:';
     if (followsViewport()) {
       get('analysisMethod').textContent = get('analysisMethod').textContent
         .replace('Фон и масштаб просмотра на расчёт не влияют.', '')
@@ -90,7 +96,7 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent += ' Режим «Видимая часть» берёт фактический фрагмент каждой ячейки с учётом масштаба и перемещения. Пиксели на границе включаются целиком, фон вне изображения исключён. При разных размерах окон/результатов области могут различаться; их точные координаты записаны в данных графиков. В максимуме используются последние размеры окон просмотра. Линия A→B задаётся относительно видимой области каждой ячейки; её редактор показывает исходник в окне первой ячейки. Основные метрики и сохраняемые изображения остаются полными.';
     }
     const high=app.source?.pixelBuffer?.bitDepth>8||app.variants.slice(0,app.layout).some(v=>v.pixelBuffer?.bitDepth>8);
-    const precision=high?(type.value==='histogram'||tradeoff?'Расчёт по точным пикселям каждой ячейки; показ изображения — 8 бит/канал.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
+    const precision=high?(type.value==='histogram'||errorHistogram||tradeoff?'Расчёт по точным пикселям каждой ячейки; показ изображения — 8 бит/канал.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
     if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
@@ -114,8 +120,8 @@ export function createAnalysis({ app }, deps) {
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
     if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
-    if(type.value === 'difference' && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
-      return {label,message:`Карта требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
+    if(['difference','errorHistogram'].includes(type.value) && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
+      return {label,message:`${type.value==='difference'?'Карта':'Гистограмма ошибок'} требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;
     if (followsViewport() && !viewport?.region) return { label, message: viewport?.message || 'Определяю видимую часть…' };
     return { label, imageData: variant.imageData, pixelBuffer: variant.pixelBuffer, histogramOptions: variant.histogramOptions ? { ...variant.histogramOptions, ...(variant.histogramOptions.range ? { range: [...variant.histogramOptions.range] } : {}) } : undefined, region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
@@ -193,14 +199,14 @@ export function createAnalysis({ app }, deps) {
 
   async function compute(input, background, kind, reference, line) {
     const { imageData, pixelBuffer, histogramOptions, region } = input;
-    const owner = kind === 'histogram' ? pixelBuffer || imageData : imageData;
+    const owner = ['histogram','errorHistogram'].includes(kind) ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
     let entry = cache.get(owner);
     const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : { imageData }), matte: background, region, ...(kind === 'difference' ? {reference} : {}), ...(kind === 'profile' ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : kind === 'errorHistogram' ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram'].includes(kind) ? {reference} : {}), ...(kind === 'profile' ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
     if(cache === activeCache) cache.set(owner, entry);
@@ -215,7 +221,7 @@ export function createAnalysis({ app }, deps) {
         queued = false;
         const token = generation, inputs = cards.slice(0, app.layout).map((_, side) => selected(side)), background = matte.value;
         const kind = type.value === 'parade' ? 'waveform' : type.value;
-        const reference = app.source?.imageData, line=deps.getAnalysisLine();
+        const reference = kind==='errorHistogram'?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
         const computed = [];
         for (const input of inputs) {
           if (input.imageData) {
@@ -241,7 +247,7 @@ export function createAnalysis({ app }, deps) {
 
   function getAnalysisSnapshot(){
     const output=deps.getAnalysisOutputSettings(),kind=type.value;
-    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='histogram'?{channel:channel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:{})};
+    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='histogram'?{channel:channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:{})};
     return {version:1,revision:generation,source:app.source?{name:app.source.name,width:app.source.width,height:app.source.height,bytes:app.source.size}:null,settings,method:get('analysisMethod').textContent,
       items:cards.slice(0,app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
   }
@@ -249,6 +255,7 @@ export function createAnalysis({ app }, deps) {
   function drawIndividualAnalysis() {
     if (body.hidden || !results.length) return;
     if (type.value === 'difference') { drawDifference(); return; }
+    if (type.value === 'errorHistogram') { drawErrorHistogram(); return; }
     if (type.value === 'vectorscope' || type.value === 'profile') { drawExtraScopes(); return; }
     if (type.value !== 'histogram') { drawSpatial(); return; }
     const indices = CHANNELS[channel.value], bin = Number(level.value);
@@ -306,6 +313,45 @@ export function createAnalysis({ app }, deps) {
     const sizes = [...new Set(results.filter(item => item.data).map(({ data: h }) => `${h.width}×${h.height}`))];
     status.textContent = sizes.length > 1
       ? `Размеры различаются: ${sizes.join(', ')}. ${['histogram','vectorscope'].includes(type.value) ? 'Сравниваются распределения выбранной области кадра.' : type.value === 'profile' ? 'Линия задана относительно области; координаты пикселей и число отсчётов различаются.' : 'Горизонталь нормирована по ширине выбранной области каждого кадра.'}` : '';
+  }
+
+  function drawErrorHistogram() {
+    const errorChannel=differenceChannel.value,bin=Number(level.value),index=errorChannel==='alpha'?1:0;
+    const maximum=analysisMaximum('errorHistogram',results,errorChannel);
+    get('analysisLevelValue').textContent=bin===0?'0%':`${number(bin/255*100)}%`;
+    const lines=[];
+    cards.forEach((card,side)=>{
+      if(card.element.hidden)return;
+      const item=results[side],data=item?.data;
+      if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'Нет результата.';card.info.hidden=false;card.canvas.hidden=true;card.values.textContent='';return;}
+      card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
+      card.canvas.dataset.kind='errorHistogram';card.canvas.dataset.yMax=String(maximum);
+      const interval=errorBinInterval(bin),part=number(data.channels[index][bin]/data.pixelCount*100);
+      const description=`${data.width}×${data.height}, область ${data.bounds.x}, ${data.bounds.y}: ${data.bounds.width}×${data.bounds.height}; ${data.bitDepth.source}/${data.bitDepth.result} бит/канал; ${errorChannel==='alpha'?'α без подложки':`RGB на ${data.matte==='white'?'белом':'чёрном'}`}. ${errorHistogramSummary(data)}.${data.colorComparison==='unknown-code-values'?' Цветовое пространство неизвестно: сравниваются кодовые значения.':''}`;
+      const label=`${item.label}. ${description} Ошибка ${interval}: ${part}% пикселей.`;
+      card.badge.title=`${item.label}. ${description}`;
+      card.values.textContent=`Ошибка ${interval}: ${part}% · ${errorChannel==='alpha'?`MAE α ${number(data.metrics.maeAlpha)}%, RMSE α ${number(data.metrics.rmseAlpha)}%`:`MAE RGB ${number(data.metrics.maeRGB)}%, RMSE RGB ${number(data.metrics.rmseRGB)}%`}`;
+      card.values.title=description;card.canvas.setAttribute('aria-label',label);lines.push(label);
+      plotErrorHistogram(card.canvas,data,errorChannel,maximum,bin);
+    });
+    details.textContent=lines.join('\n');status.textContent='';
+  }
+
+  function plotErrorHistogram(canvas,data,errorChannel,maximum,bin,outputSize) {
+    const rect=outputSize||canvas.getBoundingClientRect(),width=rect.width,height=rect.height;
+    const dpr=outputSize?1:Math.max(1,Math.min(2.5,devicePixelRatio||1));
+    canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#101923';ctx.fillRect(0,0,width,height);
+    const left=56,right=width-16,top=28,bottom=height-26,index=errorChannel==='alpha'?1:0;
+    const values=data.channels[index],x=i=>left+(right-left)*i/255,y=n=>bottom-(bottom-top)*n/data.pixelCount*100/maximum;
+    ctx.font='11px "Segoe UI", sans-serif';ctx.textBaseline='middle';
+    for(const ratio of [0,.5,1]){const py=bottom-(bottom-top)*ratio;ctx.strokeStyle='#334155';ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(right,py);ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(`${number(maximum*ratio)}%`,left-5,py);}
+    ctx.strokeStyle=errorChannel==='alpha'?'#e2e8f0':'#fb7185';ctx.lineWidth=1.5;ctx.beginPath();values.forEach((n,i)=>i?ctx.lineTo(x(i),y(n)):ctx.moveTo(x(i),y(n)));ctx.stroke();
+    ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x(bin),top);ctx.lineTo(x(bin),bottom);ctx.stroke();ctx.setLineDash([]);
+    for(const mark of [0,64,128,192,255]){ctx.fillStyle='#cbd5e1';ctx.textAlign=mark===0?'left':mark===255?'right':'center';ctx.fillText(`${number(mark/255*100)}%`,x(mark),height-10);}
+    ctx.fillStyle=errorChannel==='alpha'?'#e2e8f0':'#fb7185';ctx.textAlign='right';ctx.fillText(errorChannel==='alpha'?'α':'RGB',right,12);
+    canvas.dataset.xMin='0';canvas.dataset.xMax='100';canvas.dataset.bins='256';canvas.dataset.yMax=String(maximum);
   }
 
   function drawExtraScopes() {
@@ -539,6 +585,7 @@ export function createAnalysis({ app }, deps) {
     else if (settings.type === 'vectorscope') deps.plotVectorscope(canvas, data, maximum, outputSize);
     else if (settings.type === 'profile') deps.plotLineProfile(canvas, data, CHANNELS[settings.profileChannel], settings.position, outputSize);
     else if (settings.type === 'difference') plotDifference(canvas, data, settings.differenceChannel === 'alpha' ? 1 : 0, Array.from({length:256},(_,value)=>differenceColor(value,settings.gain)), outputSize);
+    else if (settings.type === 'errorHistogram') plotErrorHistogram(canvas,data,settings.errorChannel,maximum,settings.level,outputSize);
     else throw new Error('Неизвестный вид графика отчёта.');
   }
 

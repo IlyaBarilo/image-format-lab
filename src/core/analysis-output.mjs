@@ -10,6 +10,7 @@ export function analysisMaximum(kind,items,channel='rgb') {
   for(const {data}of items){if(!data)continue;
     if(kind==='vectorscope'){for(const n of data.bins)maximum=Math.max(maximum,n/data.pixelCount);}
     else if(kind==='histogram'){for(const c of ANALYSIS_CHANNELS[channel])for(const n of data.channels[c])maximum=Math.max(maximum,n/data.pixelCount*100);}
+    else if(kind==='errorHistogram'){for(const n of data.channels[channel==='alpha'?1:0])maximum=Math.max(maximum,n/data.pixelCount*100);}
     else if(kind==='waveform'||kind==='parade')for(const c of kind==='waveform'?[3]:[0,1,2])for(let x=0;x<data.columns;x++)for(let y=0;y<256;y++)maximum=Math.max(maximum,data.channels[c][x*256+y]/data.columnPixels[x]);
   }
   return maximum||1;

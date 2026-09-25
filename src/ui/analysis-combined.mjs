@@ -23,7 +23,7 @@ function density(ctx,columns,rows,getValue,maximum,color,left,top,width,height,d
   for(let i=0;i<pooled.length;i++)if(pooled[i]){pixels.data.set(color,i*4);pixels.data[i*4+3]=Math.round(255*Math.pow(pooled[i]/maximum,.25));}
   lc.putImageData(pixels,0,0);ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalCompositeOperation='lighter';ctx.drawImage(layer,left,top,width,height);ctx.restore();
 }
-function curves(ctx,data,indices,{hist,limit,left,right,top,bottom},filled){
+function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false},filled){
   const series=indices.map(c=>{
     const values=hist?data.channels[c]:data.channels[c].mean;
     return {c,values,x:i=>left+(values.length===1?.5:i/(values.length-1))*(right-left),
@@ -35,7 +35,7 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom},filled){
     // Paint all channel areas before any contours. The zero baseline is not a second signal.
     for(const s of series)if(s.values.length>1){
       trace(s);ctx.lineTo(s.x(s.values.length-1),bottom);ctx.lineTo(s.x(0),bottom);ctx.closePath();
-      ctx.fillStyle=FILL_COLORS[s.c];ctx.globalAlpha=.32;ctx.fill();
+      ctx.fillStyle=FILL_COLORS[error&&s.c===1?3:s.c];ctx.globalAlpha=.32;ctx.fill();
     }
   }
   if(!hist){
@@ -52,7 +52,8 @@ function curves(ctx,data,indices,{hist,limit,left,right,top,bottom},filled){
   }
   ctx.globalAlpha=filled?.65:1;ctx.lineWidth=filled?1:2;
   for(const s of series){
-    ctx.strokeStyle=ctx.fillStyle=filled?FILL_COLORS[s.c]:COLORS[s.c];trace(s);ctx.stroke();
+    const color=error&&s.c===1?3:s.c;
+    ctx.strokeStyle=ctx.fillStyle=filled?FILL_COLORS[color]:COLORS[color];trace(s);ctx.stroke();
     if(s.values.length===1){ctx.beginPath();ctx.arc(s.x(0),s.y(s.value(0)),filled?3:5,0,Math.PI*2);if(filled)ctx.fill();else ctx.stroke();}
   }
   ctx.restore();
@@ -113,19 +114,20 @@ export function createAnalysisCombined(){
     }
   }
   function renderAnalysisOverlay(canvas,items,settings,outputSize){
-    const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',hist=kind==='histogram';
-    const view=hist?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
+    const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',hist=kind==='histogram'||error;
+    const view=kind==='histogram'?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}
-    const channel=profile?settings.profileChannel:settings.channel,indices=ANALYSIS_CHANNELS[channel];
+    const channel=profile?settings.profileChannel:error?settings.errorChannel:settings.channel,indices=error?[channel==='alpha'?1:0]:ANALYSIS_CHANNELS[channel];
     const maximum=analysisMaximum(kind,items,channel),left=56,right=width-18,top=30,bottom=height-28;
     canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:255);canvas.dataset.densityMax=String(maximum);
     if(hist||profile){
       const limit=hist?maximum:255;grid(ctx,left,right,top,bottom,limit,hist);
-      items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom},layer===0));
+      items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error},layer===0));
       ctx.setLineDash([]);ctx.fillStyle='#cbd5e1';
-      for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile?`${ratio*100}%`:histogramTick(view.scale,ratio),left+ratio*(right-left),height-12);}
+      for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile||error?`${ratio*100}%`:histogramTick(view.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);
-      ctx.textAlign='right';indices.slice().reverse().forEach((c,i)=>{ctx.fillStyle=COLORS[c];ctx.fillText(NAMES[c],right-i*22,12);});
+      ctx.textAlign='right';indices.slice().reverse().forEach((c,i)=>{ctx.fillStyle=COLORS[error&&c===1?3:c];ctx.fillText(error?(c===1?'α':'RGB'):NAMES[c],right-i*22,12);});
+      if(error){canvas.dataset.xMin='0';canvas.dataset.xMax='100';canvas.dataset.bins='256';}
     }else if(kind==='vectorscope'){
       const size=Math.min(width-88,height-50),cx=width/2,cy=27+size/2,x0=cx-size/2,y0=cy-size/2;
       ctx.strokeStyle='#334155';for(const r of [size/4,size/2]){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();}

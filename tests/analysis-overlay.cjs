@@ -20,7 +20,7 @@ const assert=require('node:assert/strict');
   globalThis.document={createElement:()=>recorder().canvas};
   const histogram=n=>({width:n,height:1,pixelCount:n,bounds:{x:0,y:0,width:n,height:1},channels:Array.from({length:5},(_,c)=>{const v=new Uint32Array(256);v[32+c*32]=n;return v;})});
   const sat=hex=>{const v=hex.slice(1).match(/../g).map(n=>parseInt(n,16));return (Math.max(...v)-Math.min(...v))/Math.max(...v);};
-  for(const dpr of [1,2]){
+   for(const dpr of [1,2]){
     globalThis.devicePixelRatio=dpr;
     const items=[{data:histogram(4)},{data:histogram(8)}],before=structuredClone(items),r=recorder();
     renderAnalysisOverlay(r.canvas,items,{type:'histogram',channel:'rgb',level:128});
@@ -39,8 +39,19 @@ const assert=require('node:assert/strict');
     assert.equal(r.canvas.width,600*dpr);assert.equal(r.canvas.height,300*dpr);
     assert.equal(r.ctx.globalAlpha,1);assert.deepEqual(r.ctx.dash,[]);
     const gray=recorder();renderAnalysisOverlay(gray.canvas,items,{type:'histogram',channel:'alpha',level:255});
-    assert.equal(gray.ops.filter(o=>o.kind==='fill').length,1);
-  }
+     assert.equal(gray.ops.filter(o=>o.kind==='fill').length,1);
+   }
+   const errorData=n=>({pixelCount:n,channels:[new Uint32Array(256),new Uint32Array(256)]});
+   const errorItems=[{data:errorData(4)},{data:errorData(8)}];
+   errorItems[0].data.channels[0][0]=4;errorItems[1].data.channels[0][1]=8;
+   errorItems[0].data.channels[1][0]=4;errorItems[1].data.channels[1][255]=8;
+   for(const channel of ['rgb','alpha']){
+     const r=recorder();renderAnalysisOverlay(r.canvas,errorItems,{type:'errorHistogram',errorChannel:channel,level:0});
+     assert.equal(r.canvas.dataset.yMax,'100');assert.equal(r.canvas.dataset.xMax,'100');
+     const fill=r.ops.find(o=>o.kind==='fill'),contour=r.ops.find(o=>o.kind==='stroke'&&o.width===2&&o.alpha===1);
+     assert.ok(fill&&contour);assert.notEqual(fill.color,contour.color);
+     if(channel==='rgb')assert.ok(sat(fill.color)<sat(contour.color));
+   }
   const profile=n=>({bins:n,sampleCount:n,counts:new Uint32Array(n).fill(1),channels:Array.from({length:5},()=>({mean:new Float32Array(n).fill(128),min:new Uint8Array(n).fill(10),max:new Uint8Array(n).fill(240)}))});
   for(const bins of [1,4]){
     const r=recorder();renderAnalysisOverlay(r.canvas,[{data:profile(bins)},{data:profile(bins)}],{type:'profile',profileChannel:'r',position:500});
