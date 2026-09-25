@@ -171,6 +171,8 @@ async function finished(page) {
       await page.waitForFunction(()=>isBatchPreviewReady()&&app.batchPreview.resultConfig.pngDepth==='16');
       assert.equal(await page.evaluate(async()=>new Uint8Array(await app.batchPreview.blob.slice(0,33).arrayBuffer())[24]),16);
       await page.locator('#batchSaveSettings').click();
+      await page.locator('#batchDialogClose').click();
+      assert.equal(await page.locator('#batchDialog').isVisible(),false);
       await cell.locator('.png-depth').selectOption('8');await ready(page);
       await page.locator('#convertAll').click();assert.equal(await page.locator('#batchPngDepth').inputValue(),'16');
       await page.locator('#batchStart').click();await finished(page);

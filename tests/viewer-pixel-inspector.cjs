@@ -21,7 +21,7 @@ const artifacts = require('./support/artifacts.cjs');
     page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });
     await page.goto(url);
     await page.locator('.format-select').nth(1).selectOption('png');
-    await page.locator('#fileInput').setInputFiles({ name: 'pixel16.png', mimeType: 'image/png', buffer: Buffer.from(bytes) });
+    await page.locator('#fileInput').setInputFiles({ name: 'pixel16.png', mimeType: 'image/png', buffer: Buffer.from(await bytes.arrayBuffer()) });
     const ready = () => page.waitForFunction(() => app.source && !app.sourceLoading && app.variants.slice(0, app.layout).every(isVariantReady));
     await ready();
     assert.equal(await page.locator('#pixelInspector').evaluate(e => e.open), false);
