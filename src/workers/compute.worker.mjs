@@ -9,6 +9,7 @@ import { computeDifference } from '../core/difference.mjs';
 import { computeVectorscope } from '../core/vectorscope.mjs';
 import { computeLineProfile } from '../core/line-profile.mjs';
 import { computeErrorProfile } from '../core/error-profile.mjs';
+import { computeSSIM } from '../core/ssim.mjs';
 
 self.onmessage = event => {
   try {
@@ -23,6 +24,7 @@ self.onmessage = event => {
     else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);
     else if (kind === 'profile') result = computeLineProfile(payload.imageData, payload.matte, payload.region, payload.line);
     else if (kind === 'errorProfile') result = computeErrorProfile(payload.pixelBuffer, payload.reference, payload.matte, payload.region, payload.line);
+    else if (kind === 'ssim') result = computeSSIM(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
     else {
       const { config, source } = payload;
       const encoded = kind === 'gif' ? encodeGif(config.gifColors, config.gifDither, source, false)

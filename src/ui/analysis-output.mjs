@@ -23,7 +23,7 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile','ssim'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
@@ -35,9 +35,9 @@ export function createAnalysisOutput({app},deps){
     if(pair.dataset.layout!==key){const old=pair.value;pair.replaceChildren();for(let a=1;a<=app.layout;a++)for(let b=a+1;b<=app.layout;b++){const option=document.createElement('option');option.value=`${a},${b}`;option.textContent=`${a} + ${b}`;pair.append(option);}pair.value=[...pair.options].some(o=>o.value===old)?old:'1,2';pair.dataset.layout=key;}
     const settings=getAnalysisOutputSettings();
     for(const option of pair.options){const [a,b]=option.value.split(',');option.textContent=settings.display==='delta'?`${b} − ${a}`:`${a} + ${b}`;}
-    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile'].includes(kind);
+    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile','ssim'].includes(kind);
     get('analysisDisplayDeltaField').hidden=!DELTA_TYPES.includes(kind);
-    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
+    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile','ssim'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
     get('analysisPairField').hidden=!['overlay','delta'].includes(settings.display)||app.layout===2;
     get('analysisMetricField').hidden=kind!=='tradeoff';
     combined.hidden=settings.display==='separate';

@@ -65,5 +65,19 @@ export function createScopePlots() {
     ctx.textAlign='right';ctx.fillStyle=index?'#e2e8f0':'#fb7185';ctx.fillText(index?'Ошибка α':'Ошибка RGB max',right,12);
     canvas.dataset.kind='errorProfile';canvas.dataset.yMin='0';canvas.dataset.yMax=String(limit);
   }
-  return {plotVectorscope,plotLineProfile,plotErrorProfile};
+  function plotSSIM(canvas,data,outputSize) {
+    const {ctx,width,height}=prepare(canvas,outputSize),left=45,right=width-45,middle=height/2+30;
+    const x=value=>left+(value+1)/2*(right-left);
+    const score=data.score.toLocaleString('ru-RU',{minimumFractionDigits:4,maximumFractionDigits:4});
+    ctx.fillStyle='#e2e8f0';ctx.font='32px "Segoe UI",sans-serif';ctx.textAlign='center';ctx.fillText(`SSIM ${score}`,width/2,middle-55);
+    ctx.strokeStyle='#334155';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(left,middle);ctx.lineTo(right,middle);ctx.stroke();
+    for(const [value,label] of [[-1,'−1'],[0,'0'],[1,'1']]){
+      ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x(value),middle-8);ctx.lineTo(x(value),middle+8);ctx.stroke();
+      ctx.fillStyle='#cbd5e1';ctx.font='12px "Segoe UI",sans-serif';ctx.fillText(label,x(value),middle+23);
+    }
+    ctx.fillStyle='#5eead4';ctx.beginPath();ctx.arc(x(data.score),middle,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#94a3b8';ctx.font='11px "Segoe UI",sans-serif';ctx.fillText('Структурное сходство по выбранной области',width/2,height-15);
+    canvas.dataset.kind='ssim';canvas.dataset.score=String(data.score);
+  }
+  return {plotVectorscope,plotLineProfile,plotErrorProfile,plotSSIM};
 }
