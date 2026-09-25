@@ -257,6 +257,7 @@ export function createApplication() {
     "renderVisibleVariants",
     "resizeCanvases",
     "roundRect",
+    "syncCellHeadSizes",
     "updateLayout"
   ])));
   Object.assign(actions, createStudy(context, dependencies([

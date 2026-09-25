@@ -497,14 +497,19 @@ select:disabled {
 }
 
 .cell-head {
-  min-height: 52px;
+  min-height: var(--cell-head-size, 52px);
   padding: 8px;
+  display: block;
+  border-bottom: 1px solid var(--line);
+  background: var(--cell-head);
+}
+
+.cell-head-content {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-  background: var(--cell-head);
+  min-width: 0;
 }
 
 .cell-title {
@@ -845,7 +850,7 @@ select:disabled {
     grid-template-rows: repeat(2, 420px);
   }
 
-  .cell-head {
+  .cell-head-content {
     gap: 6px;
   }
 

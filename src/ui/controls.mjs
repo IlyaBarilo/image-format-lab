@@ -4,6 +4,22 @@ import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createControls({els, app}, deps) {
+  let headSizeObserver;
+
+  function syncCellHeadSizes() {
+    let size = 52;
+    for (const variant of app.variants) {
+      if (variant.cell.classList.contains("hidden") || !variant.headContent) continue;
+      const style = getComputedStyle(variant.head);
+      size = Math.max(size, Math.ceil(variant.headContent.getBoundingClientRect().height +
+        parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth)));
+    }
+    const value = `${size}px`;
+    if (els.grid.style.getPropertyValue("--cell-head-size") !== value) {
+      els.grid.style.setProperty("--cell-head-size", value);
+    }
+  }
+
   function setEmptyState(title, message) {
     els.emptyTitle.textContent = title;
     els.emptyMessage.textContent = message;
@@ -12,9 +28,14 @@ export function createControls({els, app}, deps) {
   
   function observeCanvasSizes() {
     if (!("ResizeObserver" in window)) {
+      syncCellHeadSizes();
       deps.resizeCanvases();
       return;
     }
+
+    headSizeObserver = new ResizeObserver(syncCellHeadSizes);
+    for (const variant of app.variants) headSizeObserver.observe(variant.headContent);
+    syncCellHeadSizes();
   
     const observer = new ResizeObserver(() => {
       deps.resizeCanvases();
@@ -29,6 +50,7 @@ export function createControls({els, app}, deps) {
   
   function buildCellControls(variant) {
     const head = variant.head;
+    if (headSizeObserver && variant.headContent) headSizeObserver.unobserve(variant.headContent);
     head.innerHTML = "";
   
     const title = document.createElement("div");
@@ -174,6 +196,12 @@ export function createControls({els, app}, deps) {
     tiffPredictor.checked = tiffOptions.tiffPredictor;
     tiffPredictorWrap.append(tiffPredictor, document.createTextNode("Предиктор"));
     head.append(tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
+    const content = document.createElement("div");
+    content.className = "cell-head-content";
+    content.append(...head.childNodes);
+    head.append(content);
+    variant.headContent = content;
+    if (headSizeObserver) headSizeObserver.observe(content);
     variant.controls = {
       pngDepthWrap,
       pngDepth,
@@ -450,5 +478,5 @@ export function createControls({els, app}, deps) {
     document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");for(const text of row){const td=document.createElement("td");td.textContent=text;tr.append(td);}return tr;}));
   }
 
-  return { setEmptyState, observeCanvasSizes, buildCellControls, updateFormatOptions, syncControlsVisibility, buildMetrics, markDirty, isVariantReady, updateMetrics, alphaLabel, updateFormatHelp };
+  return { setEmptyState, observeCanvasSizes, syncCellHeadSizes, buildCellControls, updateFormatOptions, syncControlsVisibility, buildMetrics, markDirty, isVariantReady, updateMetrics, alphaLabel, updateFormatHelp };
 }

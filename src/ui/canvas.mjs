@@ -348,6 +348,7 @@ export function createCanvas({app, els}, deps) {
     for (const variant of app.variants) {
       variant.cell.classList.toggle("hidden", variant.index >= count);
     }
+    deps.syncCellHeadSizes();
     deps.updateAnalysis();
   
     deps.resizeCanvases();
