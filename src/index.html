@@ -230,7 +230,7 @@
       <div class="analysis-body" id="analysisBody">
       <div class="analysis-toolbar">
         <div class="analysis-tools">
-          <select class="select" id="analysisType" aria-label="Вид графика"><option value="histogram">Гистограмма</option><option value="signalHistogram" hidden>Гистограмма</option><option value="errorHistogram">Гистограмма ошибок</option><option value="waveform">Waveform</option><option value="rgbWaveform" hidden>Waveform</option><option value="ycbcrWaveform" hidden>Waveform</option><option value="parade">Parade</option><option value="ycbcrParade" hidden>Parade</option><option value="difference">Различия с исходником</option><option value="vectorscope">Вектороскоп</option><option value="cieXy">CIE xy</option><option value="profile">Профиль по линии</option><option value="errorProfile">Профиль ошибки</option><option value="ssim">SSIM</option><option value="deltaE">Цветовая разница ΔE00</option><option value="tradeoff">Размер и метрика</option></select>
+          <select class="select" id="analysisType" aria-label="Вид графика"><option value="histogram">Гистограмма</option><option value="signalHistogram" hidden>Гистограмма</option><option value="errorHistogram">Гистограмма ошибок</option><option value="waveform">Waveform</option><option value="rgbWaveform" hidden>Waveform</option><option value="ycbcrWaveform" hidden>Waveform</option><option value="parade">Parade</option><option value="ycbcrParade" hidden>Parade</option><option value="difference">Различия с исходником</option><option value="boundaryMap">Границы диапазона</option><option value="vectorscope">Вектороскоп</option><option value="cieXy">CIE xy</option><option value="profile">Профиль по линии</option><option value="errorProfile">Профиль ошибки</option><option value="ssim">SSIM</option><option value="deltaE">Цветовая разница ΔE00</option><option value="tradeoff">Размер и метрика</option></select>
           <label id="analysisVariantField">Модель <select class="select" id="analysisVariant" aria-label="Модель или каналы графика"></select></label>
           <label id="analysisCieViewField" hidden>Цвета <select class="select" id="analysisCieView" aria-label="Источник цветов CIE xy"><option value="displayed">Показанные SDR</option><option value="icc">+ Исходник ICC</option></select></label>
           <div class="toolbar-group analysis-display-field" id="analysisDisplayField">
@@ -249,6 +249,7 @@
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField"><span id="analysisLevelLabel">Уровень</span> <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
           <label id="analysisDifferenceField" hidden>Канал <select class="select" id="analysisDifferenceChannel" aria-label="Канал RGB или прозрачности"><option value="rgb">RGB</option><option value="alpha">α</option></select></label>
+          <label id="analysisBoundaryField" hidden>Канал <select class="select" id="analysisBoundaryChannel" aria-label="Границы RGB или прозрачности"><option value="rgb">RGB</option><option value="alpha">α</option></select></label>
           <label id="analysisGainField" hidden>Усиление <select class="select" id="analysisGain"><option value="1">×1</option><option value="4" selected>×4</option><option value="16">×16</option><option value="64">×64</option></select></label>
           <label id="analysisProfileField" hidden>Каналы <select class="select" id="analysisProfileChannel"><option value="rgb">RGB</option><option value="r">R</option><option value="g">G</option><option value="b">B</option><option value="y">Y′ — яркость</option><option value="alpha">α — прозрачность</option></select></label>
           <label class="analysis-level" id="analysisPositionField" hidden>Позиция <input id="analysisPosition" type="range" min="0" max="1000" value="500"><output id="analysisPositionValue" for="analysisPosition">50%</output></label>
@@ -300,6 +301,11 @@
       </div>
       <div class="analysis-difference-legend" id="analysisDifferenceLegend" hidden aria-label="Шкала различий">
         <span>Δ 0</span><span class="analysis-difference-ramp" aria-hidden="true"></span><span id="analysisDifferenceLimit"></span>
+      </div>
+      <div class="analysis-boundary-legend" id="analysisBoundaryLegend" hidden aria-label="Обозначения границ диапазона">
+        <span><i class="analysis-boundary-swatch low" aria-hidden="true"></i>0</span>
+        <span><i class="analysis-boundary-swatch high" aria-hidden="true"></i>максимум</span>
+        <span><i class="analysis-boundary-swatch both" aria-hidden="true"></i>оба</span>
       </div>
       <div id="analysisCombined" hidden>
         <div id="analysisCombinedLegend" class="analysis-combined-legend"></div>

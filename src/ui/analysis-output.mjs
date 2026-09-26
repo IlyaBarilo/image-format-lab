@@ -23,7 +23,7 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile','ssim','deltaE'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
@@ -35,9 +35,9 @@ export function createAnalysisOutput({app},deps){
     if(pair.dataset.layout!==key){const old=pair.value;pair.replaceChildren();for(let a=1;a<=app.layout;a++)for(let b=a+1;b<=app.layout;b++){const option=document.createElement('option');option.value=`${a},${b}`;option.textContent=`${a} + ${b}`;pair.append(option);}pair.value=[...pair.options].some(o=>o.value===old)?old:'1,2';pair.dataset.layout=key;}
     const settings=getAnalysisOutputSettings();
     for(const option of pair.options){const [a,b]=option.value.split(',');option.textContent=settings.display==='delta'?`${b} − ${a}`:`${a} + ${b}`;}
-    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile','ssim','deltaE'].includes(kind);
+    get('analysisDisplayField').hidden=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind);
     get('analysisDisplayDeltaField').hidden=!DELTA_TYPES.includes(kind);
-    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile','ssim','deltaE'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
+    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
     get('analysisPairField').hidden=!['overlay','delta'].includes(settings.display)||app.layout===2;
     get('analysisMetricField').hidden=kind!=='tradeoff';
     combined.hidden=settings.display==='separate';
@@ -156,7 +156,7 @@ export function createAnalysisOutput({app},deps){
     if(reportView&&!shared)selected=reportView.items;
     const parameterText=s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
       `${s.display==='delta'?`Разница ячеек ${s.pair[1]} − ${s.pair[0]}`:s.display==='overlay'?`Наложение ячеек ${s.pair.join(' + ')}`:'Ячейки рядом'}; подложка: ${s.matte==='white'?'белая':'чёрная'}; область: ${s.scope==='viewport'?'видимая часть каждой ячейки':b?`${b.x0/10}%, ${b.y0/10}%, ${(b.x1-b.x0)/10}% × ${(b.y1-b.y0)/10}%`:'весь кадр'}`+
-      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.type==='profile'&&shared?`; шкала: ${new Set(selected.map(i=>i.data?.scaleMax||255)).size>1?'0–100% полного диапазона':`0–${selected[0].data?.scaleMax||255} кодовых уровней`}`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
+      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(s.type==='boundaryMap'?`; канал: ${s.boundaryChannel==='alpha'?'α':'RGB'}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.type==='profile'&&shared?`; шкала: ${new Set(selected.map(i=>i.data?.scaleMax||255)).size>1?'0–100% полного диапазона':`0–${selected[0].data?.scaleMax||255} кодовых уровней`}`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
     const method=wrap(ctx,snapshot.method,1152);
@@ -177,6 +177,13 @@ export function createAnalysisOutput({app},deps){
        const describe=item=>{const d=item.data,b=d.bounds,index=s.errorChannel==='alpha'?1:0;return `${item.label}: ${d.width}×${d.height}, область ${b.x}, ${b.y}: ${b.width}×${b.height}; ${d.bitDepth.source}/${d.bitDepth.result} бит/канал; ошибка ${errorBinInterval(s.level)}: ${fmt(d.channels[index][s.level]/d.pixelCount*100)}% пикселей. ${errorHistogramSummary(d)}.${d.colorComparison==='unknown-code-values'?' Цветовое пространство неизвестно: сравниваются кодовые значения.':''}`;};
        if(shared){charts[0].title=selected.map((item,i)=>`${item.cell} ${i?'□ контур':'■ заливка'}`).join(' · ');charts[0].details=selected.map(describe).join(' ');}
        else for(const chart of charts)if(chart.item.data)chart.details=describe(chart.item);
+    }
+    if(s.type==='boundaryMap'){
+      const index=s.boundaryChannel==='alpha'?1:0;
+      for(const chart of charts)if(chart.item.data){
+        const d=chart.item.data,c=d.counts[index],percent=n=>fmt(n/d.pixelCount*100);
+        chart.details=`${chart.item.label}: область ${d.bounds.x}, ${d.bounds.y}: ${d.bounds.width}×${d.bounds.height} px; ${d.bitDepth} бит/канал; ${s.boundaryChannel==='alpha'?'α без подложки':`RGB на ${d.matte==='white'?'белой':'чёрной'} подложке`}; 0: ${fmt(c.low)} (${percent(c.low)}%); максимум ${d.scaleMax}: ${fmt(c.high)} (${percent(c.high)}%); оба: ${fmt(c.both)} (${percent(c.both)}%); хотя бы одна граница: ${fmt(c.any)} (${percent(c.any)}%). Граничные коды не доказывают клиппинг.`;
+      }
     }
     if(s.type==='cieXy'){
       const describe=item=>{const d=item.data,r=d.iccReference;return `${item.label}: показанные SDR ${d.sampleCount} из ${d.pixelCount} пикселей; область ${d.bounds.x}, ${d.bounds.y}: ${d.bounds.width}×${d.bounds.height} px${r?`; исходник ICC до ограничения sRGB: вне sRGB ${fmt(r.outOfSrgbPercent)}% (${r.outOfSrgbCount} из ${r.sampleCount}), область ${r.bounds.x}, ${r.bounds.y}: ${r.bounds.width}×${r.bounds.height} px`:''}.`;};

@@ -19,6 +19,7 @@ function recordingCanvas() {
 async function makeSnapshot(type, display, count = 2) {
   const {computeHistogram} = await import('../src/core/histogram.mjs');
   const {computeWaveform} = await import('../src/core/waveform.mjs');
+  const {computeBoundaryMap} = await import('../src/core/boundary-map.mjs');
   const {computeVectorscope} = await import('../src/core/vectorscope.mjs');
   const {computeLineProfile} = await import('../src/core/line-profile.mjs');
    const {computeDifference} = await import('../src/core/difference.mjs');
@@ -32,7 +33,7 @@ async function makeSnapshot(type, display, count = 2) {
     const input = i % 2 ? altered : image;
     return {cell:i + 1, label:`${i + 1} · ${i % 2 ? 'Квантование цвета' : 'Исходный: PNG'}`, status:'ready', message:'',
       measurement:{width, height, bytes:8192 - i * 1000, psnrRGB:i ? 35 : Infinity, processingMs:i * 3, alphaErrorPercent:0},
-       data:type === 'tradeoff' ? {width, height} : type === 'difference' ? computeDifference(input, image, 'white', region) : type === 'errorHistogram' ? computeErrorHistogram(input, image, 'white', region) : type === 'cieXy' ? computeCieXy(input, 'white', region) : type === 'deltaE' ? computeDeltaE00(input, image, 'white', region) : compute[type](input, 'white', region)};
+       data:type === 'tradeoff' ? {width, height} : type === 'difference' ? computeDifference(input, image, 'white', region) : type === 'boundaryMap' ? computeBoundaryMap(input, 'white', region) : type === 'errorHistogram' ? computeErrorHistogram(input, image, 'white', region) : type === 'cieXy' ? computeCieXy(input, 'white', region) : type === 'deltaE' ? computeDeltaE00(input, image, 'white', region) : compute[type](input, 'white', region)};
   });
   return {version:1, revision:1, source:{name:'gradient.png', width, height, bytes:8192},
     method:'Графики используют одинаковую шкалу и рассчитанные данные выбранной области изображения.', items,
@@ -41,7 +42,8 @@ async function makeSnapshot(type, display, count = 2) {
        ...(type === 'histogram' ? {channel:'rgb', level:128} : {}),
        ...(type === 'errorHistogram' ? {errorChannel:'rgb', level:0} : {}),
       ...(type === 'profile' ? {profileChannel:'rgb', position:500, line:{x0:0, y0:500, x1:1000, y1:500}} : {}),
-      ...(type === 'difference' ? {differenceChannel:'rgb', gain:4} : {}), metric:'psnrRGB'}};
+      ...(type === 'difference' ? {differenceChannel:'rgb', gain:4} : {}),
+      ...(type === 'boundaryMap' ? {boundaryChannel:'rgb'} : {}), metric:'psnrRGB'}};
 }
 
 // A supplied Canvas factory also permits visual inspection using a native renderer.
@@ -75,7 +77,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     elements.set('analysisCombinedChart', combined);
     globalThis.document = {getElementById:get, createElement: tag => tag === 'canvas' ? canvas() : element(), querySelectorAll: () => cards};
     get('analysisType').value = snapshot.settings.type;
-     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', cieXy:'CIE xy', deltaE:'Цветовая разница ΔE00', profile:'Профиль', difference:'Карта различий', tradeoff:'Размер и метрика'}[snapshot.settings.type];
+     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', cieXy:'CIE xy', deltaE:'Цветовая разница ΔE00', profile:'Профиль', difference:'Карта различий', boundaryMap:'Границы диапазона', tradeoff:'Размер и метрика'}[snapshot.settings.type];
     get('analysisMetric').value = snapshot.settings.metric;
     const deps = {...createAnalysisCombined(), ...createScopePlots(), isAnalysisResizing:() => false, getAnalysisSnapshot:() => snapshot,
       downloadBlob: (blob, name) => downloads.push({blob, name})};
@@ -104,8 +106,8 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
 }
 
 async function main() {
-   for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','cieXy','deltaE','profile','difference','tradeoff']) {
-     const modes = type === 'tradeoff' ? ['metrics'] : ['difference','deltaE'].includes(type) ? ['separate'] : ['vectorscope','errorHistogram','cieXy'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
+   for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','cieXy','deltaE','profile','difference','boundaryMap','tradeoff']) {
+     const modes = type === 'tradeoff' ? ['metrics'] : ['difference','boundaryMap','deltaE'].includes(type) ? ['separate'] : ['vectorscope','errorHistogram','cieXy'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
     for (const display of modes) {
       const snapshot = await makeSnapshot(type, display, 4), before = structuredClone(snapshot);
       const short = await exportReport(snapshot, {width:1400, height:112, dpr:2});
@@ -136,6 +138,11 @@ async function main() {
   const xy = await exportReport(await makeSnapshot('cieXy','overlay'), {includeJSON:true});
   assert.equal(xy.json.items[0].data.bins.length,257*257);
   assert.ok(xy.report.images[0].ops.some(op => op[0] === 'image'), 'CIE xy includes color density in PNG');
+  const boundary=await exportReport(await makeSnapshot('boundaryMap','separate'),{includeJSON:true});
+  assert.equal(boundary.json.settings.boundaryChannel,'rgb');
+  assert.ok(boundary.json.items[0].data.counts[0].any>0);
+  assert.ok(boundary.report.images[0].ops.some(op=>op[0]==='image'),'boundary map is drawn into the report PNG');
+  assert.ok(boundary.report.ops.some(op=>op[0]==='fillText'&&String(op[1]).includes('не доказывают клиппинг')));
   const {createIccP3Sample}=await import('../src/core/reference-samples.mjs');
   const {computeCieIcc,mapCieReferenceRegion}=await import('../src/core/color-sdr.mjs');
   const {pixels,iccProfile}=createIccP3Sample(),iccSnapshot=await makeSnapshot('cieXy','overlay');

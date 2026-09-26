@@ -6,6 +6,7 @@ import { computeErrorHistogram } from '../core/error-histogram.mjs';
 import { computeWaveform } from '../core/waveform.mjs';
 import { computeSignalHistogram } from '../core/signal-scopes.mjs';
 import { computeDifference } from '../core/difference.mjs';
+import { computeBoundaryMap } from '../core/boundary-map.mjs';
 import { computeVectorscope } from '../core/vectorscope.mjs';
 import { computeLineProfile } from '../core/line-profile.mjs';
 import { computeErrorProfile } from '../core/error-profile.mjs';
@@ -22,6 +23,7 @@ self.onmessage = event => {
     else if (kind === 'waveform') result = computeWaveform(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'signalHistogram') result = computeSignalHistogram(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'difference') result = computeDifference(payload.pixelBuffer || payload.imageData, payload.reference, payload.matte, payload.region);
+    else if (kind === 'boundaryMap') result = computeBoundaryMap(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'vectorscope') result = computeVectorscope(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'profile') result = computeLineProfile(payload.pixelBuffer || payload.imageData, payload.matte, payload.region, payload.line);
     else if (kind === 'errorProfile') result = computeErrorProfile(payload.pixelBuffer, payload.reference, payload.matte, payload.region, payload.line);
