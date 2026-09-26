@@ -510,6 +510,12 @@
       <div class="study-tools"><select class="select" id="experimentSelect"><option value="photo">Детали: JPEG / WebP / PNG</option><option value="alpha">Прозрачность</option><option value="palette">Палитра: GIF и PNG</option></select><button class="text-btn" id="experimentApply" type="button">Применить к текущему файлу</button></div>
       <p id="experimentQuestion"></p><p class="batch-note">Для фотографии добавьте свой снимок. Для прозрачности и палитры подходит кнопка «Образец». Эксперимент меняет настройки сравнения; параметры пакета сохраняются.</p>
     </section>
+    <section aria-labelledby="jpegReconstructionTitle">
+      <h3 id="jpegReconstructionTitle">Исходный JPEG через JPEG XL</h3>
+      <div class="study-tools"><button class="text-btn" id="jpegToJxl" type="button">Сохранить выбранный JPEG как JXL</button><button class="text-btn" id="jxlToJpeg" type="button">Восстановить JPEG из выбранного JXL</button></div>
+      <p class="batch-note">Это отдельное побайтовое преобразование исходного JPEG, включая его метаданные. Оно не использует просмотр в RGBA и отличается от режима «JPEG XL lossless», который сохраняет пиксели. Перед скачиванием JXL программа восстанавливает JPEG и сравнивает все байты с исходным файлом. Файлы до 64 МиБ; неподдерживаемые варианты дают ошибку без обычного перекодирования.</p>
+      <p id="jpegReconstructionStatus" role="status" aria-live="polite">Выберите JPEG или JXL в списке файлов.</p>
+    </section>
     <section aria-labelledby="qualitySeriesTitle">
       <h3 id="qualitySeriesTitle">Серия качества</h3>
       <div class="study-tools"><label for="qualitySeriesFirst">Формат 1</label><select class="select" id="qualitySeriesFirst"><option value="jpeg">JPEG</option><option value="webp">WebP</option><option value="avif">AVIF</option><option value="heic">HEIC</option><option value="jxl">JPEG XL</option></select><label for="qualitySeriesSecond">Формат 2</label><select class="select" id="qualitySeriesSecond"><option value="webp">WebP</option><option value="jpeg">JPEG</option><option value="avif">AVIF</option><option value="heic">HEIC</option><option value="jxl">JPEG XL</option></select></div>

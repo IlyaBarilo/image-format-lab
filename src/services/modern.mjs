@@ -38,7 +38,7 @@ export function createModern() {
           current.url = null;
           resolve(current);
         } else if (data.type === 'error') current.fail(new Error('WebP / JPEG XL: ' + data.message));
-        else if (['decoded', 'encoded'].includes(data.type) && data.id === current.pending?.id) {
+        else if (['decoded', 'encoded', 'transcoded'].includes(data.type) && data.id === current.pending?.id) {
           const pending = current.pending;
           current.pending = null;
           dispose(current); // Release the entire WASM heap after every image.
@@ -60,7 +60,7 @@ export function createModern() {
       return new Promise((resolve, reject) => {
         const id = ++sequence;
         current.pending = { id, resolve, reject };
-        current.timer = setTimeout(() => current.fail(new Error(type === 'encode' ? 'Превышено время кодирования WebP / JPEG XL' : 'Превышено время декодирования WebP / JPEG XL')), 120000);
+        current.timer = setTimeout(() => current.fail(new Error(type === 'encode' ? 'Превышено время кодирования WebP / JPEG XL' : type === 'decode' ? 'Превышено время декодирования WebP / JPEG XL' : 'Превышено время побайтового преобразования JPEG / JPEG XL')), type === 'jpeg-to-jxl' || type === 'jxl-to-jpeg' ? 180000 : 120000);
         try { current.worker.postMessage({ type, id, buffer, ...properties }, [buffer]); }
         catch (error) { current.fail(error); }
       });
@@ -88,7 +88,21 @@ export function createModern() {
     const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format, webpMethod, jxlEffort });
     return new Blob([result.buffer], { type: format === 'webpLossless' ? 'image/webp' : 'image/jxl' });
   }
-  const api = { decode, encode };
+  async function convertExactJpeg(file, operation) {
+    if (!file || !Number.isSafeInteger(file.size) || file.size < 4 || file.size > 64 * 1024 * 1024)
+      throw new Error('Для точного преобразования нужен файл размером до 64 МиБ');
+    const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    const jpeg = header[0] === 0xff && header[1] === 0xd8;
+    const jxl = header[0] === 0xff && header[1] === 0x0a ||
+      header.length >= 12 && [0, 0, 0, 12, 74, 88, 76, 32, 13, 10, 135, 10].every((byte, i) => header[i] === byte);
+    if (operation === 'jpeg-to-jxl' ? !jpeg : !jxl)
+      throw new Error(operation === 'jpeg-to-jxl' ? 'Выберите исходный файл JPEG' : 'Выберите файл JPEG XL');
+    const result = await operate(operation, () => file.arrayBuffer());
+    return new Blob([result.buffer], { type: operation === 'jpeg-to-jxl' ? 'image/jxl' : 'image/jpeg' });
+  }
+  const api = { decode, encode,
+    transcodeJpeg: file => convertExactJpeg(file, 'jpeg-to-jxl'),
+    reconstructJpeg: file => convertExactJpeg(file, 'jxl-to-jpeg') };
   async function loadModernCodec() { await start(); return api; }
   return { loadModernCodec };
 }

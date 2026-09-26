@@ -120,4 +120,71 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
   else return fail("Invalid or truncated JPEG XL");
  }
 }
+
+// Lossless JPEG recompression keeps the original codestream and reconstruction
+// metadata. It deliberately never passes through the RGBA image API above.
+int viewer_modern_jpeg_to_jxl(const uint8_t* jpeg,size_t length) {
+ viewer_modern_clear();
+ if(!jpeg || length<4 || length>limit || jpeg[0]!=0xff || jpeg[1]!=0xd8)
+  return fail("Invalid JPEG or file exceeds 256 MiB");
+ std::unique_ptr<JxlEncoder,decltype(&JxlEncoderDestroy)> enc(JxlEncoderCreate(nullptr),JxlEncoderDestroy);
+ if(!enc) return fail("Cannot allocate JPEG XL encoder");
+ if(JxlEncoderUseContainer(enc.get(),JXL_TRUE)!=JXL_ENC_SUCCESS ||
+    JxlEncoderStoreJPEGMetadata(enc.get(),JXL_TRUE)!=JXL_ENC_SUCCESS)
+  return fail("JPEG reconstruction setup failed");
+ auto* frame=JxlEncoderFrameSettingsCreate(enc.get(),nullptr);
+ if(!frame || JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_EFFORT,5)!=JXL_ENC_SUCCESS)
+  return fail("JPEG reconstruction frame setup failed");
+ if(JxlEncoderAddJPEGFrame(frame,jpeg,length)!=JXL_ENC_SUCCESS)
+  return fail("This JPEG cannot be recompressed with exact reconstruction");
+ JxlEncoderCloseInput(enc.get());
+ output.resize(65536);size_t used=0;
+ for(;;) {
+  uint8_t* next=output.data()+used;size_t available=output.size()-used;
+  auto status=JxlEncoderProcessOutput(enc.get(),&next,&available);used=output.size()-available;
+  if(status==JXL_ENC_SUCCESS){output.resize(used);break;}
+  if(status!=JXL_ENC_NEED_MORE_OUTPUT || output.size()>=limit)
+   return fail("JPEG recompression failed or exceeds 256 MiB");
+  output.resize(std::min(limit,output.size()*2));
+ }
+ return output.empty()?fail("Empty JPEG XL output"):0;
+}
+
+int viewer_modern_jxl_to_jpeg(const uint8_t* jxl,size_t length) {
+ viewer_modern_clear();
+ if(!jxl || !length || length>limit) return fail("Empty JPEG XL or file exceeds 256 MiB");
+ std::unique_ptr<JxlDecoder,decltype(&JxlDecoderDestroy)> dec(JxlDecoderCreate(nullptr),JxlDecoderDestroy);
+ if(!dec) return fail("Cannot allocate JPEG XL decoder");
+ if(JxlDecoderSubscribeEvents(dec.get(),JXL_DEC_JPEG_RECONSTRUCTION|JXL_DEC_FULL_IMAGE)!=JXL_DEC_SUCCESS ||
+    JxlDecoderSetInput(dec.get(),jxl,length)!=JXL_DEC_SUCCESS) return fail("JPEG XL input rejected");
+ JxlDecoderCloseInput(dec.get());
+ bool reconstructing=false;size_t used=0;
+ for(;;) {
+  auto status=JxlDecoderProcessInput(dec.get());
+  if(status==JXL_DEC_JPEG_RECONSTRUCTION) {
+   if(reconstructing) return fail("Duplicate JPEG reconstruction metadata");
+   reconstructing=true;output.resize(65536);
+   if(JxlDecoderSetJPEGBuffer(dec.get(),output.data(),output.size())!=JXL_DEC_SUCCESS)
+    return fail("Cannot allocate JPEG reconstruction buffer");
+  } else if(status==JXL_DEC_JPEG_NEED_MORE_OUTPUT) {
+   if(!reconstructing) return fail("Missing JPEG reconstruction metadata");
+   const size_t unused=JxlDecoderReleaseJPEGBuffer(dec.get());
+   if(unused>output.size() || output.size()>=limit) return fail("JPEG reconstruction exceeds 256 MiB");
+   used=output.size()-unused;output.resize(std::min(limit,output.size()*2));
+   if(JxlDecoderSetJPEGBuffer(dec.get(),output.data()+used,output.size()-used)!=JXL_DEC_SUCCESS)
+    return fail("Cannot grow JPEG reconstruction buffer");
+  } else if(status==JXL_DEC_FULL_IMAGE) {
+   if(!reconstructing) return fail("JPEG XL has no original JPEG to restore");
+   const size_t available=output.size()-used;
+   const size_t unused=JxlDecoderReleaseJPEGBuffer(dec.get());
+   if(unused>available) return fail("Invalid JPEG reconstruction length");
+   used+=available-unused;output.resize(used);
+   if(used<4 || output[0]!=0xff || output[1]!=0xd8)
+    return fail("Invalid reconstructed JPEG");
+   return 0;
+  } else if(status==JXL_DEC_NEED_IMAGE_OUT_BUFFER || status==JXL_DEC_SUCCESS)
+   return fail("JPEG XL has no original JPEG to restore");
+  else return fail("Invalid or truncated JPEG XL reconstruction");
+ }
+}
 }

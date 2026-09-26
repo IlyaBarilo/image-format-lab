@@ -327,6 +327,11 @@ libjpeg-turbo описаны в [инструкции](../vendor/sources/jpeg/RE
 параметр передаётся только в AVIF-кодировщик через HEIC Worker. Путь HEIC не меняется.
 `services/modern.mjs` / `workers/modern.worker.mjs` обслуживают JPEG XL и WebP lossless;
 [сборка из исходников](../vendor/sources/modern/README.md).
+Отдельные операции `jpeg-to-jxl` и `jxl-to-jpeg` передают исходный файл через
+тот же Worker в libjxl без декодирования в RGBA. Они не входят в форматы ячеек:
+`ui/study.mjs` предлагает их в «Экспериментах» и перед скачиванием JXL
+побайтово сравнивает исходный JPEG с восстановленным. Вход ограничен 64 МиБ,
+выход нативного моста — 256 МиБ; JXL без reconstruction metadata отвергается.
 `core/modern-options.mjs` проверяет WebP method 0–6 и JPEG XL effort 1–10
 с прежними значениями 4 и 5; параметры доходят до пересобранного C++-моста.
 Обычный WebP использует браузерный кодировщик, поэтому его метод недоступен.

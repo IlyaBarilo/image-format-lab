@@ -23,8 +23,11 @@ Pinned upstream submodules: Brotli 028fb5a (MIT), Highway 457c891
 (Apache-2.0 OR BSD-3-Clause, both texts supplied), skcms 96d9171 (BSD-3-Clause).
 Only these dependencies are linked. No sjpeg, lcms, libpng, JPEGli, OpenEXR,
 test fixtures, HEVC reference software or external network loading is included.
-The wrapper handles the first displayed frame in RGBA8. Lossless applies to
-these input samples, not to metadata, animation, HDR or prior canvas conversions.
+The image comparison wrapper handles the first displayed frame in RGBA8.
+Its pixel-lossless mode applies to those input samples, not to metadata,
+animation, HDR or prior canvas conversions. A separate JPEG reconstruction
+operation uses the original JPEG codestream and libjxl metadata without RGBA;
+it restores original JPEG bytes for inputs supported by libjxl.
 
 Build provenance: sources/modern/sources.lock.json pins upstream URLs, commits,
 original archive SHA-256 and selected-source SHA-256. The upstream archives are

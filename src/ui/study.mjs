@@ -1,8 +1,10 @@
 import { DEFAULT_VARIANTS, EXPERIMENTS, PROFILE_KEY } from "./../core/config.mjs";
 import { REFERENCE_SAMPLES } from '../core/reference-samples.mjs';
+import { reconstructionName, sameBlobBytes } from '../core/jpeg-reconstruction.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStudy({app, els}, deps) {
+  let jpegBusy = false;
   function captureComparison() {
     return { layout: app.layout, background: app.background, autoApply: true,
       metadataPolicy: els.metadataPolicy.value, variants: app.variants.map(v => ({ ...v.config })) };
@@ -55,6 +57,33 @@ export function createStudy({app, els}, deps) {
     const question=()=>{$("experimentQuestion").textContent=EXPERIMENTS[$("experimentSelect").value].question;}; question();
     $("experimentSelect").addEventListener("change",question);
     action("experimentApply",()=>applyExperiment($("experimentSelect").value));
+    async function convertSelectedJpeg(operation) {
+      if (jpegBusy) return;
+      const status = $("jpegReconstructionStatus");
+      const selected = app.files.find(item => item.id === app.selectedFileId);
+      if (!selected) { status.textContent = 'Сначала выберите файл в списке.'; return; }
+      const file = selected.file;
+      jpegBusy = true;
+      $("jpegToJxl").disabled = $("jxlToJpeg").disabled = true;
+      status.textContent = operation === 'jpeg-to-jxl' ? 'Преобразую JPEG и проверяю точное восстановление…' : 'Восстанавливаю исходный JPEG…';
+      try {
+        const codec = await deps.loadOptionalCodec('modern');
+        if (operation === 'jpeg-to-jxl') {
+          const jxl = await codec.transcodeJpeg(file);
+          const restored = await codec.reconstructJpeg(jxl);
+          if (!await sameBlobBytes(file, restored)) throw new Error('Восстановленный JPEG отличается от исходного; JXL не сохранён.');
+          deps.downloadBlob(jxl, reconstructionName(file.name, operation));
+          status.textContent = `Все байты JPEG совпали после восстановления. ${deps.formatBytes(file.size)} → ${deps.formatBytes(jxl.size)}; JXL скачан.`;
+        } else {
+          const jpeg = await codec.reconstructJpeg(file);
+          deps.downloadBlob(jpeg, reconstructionName(file.name, operation));
+          status.textContent = `Исходный JPEG восстановлен из ${file.name} (${deps.formatBytes(jpeg.size)}).`;
+        }
+      } catch (error) { status.textContent = error?.message || String(error); }
+      finally { jpegBusy = false; $("jpegToJxl").disabled = $("jxlToJpeg").disabled = false; }
+    }
+    $("jpegToJxl").addEventListener('click', () => convertSelectedJpeg('jpeg-to-jxl'));
+    $("jxlToJpeg").addEventListener('click', () => convertSelectedJpeg('jxl-to-jpeg'));
     $("referenceSampleCreate").addEventListener('click',async()=>{
       const button=$("referenceSampleCreate"),id=$("referenceSampleSelect").value,definition=REFERENCE_SAMPLES[id];
       if(button.disabled||!definition||app.batchRun?.running)return;

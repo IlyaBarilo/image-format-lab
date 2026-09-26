@@ -34,5 +34,13 @@ additional 16383-pixel per-axis format limit. Encoded buffers are capped at
 lossless preserves invisible RGB. Native browser canvas conversions may already
 have changed source samples before they reach the encoder.
 
+The separate `viewer_modern_jpeg_to_jxl` and `viewer_modern_jxl_to_jpeg` exports
+use libjxl's JPEG frame and reconstruction metadata APIs. They operate on the
+original compressed bytes without an RGBA conversion and reject unsupported
+JPEG inputs or JXL files without reconstruction data. The application limits
+each input to 64 MiB and verifies a new JXL by restoring and comparing every
+JPEG byte before download. The build enables `JPEGXL_ENABLE_TRANSCODE_JPEG`
+and `JPEGXL_ENABLE_BOXES`; no additional library is linked.
+
 Own bridge/build code: MIT, see PROJECT-LICENSE. Third-party terms and complete
 notices are in `../../MODERN-NOTICE` and the listed `modern-*` license files.

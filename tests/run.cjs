@@ -16,6 +16,7 @@ tests.push('ssim');
 tests.push('png-indexed');
 tests.push('modern-options');
 tests.push('modern-native-options');
+tests.push('jpeg-jxl-reconstruction');
 tests.push('avif-speed');
 tests.push('avif-native-speed');
 tests.push('tiff16');
