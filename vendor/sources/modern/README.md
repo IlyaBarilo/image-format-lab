@@ -26,7 +26,12 @@ appends it to a freshly extracted `decode.cc`; the pinned upstream archive is
 unchanged. It exposes the VarDCT strategy map for the first full, untransformed
 frame. Modular images do not have that map.
 
-The C interface accepts 8-bit straight RGBA up to 40 million pixels. A fresh
+The C interface accepts 8-bit straight RGBA up to 40 million pixels and a
+separate JPEG XL lossless path accepts integer straight RGBA16 samples in
+native-endian byte order. `viewer_modern_encode16` stores 16-bit color and alpha;
+`viewer_modern_depth` identifies a 16-bit decoded buffer. The ordinary WebP and
+lossy JPEG XL paths remain RGBA8. This bridge preserves RGB values under fully
+transparent alpha and limits uncompressed output to 256 MiB. A fresh
 Worker owns the heap and is terminated after each operation. WebP has an
 additional 16383-pixel per-axis format limit. Encoded buffers are capped at
 256 MiB. WebP lossless accepts method 0–6 (default 4). JPEG XL accepts effort

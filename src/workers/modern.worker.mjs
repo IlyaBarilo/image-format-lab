@@ -17,10 +17,11 @@ self.onmessage = async ({ data: request }) => {
       codec.HEAPU8.set(input, pointer);
       let status;
       if (type === 'encode') {
-        const { width, height, quality, webpMethod, jxlEffort } = request, kind = { webpLossless: 1, jxl: 2, jxlLossless: 3 }[format];
-        if (!kind || !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 || input.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100
+        const { width, height, quality, webpMethod, jxlEffort, depth = 8 } = request, kind = { webpLossless: 1, jxl: 2, jxlLossless: 3 }[format];
+        if (!kind || !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 || (depth !== 8 && (depth !== 16 || kind !== 3)) || input.length !== width * height * 4 * (depth / 8) || !Number.isInteger(quality) || quality < 1 || quality > 100
           || !Number.isInteger(webpMethod) || webpMethod < 0 || webpMethod > 6 || !Number.isInteger(jxlEffort) || jxlEffort < 1 || jxlEffort > 10) throw new Error('Некорректные параметры изображения или кодирования');
-        status = codec._viewer_modern_encode(pointer, input.length, width, height, quality, kind, webpMethod, jxlEffort);
+        status = depth === 16 ? codec._viewer_modern_encode16(pointer, input.length, width, height, jxlEffort)
+          : codec._viewer_modern_encode(pointer, input.length, width, height, quality, kind, webpMethod, jxlEffort);
       } else if (type === 'decode') {
         if (!['webp', 'jxl'].includes(format)) throw new Error('Неизвестный формат');
         status = codec._viewer_modern_decode(pointer, input.length, format === 'webp' ? 1 : 2);
@@ -30,10 +31,11 @@ self.onmessage = async ({ data: request }) => {
       if (status) throw new Error(codec.UTF8ToString(codec._viewer_modern_error()));
       const at = codec._viewer_modern_output(), size = codec._viewer_modern_output_size();
       const width = codec._viewer_modern_width(), height = codec._viewer_modern_height();
+      const depth = type === 'decode' ? codec._viewer_modern_depth() : type === 'encode' ? request.depth || 8 : 8;
       if (at <= 0 || size < 1 || size > 256 * 1024 * 1024 || at + size > codec.HEAPU8.length ||
           (!transcode && (!Number.isSafeInteger(width * height) || width <= 0 || height <= 0 || width * height > 40000000 ||
-          (type === 'decode' && size !== width * height * 4)))) throw new Error('Некорректный результат кодека');
-      result = { type: transcode ? 'transcoded' : type === 'encode' ? 'encoded' : 'decoded', id, width, height, buffer: codec.HEAPU8.slice(at, at + size).buffer };
+          (type === 'decode' && (depth !== 8 && depth !== 16 || size !== width * height * 4 * (depth / 8)))))) throw new Error('Некорректный результат кодека');
+      result = { type: transcode ? 'transcoded' : type === 'encode' ? 'encoded' : 'decoded', id, width, height, depth, buffer: codec.HEAPU8.slice(at, at + size).buffer };
       if (type === 'decode' && format === 'jxl') {
         const count = codec._viewer_modern_block_count();
         const expected = Math.ceil(width / 8) * Math.ceil(height / 8);

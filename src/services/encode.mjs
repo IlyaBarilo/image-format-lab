@@ -2,6 +2,7 @@ import { FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 import { encodeIco, ICO_SIZES } from '../core/ico.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { resolvedPngDepth } from '../core/png.mjs';
+import { resolvedJxlDepth } from '../core/modern-options.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createEncode({}, deps) {
@@ -62,6 +63,19 @@ export function createEncode({}, deps) {
           precisionNote:pixels.bitDepth===16?'16 бит/канал · показ 8 бит':'16 бит/канал · из 8 бит; деталей не добавлено'},source);
       }
     }
+    if(format==='jxlLossless'){
+      const depth=resolvedJxlDepth(config.jxlDepth,pixels);
+      const dims=deps.outputDimensionsForConfig(config,source);
+      if(depth===16&&(dims.width!==source.width||dims.height!==source.height))
+        throw new Error('JPEG XL 16 бит пока сохраняется только в исходном размере. Уберите изменение размеров или выберите 8 бит на канал.');
+      const prepared=deps.outputSourceForConfig(config,source);
+      const candidate=prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
+      const codec=await deps.loadOptionalCodec('modern');
+      const blob=await codec.encode(prepared.imageData,config.quality,format,config,candidate);
+      return deps.withEncodedMeta({blob,previewImageData:null,panoramaPreserved:false,
+        precisionNote:depth===16?(pixels.bitDepth===16?'16 бит/канал · экранный SDR':'16 бит/канал · из 8 бит; деталей не добавлено'):
+          highDepth?`8 бит/канал · из ${pixels.bitDepth} бит`:''},prepared);
+    }
     if (format === 'jp2' || format === 'j2k') {
       const prepared = deps.outputSourceForConfig(config, source);
       const preserveIcc=format==='jp2'&&prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
@@ -84,7 +98,7 @@ export function createEncode({}, deps) {
     }
     if (format === "gifenc") return deps.withEncodedMeta(await deps.encodeGifenc(config.gifColors, outputSource), outputSource);
     if (format === "pngUpng") return deps.withEncodedMeta(await deps.encodePngUpng(outputSource), outputSource);
-    if (['heic', 'avif', 'webpLossless', 'jxl', 'jxlLossless', 'tiff'].includes(format)) {
+    if (['heic', 'avif', 'webpLossless', 'jxl', 'tiff'].includes(format)) {
       const codec = await deps.loadOptionalCodec(format === 'tiff' ? 'utif' : ['heic', 'avif'].includes(format) ? 'heic' : 'modern');
       const blob = format==='tiff' ? await codec.encode(outputSource.imageData, config)
         : ['heic','avif'].includes(format) ? await codec.encode(outputSource.imageData, config.quality, format, config)

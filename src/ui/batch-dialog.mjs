@@ -39,6 +39,7 @@ export function createBatchDialog({els, app}, deps) {
     const modern=normalizeModernOptions(config);
     document.getElementById('batchWebpMethod').value=String(modern.webpMethod);
     document.getElementById('batchJxlEffort').value=String(modern.jxlEffort);
+    document.getElementById('batchJxlDepth').value=modern.jxlDepth;
     document.getElementById('batchAvifSpeed').value=String(normalizeAvifOptions(config).avifSpeed);
     app.batchTiffDraft = normalizeTiffOptions(config);
     document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
@@ -79,6 +80,7 @@ export function createBatchDialog({els, app}, deps) {
       jpegProgressive:document.getElementById('batchJpegProgressive').checked,
       webpMethod:Number(document.getElementById('batchWebpMethod').value),
       jxlEffort:Number(document.getElementById('batchJxlEffort').value),
+      jxlDepth:document.getElementById('batchJxlDepth').value,
       avifSpeed:Number(document.getElementById('batchAvifSpeed').value),
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
@@ -120,6 +122,7 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
     document.getElementById('batchWebpMethodField').hidden=config.format!=='webpLossless';
     document.getElementById('batchJxlEffortField').hidden=!['jxl','jxlLossless'].includes(config.format);
+    document.getElementById('batchJxlDepthField').hidden=config.format!=='jxlLossless';
     document.getElementById('batchAvifSpeedField').hidden=config.format!=='avif';
     document.getElementById('batchWebpMethodValue').textContent=String(config.webpMethod);
     document.getElementById('batchJxlEffortValue').textContent=String(config.jxlEffort);

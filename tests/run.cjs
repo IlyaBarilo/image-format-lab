@@ -26,6 +26,7 @@ tests.push('jpeg-jxl-reconstruction');
 tests.push('avif-speed');
 tests.push('avif-native-speed');
 tests.push('tiff16');
+tests.push('jxl16');
 tests.push('display-sdr');
 tests.push('jpeg2000');
 tests.push('icc-sdr');

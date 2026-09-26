@@ -549,6 +549,7 @@ select:disabled {
 .bmp-colors-wrap,
 .bmp-compression-wrap,
 .tiff-depth-wrap,
+.jxl-depth-wrap,
 .tiff-compression-wrap,
 .matte-wrap {
   display: inline-flex;
@@ -599,6 +600,7 @@ select:disabled {
 .bmp-colors-wrap,
 .bmp-compression-wrap,
 .tiff-depth-wrap,
+.jxl-depth-wrap,
 .tiff-compression-wrap,
 .tiff-level-wrap,
 .tiff-predictor-wrap {

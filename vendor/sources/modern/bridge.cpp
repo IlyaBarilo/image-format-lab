@@ -13,7 +13,7 @@
 namespace {
 std::vector<uint8_t> output;
 std::vector<uint32_t> block_owners;
-int width=0,height=0;
+int width=0,height=0,bit_depth=8;
 char error[256]={};
 constexpr size_t limit=256u*1024*1024;
 int fail(const char* text) { std::snprintf(error,sizeof(error),"%s",text);return 1; }
@@ -22,18 +22,19 @@ bool dimensions(int w,int h) {return w>0 && h>0 && uint64_t(w)*h<=40000000;}
 extern "C" size_t viewer_jxl_block_map(JxlDecoder*, uint32_t*, size_t,
                                         uint32_t, uint32_t);
 extern "C" {
-void viewer_modern_clear() {std::vector<uint8_t>().swap(output);std::vector<uint32_t>().swap(block_owners);width=height=0;error[0]=0;}
+void viewer_modern_clear() {std::vector<uint8_t>().swap(output);std::vector<uint32_t>().swap(block_owners);width=height=0;bit_depth=8;error[0]=0;}
 const char* viewer_modern_error(){return error;}
 const uint8_t* viewer_modern_output(){return output.data();}
 size_t viewer_modern_output_size(){return output.size();}
 int viewer_modern_width(){return width;}
 int viewer_modern_height(){return height;}
+int viewer_modern_depth(){return bit_depth;}
 const uint32_t* viewer_modern_block_owners(){return block_owners.data();}
 size_t viewer_modern_block_count(){return block_owners.size();}
 // kind: 1 WebP lossless, 2 JPEG XL lossy, 3 JPEG XL lossless.
-int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort) {
+static int encode_pixels(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort,int depth) {
  viewer_modern_clear();
- if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4 || quality<1 || quality>100 || kind<1 || kind>3 || webp_method<0 || webp_method>6 || jxl_effort<1 || jxl_effort>10) return fail("Invalid image or encoder options; limit 40 megapixels");
+ if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4*(depth/8) || length>limit || quality<1 || quality>100 || kind<1 || kind>3 || webp_method<0 || webp_method>6 || jxl_effort<1 || jxl_effort>10 || (depth!=8 && (depth!=16 || kind!=3))) return fail("Invalid image or encoder options; limit 40 megapixels / 256 MiB");
  if (kind==1) {
   if(w>16383 || h>16383) return fail("WebP dimensions exceed 16383 pixels");
   WebPConfig config;WebPPicture picture;
@@ -54,7 +55,7 @@ int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quali
   if(!enc) return fail("Cannot allocate JPEG XL encoder");
   const bool lossless=kind==3;
   JxlBasicInfo info;JxlEncoderInitBasicInfo(&info);info.xsize=w;info.ysize=h;
-  info.bits_per_sample=8;info.num_color_channels=3;info.num_extra_channels=1;info.alpha_bits=8;info.uses_original_profile=lossless;
+  info.bits_per_sample=depth;info.num_color_channels=3;info.num_extra_channels=1;info.alpha_bits=depth;info.uses_original_profile=lossless;
   JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
   if(JxlEncoderSetBasicInfo(enc.get(),&info)!=JXL_ENC_SUCCESS || JxlEncoderSetColorEncoding(enc.get(),&color)!=JXL_ENC_SUCCESS) return fail("JPEG XL image setup failed");
   auto* frame=JxlEncoderFrameSettingsCreate(enc.get(),nullptr);
@@ -62,7 +63,7 @@ int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quali
      JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_KEEP_INVISIBLE,1)!=JXL_ENC_SUCCESS ||
      JxlEncoderSetFrameDistance(frame,lossless?0:std::max(0.01f,JxlEncoderDistanceFromQuality(quality)))!=JXL_ENC_SUCCESS ||
      JxlEncoderSetFrameLossless(frame,lossless)!=JXL_ENC_SUCCESS || JxlEncoderSetExtraChannelDistance(frame,0,0)!=JXL_ENC_SUCCESS) return fail("JPEG XL frame setup failed");
-  JxlPixelFormat pixels{4,JXL_TYPE_UINT8,JXL_NATIVE_ENDIAN,0};
+  JxlPixelFormat pixels{4,depth==16?JXL_TYPE_UINT16:JXL_TYPE_UINT8,JXL_NATIVE_ENDIAN,0};
   if(JxlEncoderAddImageFrame(frame,&pixels,rgba,length)!=JXL_ENC_SUCCESS) return fail("JPEG XL input rejected");
   JxlEncoderCloseInput(enc.get());output.resize(65536);size_t used=0;
   for(;;) {
@@ -73,7 +74,13 @@ int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quali
    output.resize(std::min(limit,output.size()*2));
   }
  }
- width=w;height=h;return output.empty()?fail("Empty encoded output"):0;
+ width=w;height=h;bit_depth=depth;return output.empty()?fail("Empty encoded output"):0;
+}
+int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort) {
+ return encode_pixels(rgba,length,w,h,quality,kind,webp_method,jxl_effort,8);
+}
+int viewer_modern_encode16(const uint8_t* rgba,size_t length,int w,int h,int jxl_effort) {
+ return encode_pixels(rgba,length,w,h,100,3,4,jxl_effort,16);
 }
 int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
  viewer_modern_clear();
@@ -97,13 +104,19 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
    JxlBasicInfo info;
    if(JxlDecoderGetBasicInfo(dec.get(),&info)!=JXL_DEC_SUCCESS || info.xsize>40000000 || info.ysize>40000000 || !dimensions(info.xsize,info.ysize)) return fail("JPEG XL exceeds 40 megapixels");
    width=info.xsize;height=info.ysize;
+   if(info.bits_per_sample==16 && info.exponent_bits_per_sample==0) {
+    if(info.alpha_premultiplied) return fail("Premultiplied JPEG XL 16-bit alpha is unsupported");
+    pixels.data_type=JXL_TYPE_UINT16;bit_depth=16;
+   }
    grid_allowed=info.orientation==JXL_ORIENT_IDENTITY && !info.have_animation;
   } else if(status==JXL_DEC_COLOR_ENCODING) {
-   JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
-   if(JxlDecoderSetPreferredColorProfile(dec.get(),&color)!=JXL_DEC_SUCCESS) return fail("JPEG XL color conversion failed");
+   if(bit_depth==8) {
+    JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
+    if(JxlDecoderSetPreferredColorProfile(dec.get(),&color)!=JXL_DEC_SUCCESS) return fail("JPEG XL color conversion failed");
+   }
   } else if(status==JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
    size_t size=0;
-   if(!dimensions(width,height) || JxlDecoderImageOutBufferSize(dec.get(),&pixels,&size)!=JXL_DEC_SUCCESS || size!=size_t(width)*height*4) return fail("Invalid JPEG XL pixel allocation");
+   if(!dimensions(width,height) || JxlDecoderImageOutBufferSize(dec.get(),&pixels,&size)!=JXL_DEC_SUCCESS || size!=size_t(width)*height*4*(bit_depth/8) || size>limit) return fail("Invalid JPEG XL pixel allocation or exceeds 256 MiB");
    output.resize(size);
    if(JxlDecoderSetImageOutBuffer(dec.get(),&pixels,output.data(),size)!=JXL_DEC_SUCCESS) return fail("JPEG XL output rejected");
   } else if(status==JXL_DEC_FULL_IMAGE) {

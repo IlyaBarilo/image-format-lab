@@ -51,6 +51,36 @@ async function download(page, button) {
       return rows;
     }, formats);
     assert.equal(cases.length,24);
+    await page.evaluate(async()=>{
+      const width=2,height=1,data=new Uint16Array([1,256,65534,0,32769,12345,43210,65535]);
+      const imageData=new ImageData(new Uint8ClampedArray([...data].map(value=>Math.round(value/257))),width,height);
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d');ctx.putImageData(imageData,0,0);
+      const pixelBuffer={width,height,data,sampleType:'uint16',bitDepth:16};
+      const source={canvas,ctx,imageData,pixelBuffer,width,height,hasAlpha:true,name:'precise.png'};
+      const config={...DEFAULT_EXPORT_CONFIG,format:'jxlLossless',jxlEffort:1,jxlDepth:'auto'};
+      const exact=await encodeFromSource(config,source);
+      const decoded=await decodeVariantForPreview(exact.blob);
+      try{
+        if(decoded.pixelBuffer?.bitDepth!==16||!data.every((value,i)=>decoded.pixelBuffer.data[i]===value))
+          throw Error('JPEG XL auto did not preserve RGBA16');
+      }finally{decoded.bitmap.close();}
+      const reduced=await encodeFromSource({...config,jxlDepth:'8'},source);
+      const result8=await decodeVariantForPreview(reduced.blob);
+      try{if(result8.pixelBuffer?.bitDepth!==8)throw Error('JPEG XL explicit 8-bit output mismatch');}
+      finally{result8.bitmap.close();}
+      const source8={...source,pixelBuffer:null};
+      const promoted=await encodeFromSource({...config,jxlDepth:'16'},source8);
+      const result16=await decodeVariantForPreview(promoted.blob);
+      try{
+        if(result16.pixelBuffer?.bitDepth!==16||!imageData.data.every((value,i)=>result16.pixelBuffer.data[i]===value*257))
+          throw Error('JPEG XL explicit 16-bit expansion mismatch');
+      }finally{result16.bitmap.close();}
+      let rejected=false;
+      try{await encodeFromSource({...config,resizeWidth:'1'},source);}catch{rejected=true;}
+      if(!rejected)throw Error('JPEG XL 16-bit resize silently rounded the source');
+    });
+    report.checks.push('JPEG XL lossless Auto preserves exact RGBA16 through downloaded-file decode; explicit 8/16-bit choices and resize guard');
     for (const format of ['avif', 'jxl']) {
       const matching = cases.filter(c => c.width === 256 && c.height === 192 && c.format === format);
       assert.ok(matching.find(c => c.quality === 85).bytes > matching.find(c => c.quality === 20).bytes, format + ' quality must change the output');
@@ -93,6 +123,8 @@ async function download(page, button) {
     await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.webpMethod===1);
     await cell.locator('.format-select').selectOption('jxlLossless');
     await page.waitForFunction(()=>isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.jxl-depth').isVisible(),true);
+    assert.equal(await cell.locator('.jxl-depth').inputValue(),'auto');
     assert.equal(await cell.locator('.modern-effort').inputValue(),'5');
     await cell.locator('.modern-effort').press('Home');
     await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.jxlEffort===1);
@@ -120,6 +152,7 @@ async function download(page, button) {
       await page.locator('#batchFormat').selectOption(format);
       assert.equal(await page.locator('#batchWebpMethodField').isVisible(),format==='webpLossless');
       assert.equal(await page.locator('#batchJxlEffortField').isVisible(),['jxl','jxlLossless'].includes(format));
+      assert.equal(await page.locator('#batchJxlDepthField').isVisible(),format==='jxlLossless');
       assert.equal(await page.locator('#batchAvifSpeedField').isVisible(),format==='avif');
       if(format==='avif')await page.locator('#batchAvifSpeed').press('End');
       if(format==='tiff') {

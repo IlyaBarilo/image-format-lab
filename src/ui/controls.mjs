@@ -232,6 +232,14 @@ export function createControls({els, app}, deps) {
     modernEffortValue.className='quality-value modern-effort-value';
     modernEffortWrap.append(document.createTextNode('Усилие'),modernEffort,modernEffortValue);
     head.append(modernEffortWrap);
+    const jxlDepthWrap=document.createElement('label');
+    jxlDepthWrap.className='jxl-depth-wrap';
+    jxlDepthWrap.title='Авто сохраняет 16-битные отсчёты исходника. JPEG XL lossless 16 бит доступен без изменения размеров; экранный SDR-показ настраивается отдельно.';
+    const jxlDepth=document.createElement('select');jxlDepth.className='select jxl-depth';
+    for(const [value,label] of [['auto','Авто'],['8','8 бит/канал'],['16','16 бит/канал']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;jxlDepth.append(option);
+    }
+    jxlDepthWrap.append(document.createTextNode('Разрядность'),jxlDepth);head.append(jxlDepthWrap);
 
     const avifSpeedWrap=document.createElement('label');
     avifSpeedWrap.className='quality-wrap avif-speed-wrap';
@@ -335,6 +343,8 @@ export function createControls({els, app}, deps) {
       modernEffortWrap,
       modernEffort,
       modernEffortValue,
+      jxlDepthWrap,
+      jxlDepth,
       avifSpeedWrap,
       avifSpeed,
       avifSpeedValue,
@@ -374,6 +384,7 @@ export function createControls({els, app}, deps) {
       modernEffortValue.textContent=modernEffort.value;
       deps.markDirty(variant);
     });
+    jxlDepth.addEventListener('change',()=>{variant.config.jxlDepth=jxlDepth.value;deps.markDirty(variant);});
     avifSpeed.addEventListener('input',()=>{
       variant.config.avifSpeed=Number(avifSpeed.value);
       avifSpeedValue.textContent=avifSpeed.value;
@@ -508,6 +519,10 @@ export function createControls({els, app}, deps) {
       variant.controls.modernEffort.setAttribute('aria-label',webp?'Метод WebP lossless':'Усилие JPEG XL');
       variant.controls.modernEffort.value=String(webp?options.webpMethod:options.jxlEffort);
       variant.controls.modernEffortValue.textContent=variant.controls.modernEffort.value;
+    }
+    if(variant.controls.jxlDepthWrap){
+      variant.controls.jxlDepthWrap.hidden=format!=='jxlLossless';
+      variant.controls.jxlDepth.value=normalizeModernOptions(variant.config).jxlDepth;
     }
     if(variant.controls.avifSpeedWrap){
       variant.controls.avifSpeedWrap.hidden=format!=='avif';
@@ -652,7 +667,7 @@ export function createControls({els, app}, deps) {
       webp: webpRead, webpLossless: webpRead,
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
       avif: "Встроенные libheif / libaom",
-      jxl: "Встроенный libjxl", jxlLossless: "Встроенный libjxl",
+      jxl: "Встроенный libjxl, показ 8 бит/канал", jxlLossless: "Встроенный libjxl; целочисленный RGBA16 читается точно, экранный SDR-показ настраивается отдельно; иной цветовой профиль 16-битного JXL не преобразуется",
       jp2: "Встроенный OpenJPEG · контейнер JP2", j2k: "Встроенный OpenJPEG · поток J2K",
       bmp8: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
       tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; точный целочисленный TIFF16 для серого/RGB/RGBA без сжатия, с Deflate или PackBits; RGB ICC для классического TIFF16; первая страница",
@@ -666,7 +681,7 @@ export function createControls({els, app}, deps) {
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность; метод 0–6 меняет усилие сжатия",
       avif: "Встроенные libheif / libaom; качество 1–100 и скорость 0–9, поддерживает прозрачность",
       jxl: "Встроенный libjxl; качество 1–100, усилие 1–10, поддерживает прозрачность",
-      jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; усилие 1–10",
+      jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; Авто / 8 / 16 бит на канал, 16 бит в исходном размере; усилие 1–10",
       jp2: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — приблизительная степень сжатия; поддерживаются точные 8/16 бит и прозрачность; ICC сохраняется при повторной записи JP2 без изменения размера",
       j2k: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — с потерями; J2K не содержит контейнерных метаданных JP2",
       tiff: "RGBA8 без потерь: без сжатия, Deflate, LZW или PackBits. RGBA16 в исходном размере: без сжатия или Deflate, предиктор по выбору; поддерживаемый ICC переносится из точного источника; просмотр 8-битный",

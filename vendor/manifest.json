@@ -616,8 +616,8 @@
     {
       "file": "sources/modern/README.md",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 2732,
-      "sha256": "b4cf4dff34c2da8ba40df6732b5637d51d16b9b07a90f0979841e1c8a20be643"
+      "bytes": 3113,
+      "sha256": "7fe865d195fcc6f46858a208cfd00b5e7ce4fa787067a93ccfd93cd04ee6b111"
     },
     {
       "file": "sources/modern/PROJECT-LICENSE",
@@ -628,8 +628,8 @@
     {
       "file": "sources/modern/bridge.cpp",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 11036,
-      "sha256": "c286b8b29f8e01364e1ace7c73866fa3a1084231818d4910f16cdb4a3d866e63"
+      "bytes": 11903,
+      "sha256": "26c3dba0b84341e8a7da18190ca2b3e7ac89235efec073b6576c3d0996f40ba9"
     },
     {
       "file": "sources/modern/block-map.inc",
@@ -640,8 +640,8 @@
     {
       "file": "sources/modern/build.py",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 5363,
-      "sha256": "28508a0868d42e0c5b5b5ec3dd00cf5decf4909288186fd74501579eaa9e1e2d"
+      "bytes": 5410,
+      "sha256": "6e539042114ce8feae9f443c78dfd4a5ef7974420338d940817447efbdb274b3"
     },
     {
       "file": "sources/modern/sources.lock.json",
@@ -796,8 +796,8 @@
     {
       "file": "modern-codecs.js",
       "url": "Pinned sources and notices for WebP / JPEG XL / AVIF; see MODERN-NOTICE",
-      "bytes": 3867586,
-      "sha256": "6418d2d068880e90598a720eeae4b9ee3bcb26d6230ce7b6b5f369640a84e991"
+      "bytes": 3868383,
+      "sha256": "e92b903565f5217f9d625fc1c2504c092addccf12f3554ba4fb2bc625dc6a799"
     },
     {
       "file": "sources/raster/bmp-bridge.c",

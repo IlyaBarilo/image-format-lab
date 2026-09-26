@@ -16,6 +16,7 @@ export function normalizeBatchSettings(value) {
   if (['none','rle8'].includes(value.bmpCompression)) config.bmpCompression = value.bmpCompression;
   if (["auto","8","16"].includes(value.pngDepth)) config.pngDepth=value.pngDepth;
   if (["auto","8","16"].includes(value.tiffDepth)) config.tiffDepth=value.tiffDepth;
+  if (["auto","8","16"].includes(value.jxlDepth)) config.jxlDepth=value.jxlDepth;
   if (['default','adaptive','none','sub','up','average','paeth'].includes(value.pngFilter)) config.pngFilter=value.pngFilter;
   if (Number.isInteger(value.pngLevel) && value.pngLevel>=1 && value.pngLevel<=9) config.pngLevel=value.pngLevel;
   if (Number.isInteger(value.webpMethod) && value.webpMethod>=0 && value.webpMethod<=6) config.webpMethod=value.webpMethod;

@@ -79,7 +79,7 @@ export function createBatchSettings({app}, deps) {
     const pngCompression=png&&png.pngFilter!=='default'?`, фильтр ${png.pngFilter}, Deflate ${png.pngLevel}`:'';
     const tiff=config.format==='tiff'?normalizeTiffOptions(config):null;
     const modern=['webpLossless','jxl','jxlLossless'].includes(config.format)?normalizeModernOptions(config):null;
-    const modernText=config.format==='webpLossless'?`, метод ${modern.webpMethod}`:modern?`, усилие ${modern.jxlEffort}`:'';
+    const modernText=config.format==='webpLossless'?`, метод ${modern.webpMethod}`:modern?`, усилие ${modern.jxlEffort}${config.format==='jxlLossless'?`, ${modern.jxlDepth==='auto'?'разрядность исходника':modern.jxlDepth+' бит/канал'}`:''}`:'';
     const avifText=config.format==='avif'?`, скорость ${normalizeAvifOptions(config).avifSpeed}`:'';
     const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}${pngCompression}`

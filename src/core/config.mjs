@@ -122,7 +122,7 @@ export const DEFAULT_VARIANTS = [
   { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white", jpegSubsampling: "420", jpegProgressive: false },
   { format: "png", quality: 100, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" },
   { format: "webp", quality: 85, gifColors: 128, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" }
-].map(variant => ({ pngFilter: "default", pngLevel: 6, webpMethod: 4, jxlEffort: 5, avifSpeed: 6, ...variant }));
+].map(variant => ({ pngFilter: "default", pngLevel: 6, webpMethod: 4, jxlEffort: 5, jxlDepth: 'auto', avifSpeed: 6, ...variant }));
 
 export const BATCH_STORAGE_KEY = "image-format-viewer.batch-settings.v1";
 

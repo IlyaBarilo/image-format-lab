@@ -1,6 +1,8 @@
 import workerSource from 'viewer:modern-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
+import { createPixelBuffer } from '../core/pixel-buffer.mjs';
+import { pngPreview } from '../core/png.mjs';
 
 export function createModern() {
   let session, sequence = 0, queue = Promise.resolve();
@@ -74,18 +76,36 @@ export function createModern() {
     const result = await operate('decode', () => file.arrayBuffer(), { format });
     const columns = Math.ceil(result.width / 8), rows = Math.ceil(result.height / 8);
     const owners = result.blockOwners ? new Uint32Array(result.blockOwners) : null;
+    const exact = result.depth === 16 ? createPixelBuffer({width:result.width,height:result.height,
+      data:new Uint16Array(result.buffer),sampleType:'uint16',bitDepth:16}) : null;
+    const preview = exact ? pngPreview(exact).data : new Uint8ClampedArray(result.buffer);
     return { width: result.width, height: result.height,
-      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null,
+      imageData: new ImageData(preview, result.width, result.height), pixelBuffer:exact,
+      precisionNote:exact?'16 бит/канал · экранный SDR':'', close: null,
       blockGrid: owners?.length === columns * rows ? { kind: 'jxl-vardct', columns, rows, owners } : null };
   }
-  async function encode(imageData, quality, format = 'jxl', options = {}) {
+  async function encode(imageData, quality, format = 'jxl', options = {}, exactPixels = null) {
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100)
       throw new Error('Некорректные параметры WebP / JPEG XL или превышен лимит 40 мегапикселей');
     // Transfer a new buffer, never the viewer's source pixels.
-    const { webpMethod, jxlEffort } = normalizeModernOptions(options);
-    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format, webpMethod, jxlEffort });
+    const { webpMethod, jxlEffort, jxlDepth } = normalizeModernOptions(options);
+    const candidate = exactPixels ? createPixelBuffer(exactPixels) : createPixelBuffer({width,height,data});
+    if(candidate.width!==width||candidate.height!==height)throw new Error('Размеры точных пикселей JPEG XL не совпадают с изображением');
+    const depth = format === 'jxlLossless' && (jxlDepth === '16' || jxlDepth === 'auto' && candidate.sampleType === 'uint16' && candidate.bitDepth === 16) ? 16 : 8;
+    if(width*height*4*(depth/8)>256*1024*1024)throw new Error('JPEG XL: растр превышает 256 МиБ');
+    let bytes;
+    if(depth===16){
+      if(candidate.sampleType==='uint16'&&candidate.bitDepth===16&&candidate.alphaMode==='straight')
+        bytes=new Uint8Array(candidate.data.buffer,candidate.data.byteOffset,candidate.data.byteLength).slice();
+      else if(candidate.sampleType==='uint8'&&candidate.alphaMode==='straight'){
+        const expanded=new Uint16Array(candidate.data.length);
+        for(let i=0;i<expanded.length;i++)expanded[i]=candidate.data[i]*257;
+        bytes=new Uint8Array(expanded.buffer);
+      }else throw new Error('JPEG XL 16 бит требует целочисленные RGBA8/16 с независимой прозрачностью');
+    }else bytes=new Uint8ClampedArray(data);
+    const result = await operate('encode', () => bytes.buffer, { width, height, quality, format, webpMethod, jxlEffort, depth });
     return new Blob([result.buffer], { type: format === 'webpLossless' ? 'image/webp' : 'image/jxl' });
   }
   async function convertExactJpeg(file, operation) {
