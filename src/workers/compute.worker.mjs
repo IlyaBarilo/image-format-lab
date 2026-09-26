@@ -19,7 +19,7 @@ self.onmessage = event => {
     if (kind === 'metrics') result = computePixelMetrics(payload.a, payload.b, payload.options);
     else if (kind === 'histogram') result = computeHistogram(payload.pixelBuffer || payload.imageData, payload.matte, payload.region, payload.options);
     else if (kind === 'errorHistogram') result = computeErrorHistogram(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
-    else if (kind === 'waveform') result = computeWaveform(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'waveform') result = computeWaveform(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'signalHistogram') result = computeSignalHistogram(payload.imageData, payload.matte, payload.region);
     else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);
     else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);

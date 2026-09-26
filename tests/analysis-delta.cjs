@@ -89,7 +89,7 @@ function recordingCanvas(width=600,height=300) {
     const pixels=density.ops.find(op=>op.kind==='image').pixels;
     let positive=0,negative=0;
     for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]){if(pixels[i]===251)positive++;else if(pixels[i]===56)negative++;else assert.fail('unexpected sign color');}
-    assert.ok(positive&&negative);assert.equal(density.dataset.yMin,'0');assert.equal(density.dataset.yMax,'255');
+    assert.ok(positive&&negative);assert.equal(density.dataset.yMin,'0');assert.equal(density.dataset.yMax,'100');
     const equal=recordingCanvas();renderAnalysisDelta(equal,analysisDelta(pair(a,a),ws),ws);
     assert.ok(equal.ops.find(op=>op.kind==='image').pixels.every(v=>v===0),'equal density stays dark');
     const point=recordingCanvas();renderAnalysisDelta(point,analysisDelta(pair(profile([10]),profile([20])),ps),ps);

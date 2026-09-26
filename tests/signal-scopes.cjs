@@ -1,4 +1,4 @@
-// Computed RGB8 signal scopes: shared BT.709 math, area, matte and comparison data.
+// Computed integer signal scopes: native samples, BT.709, area, matte and comparison data.
 const assert = require('node:assert/strict');
 
 (async () => {
@@ -49,6 +49,32 @@ const assert = require('node:assert/strict');
     assert.equal(delta.alignment,'relative-column-area');
     assert.ok(JSON.parse(analysisJSON({delta})).delta.channels[0].values.length === 256);
   }
+  const pixels16 = samples => ({ width:samples.length, height:1, data:Uint16Array.from(samples.flat()), sampleType:'uint16', bitDepth:16, colorSpace:'srgb', alphaMode:'straight' });
+  const native = pixels16([[32769,32768,32767,65535],[0,65535,0,32768],[65535,0,0,0]]);
+  const nativeCopy = native.data.slice();
+  const precise = computeWaveform(native,'black',{unit:'pixels',x:0,y:0,width:2,height:1});
+  assert.equal(precise.sampleType,'uint16');assert.equal(precise.bitDepth,16);
+  assert.equal(precise.scaleMax,65535);assert.equal(precise.levelBins,1024);
+  assert.equal(precise.columns,2);assert.equal(precise.pixelCount,2);
+  assert.equal(precise.channels[0][512],1,'RGB is grouped after reading the exact 16-bit value');
+  assert.equal(precise.channelMin[0],0);assert.equal(precise.channelMax[0],32769);
+  assert.equal(precise.means[0],(32769+0)/2,'summary retains the native 16-bit value');
+  assert.equal(precise.channels[3].reduce((sum,count)=>sum+count,0),2);
+  assert.equal(precise.channels[4].reduce((sum,count)=>sum+count,0),2);
+  assert.deepEqual(native.data,nativeCopy,'the source PixelBuffer is borrowed, not modified');
+  const white16 = computeWaveform(pixels16([[12345,20000,30000,0]]),'white');
+  assert.deepEqual(white16.channelMin.slice(0,3),[65535,65535,65535]);
+  assert.deepEqual(white16.channelMin.slice(3),[65535,32768,32768]);
+  assert.equal(analysisMaximum('rgbWaveform',[{data:precise}]),1);
+  const matching8=computeWaveform(image([[255,0,0,255]]));
+  const matching16=computeWaveform(pixels16([[65535,0,0,65535]]));
+  const mixedDelta=analysisDelta(pair(matching8,matching16),{type:'parade'});
+  assert.equal(mixedDelta.maximum,0,'8/16-bit matching endpoints align on the common grid');
+  assert.equal(mixedDelta.rows,256);
+  assert.equal(analysisMaximum('parade',[{data:matching8},{data:matching16}],'rgb',256),1);
+  assert.equal(JSON.parse(analysisJSON({wave:matching16})).wave.channels[0].length,1024);
+  assert.throws(()=>computeWaveform({width:1,height:1,data:new Float32Array([0,0,0,1]),sampleType:'float32'}),/float32/);
+  assert.throws(()=>computeWaveform(pixels16([[0,0,0,65535]]),'invalid'),/подложка/);
   assert.throws(() => computeSignalHistogram(red,'invalid'));
-  console.log('PASS BT.709 RGB8 signal levels, alpha/matte, ROI, histogram, spatial counts and signed comparison');
+  console.log('PASS BT.709 native RGBA8/16 signal levels, matte, ROI, bounded bins, mixed-depth comparison and JSON');
 })().catch(error => { console.error(error); process.exitCode = 1; });

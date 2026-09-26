@@ -77,15 +77,15 @@ export function createAnalysis({ app }, deps) {
     matte.disabled = profile ? profileChannel.value === 'alpha' : vector || signalHistogram || ['ssim','cieXy','deltaE'].includes(type.value) ? false : difference || errorHistogram || errorProfile ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
     panel.dataset.type = type.value;
     help.title = spatial
-      ? 'По горизонтали — положение в кадре, по вертикали — уровень 0–255. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
+      ? 'По горизонтали — положение в кадре, по вертикали — кодовый уровень RGBA8/16. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
       : 'По горизонтали — уровни или интервалы подписанной шкалы, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
     get('analysisMethod').textContent = spatial
-      ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины кадра); в Parade оно повторяется для трёх каналов. По вертикали — кодовые уровни 0–255. Waveform: Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), коэффициенты BT.709 применены к RGB8 после смешивания с выбранной подложкой. Это оценка сигнала, не линейная физическая яркость, HDR или IRE. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп, уровни не усредняются. Плотность — доля пикселей группы на данном уровне. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума всех видимых графиков и каналов. Фон и масштаб просмотра на расчёт не влияют.'
+      ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины выбранной области); в Parade оно повторяется для трёх каналов. По вертикали — кодовые уровни 0–255 для RGBA8 или 0–65535 для RGBA16. Считаются точные целые отсчёты каждой ячейки после композиции с выбранной подложкой в её разрядности. Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), Cb/Cr вычисляются из этих же RGB с нейтральным смещением половины диапазона по BT.709. Это оценка сигнала, не линейная физическая яркость, HDR, IRE или плоскости кодека. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп. Для RGBA16 значения распределяются в 1024 интервала по 64 кода после вычисления точного сигнала; минимумы, максимумы и средние остаются точными. Плотность — доля пикселей группы в интервале. Для наложения и разницы оба графика приводятся к общей нормированной сетке из 256 интервалов. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума. Фон и масштаб просмотра на расчёт не влияют.'
       : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни целых отсчётов или явные интервалы float32, по вертикали — доля пикселей канала в процентах. Считаются все пиксели выбранной области. Целые уровни сохраняются точно; RGB после подложки округляется в исходной разрядности. При узком графике соседние уровни суммируются в общие группы, подписанные в сведениях. Для разных целых разрядностей используется общая нормированная шкала 0–1. Вне диапазона float32 отсчёты учитываются отдельно; крайние интервалы ими не заполняются. JSON сохраняет исходные счётчики и шкалу; PNG группирует их под размер отчёта. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
     if(signalHistogram)get('analysisMethod').textContent='Гистограмма Y′CbCr вычислена из декодированного RGB8 после смешивания с выбранной подложкой. Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. Значения округляются в шкалу 0–255. Нейтральная цветность находится около уровня 128. Это вычисленные сигналы BT.709, а не внутренние плоскости кодека, вещательные уровни или HDR. Учитываются все пиксели выбранной области; по вертикали — доля пикселей канала в процентах.';
-    if(type.value==='ycbcrParade')get('analysisMethod').textContent='Y′CbCr Parade показывает вычисленные каналы декодированного RGB8: Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. После смешивания с выбранной подложкой значения округляются в шкалу 0–255, нейтральная цветность около 128. Три панели имеют общую горизонталь 0–100% выбранной области. Это не внутренние плоскости кодека, вещательные уровни или HDR.';
-    if(type.value==='rgbWaveform')get('analysisMethod').textContent='Waveform RGB вместе накладывает вычисленные следы R, G и B декодированного RGB8 на одну общую координатную сетку: горизонталь 0–100% выбранной области, вертикаль 0–255. Прозрачность смешивается с выбранной подложкой. Плотность каждого канала нормируется на общий максимум; пересечения цветов складываются. Это видимые кодовые значения после декодирования, не внутренние плоскости кодека и не HDR.';
-    if(type.value==='ycbcrWaveform')get('analysisMethod').textContent='Waveform Y′CbCr вместе накладывает вычисленные следы Y′, Cb и Cr декодированного RGB8 на одну сетку: горизонталь 0–100% выбранной области, вертикаль 0–255; нейтральная цветность Cb/Cr около 128. Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128. Значения округлены после смешивания прозрачности с выбранной подложкой. Плотность нормируется на общий максимум; пересечения цветов складываются. Это вычисленные сигналы BT.709, не внутренние плоскости кодека, вещательные уровни или HDR.';
+    if(type.value==='ycbcrParade')get('analysisMethod').textContent+=' Y′CbCr Parade показывает вычисленные Y′, Cb и Cr в трёх панелях; нейтральная цветность находится около середины кодового диапазона.';
+    if(type.value==='rgbWaveform')get('analysisMethod').textContent+=' Waveform RGB накладывает R, G и B на одну сетку; пересечения цветов складываются.';
+    if(type.value==='ycbcrWaveform')get('analysisMethod').textContent+=' Waveform Y′CbCr накладывает вычисленные Y′, Cb и Cr на одну сетку; пересечения цветов складываются.';
      if(difference) {
       help.title = 'Отличие каждой ячейки от исходного файла. Чёрный — совпадение, цвет — величина ошибки. Усиление общее. Нажмите для подробностей.';
       get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой; α: абсолютная разность прозрачности без подложки. Это различия кодовых значений RGBA8, не Delta E и не оценка восприятия. Чёрный означает нулевую разность, цвет показывает величину от 0 до 255. Общее усиление умножает только отображаемую разность; красный — достижение или превышение верхнего порога шкалы. Средние/максимумы считаются по всем выбранным пикселям без усиления. Карта ограничена 512 пикселями по длинной стороне; каждая её точка хранит максимальную ошибку группы, чтобы не терять единичные отличия. Размеры результата и исходника должны совпадать: масштабирования или выравнивания по содержимому нет.';
@@ -124,7 +124,7 @@ export function createAnalysis({ app }, deps) {
     if(output.display==='delta'){
       help.title='Разница графиков: вторая выбранная ячейка минус первая. Ноль означает совпадение графиков. Нажмите для методики и единиц.';
       get('analysisMethod').textContent='«Разница» вычитает график первой выбранной ячейки из второй; порядок подписан, например Δ 2 − 1. Используются уже рассчитанные графики текущих результатов и выбранной области. Плюс означает увеличение во второй ячейке, минус — уменьшение. RGB учитывает подложку анализа, α измеряется отдельно. ' + (spatial
-         ? 'Waveform и Parade сохраняют горизонталь 0–100% ширины области и вертикаль кодовых уровней 0–255. Вычитаются доли пикселей на каждом уровне каждой группы столбцов, в процентных пунктах. При разном числе групп плотности сначала нормируются на размер своей группы, затем приводятся к общей относительной сетке с весами пересечения групп. Оранжевый — прибавление, голубой — уменьшение, тёмный фон — ноль. Интенсивность — корень четвёртой степени модуля разности относительно общего максимума выбранных каналов; предел подписан в легенде. При уменьшении Canvas сохраняется значение с наибольшим модулем в экранной точке, чтобы не погасить противоположные отличия усреднением.'
+         ? 'Waveform и Parade сохраняют горизонталь 0–100% ширины области. Для сопоставления RGBA8/16 уровни обоих графиков суммируются в общую нормированную сетку из 256 интервалов; разность долей пикселей на интервал и группу столбцов выражена в процентных пунктах. При разном числе групп плотности сначала нормируются на размер своей группы, затем приводятся к общей относительной сетке с весами пересечения групп. Оранжевый — прибавление, голубой — уменьшение, тёмный фон — ноль. Интенсивность — корень четвёртой степени модуля разности относительно общего максимума выбранных каналов; предел подписан в легенде. При уменьшении Canvas сохраняется значение с наибольшим модулем в экранной точке, чтобы не погасить противоположные отличия усреднением.'
         : profile
           ? 'Профиль вычитает средние групп вдоль относительной линии A→B. При разном числе групп используется линейная интерполяция кривых в общих позициях; единственный отсчёт постоянен. По вертикали — разность кодовых уровней, шкала симметрична относительно нуля. Минимумы/максимумы групп не вычитаются: такой интервал не был бы диапазоном попиксельных ошибок. Указатель показывает разницу в текущей относительной позиции.'
           : 'Гистограмма вычитает доли пикселей на согласованной шкале уровней или интервалов. Соседние уровни суммируются под ширину графика; разницы внутри одной группы могут взаимно погаситься, точные массивы остаются в JSON. Вне диапазона float32 разницы учитываются отдельно. По вертикали — процентные пункты, например 12% − 10% = +2 п.п. Разное число пикселей само по себе не создаёт разницу. Шкала симметрична относительно нуля и общая для выбранных каналов; указатель показывает разницу на выбранном уровне.') + ' Сопоставление выполняется в координатах графиков, без выравнивания содержимого изображений. Режим не запускает новое кодирование или Worker. В JSON сохранены оба графика и подписанные массивы разницы; PNG содержит график, единицы и порядок вычитания.';
@@ -133,7 +133,7 @@ export function createAnalysis({ app }, deps) {
       help.title='Точки текущих ячеек: размер по горизонтали, выбранная метрика по вертикали. Данные уже готовых результатов; нажмите для методики.';
       get('analysisMethod').textContent='Точки соответствуют текущим готовым ячейкам, номера совпадают. По горизонтали размер файла в КБ (1000 байт), по вертикали выбранная метрика: PSNR RGB на белой подложке (выше — меньше ошибка), средняя абсолютная ошибка alpha в процентах от полного диапазона канала (ниже — лучше) или время обработки в мс, включая ожидание, декодирование и метрики. Это не изолированная скорость кодировщика. PSNR ∞ означает совпадение видимого RGB и показан в отдельной полосе, без подмены конечным числом. Одинаковые точки не сдвигаются, разнесены только номера; все значения есть в легенде. Точки не соединяются: перебора качества и интерполяции нет. Метрики взяты из основного сравнения всего изображения с декодированным исходником, область/линия/подложка панели на них не влияют. При несовпадении размеров PSNR/ошибка alpha недоступны. Устаревшие, ошибочные или отсутствующие метрики не получают точек.';
      }
-     if(output.display==='delta'&&['signalHistogram','ycbcrParade'].includes(type.value))get('analysisMethod').textContent+=' Цветовые сигналы вычислены из декодированного RGB8 после выбранной подложки по BT.709: Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + 128; Cr = (R−Y′)/1,5748 + 128, затем округление до 0–255. Это не внутренние плоскости кодека и не вещательные уровни.';
+    if(output.display==='delta'&&type.value==='signalHistogram')get('analysisMethod').textContent+=' Цветовые сигналы гистограммы вычислены из декодированного RGB8 после выбранной подложки по BT.709.';
     get('analysisCaveat').textContent=tradeoff?'Числа не заменяют визуальную оценку; время зависит от устройства и нагрузки. Подробности по текущим ячейкам:':errorHistogram?'Здесь считаются ошибки одних и тех же координат, поэтому размеры кадров должны совпадать. Подробности по текущим ячейкам:':'Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:';
     if (followsViewport()) {
       get('analysisMethod').textContent = get('analysisMethod').textContent
@@ -143,7 +143,7 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent += ' Режим «Видимая часть» берёт фактический фрагмент каждой ячейки с учётом масштаба и перемещения. Пиксели на границе включаются целиком, фон вне изображения исключён. При разных размерах окон/результатов области могут различаться; их точные координаты записаны в данных графиков. В максимуме используются последние размеры окон просмотра. Линия A→B задаётся относительно видимой области каждой ячейки; её редактор показывает исходник в окне первой ячейки. Основные метрики и сохраняемые изображения остаются полными.';
     }
     const high=app.source?.pixelBuffer?.bitDepth>8||app.variants.slice(0,app.layout).some(v=>v.pixelBuffer?.bitDepth>8);
-    const precision=high?(type.value==='histogram'||errorHistogram||errorProfile||['ssim','cieXy','deltaE'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
+    const precision=high?(type.value==='histogram'||errorHistogram||errorProfile||spatial||['ssim','cieXy','deltaE'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
     if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=['cieXy','deltaE'].includes(type.value)?' Цветовое описание исходника неизвестно: для этого цветового анализа предполагается sRGB.':' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
@@ -250,14 +250,14 @@ export function createAnalysis({ app }, deps) {
 
   async function compute(input, background, kind, reference, line) {
     const { imageData, pixelBuffer, histogramOptions, region } = input;
-    const owner = ['histogram','errorHistogram','errorProfile','ssim','cieXy','deltaE'].includes(kind) ? pixelBuffer || imageData : imageData;
+    const owner = ['histogram','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform'].includes(kind) ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
     let entry = cache.get(owner);
     const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['errorHistogram','errorProfile','ssim','cieXy','deltaE'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
     if(cache === activeCache) cache.set(owner, entry);
@@ -584,13 +584,7 @@ export function createAnalysis({ app }, deps) {
 
   function drawSpatial() {
     const indices = spatialChannels(type.value),overlap=['rgbWaveform','ycbcrWaveform'].includes(type.value);
-    let maximum = 0;
-    for (const { data } of results) if (data) for (const index of indices) {
-      for (let x = 0; x < data.columns; x++) for (let value = 0; value < 256; value++) {
-        maximum = Math.max(maximum, data.channels[index][x * 256 + value] / data.columnPixels[x]);
-      }
-    }
-    maximum ||= 1;
+    const maximum = analysisMaximum(type.value, results);
     const detailLines = [];
     cards.forEach((card, side) => {
       if (card.element.hidden) return;
@@ -605,20 +599,15 @@ export function createAnalysis({ app }, deps) {
       card.element.dataset.state = 'ready';
       card.info.hidden = true; card.canvas.hidden = false;
       card.canvas.dataset.kind = type.value;
-      card.canvas.dataset.yMax = '255';
+      card.canvas.dataset.yMax = String(data.scaleMax || 255);
+      card.canvas.dataset.levelBins = String(data.levelBins || 256);
       card.canvas.dataset.densityMax = String(maximum);
       const summary = indices.map(index => {
-        let low = 255, high = 0, sum = 0;
-        data.channels[index].forEach((count, position) => {
-          if (!count) return;
-          const value = position % 256;
-          low = Math.min(low, value); high = Math.max(high, value); sum += value * count;
-        });
-         return `${spatialName(index)} ${low}–${high}, среднее ${number(sum / data.pixelCount)}`;
+        return `${spatialName(index)} ${data.channelMin[index]}–${data.channelMax[index]}, среднее ${number(data.means[index])}`;
       }).join(' · ');
-      const description = `${rasterDescription(data)} · ${data.columns} групп столбцов · сигналы из RGB8 на ${data.matte === 'white' ? 'белом' : 'чёрном'}`;
+      const description = `${rasterDescription(data)} · ${data.columns} групп столбцов · сигналы из RGB${data.bitDepth || 8} на ${data.matte === 'white' ? 'белом' : 'чёрном'}${data.levelBins < data.scaleMax + 1 ? ` · ${data.levelBins} интервалов уровней` : ''}`;
       card.badge.title = `${item.label}. ${description}`;
-       const label = `${item.label}. ${description}. ${type.selectedOptions[0].textContent}${variantField.hidden?'':` · ${variantSelect.selectedOptions[0].textContent}`}. Уровни 0–255, ширина кадра 0–100%. ${summary}.`;
+       const label = `${item.label}. ${description}. ${type.selectedOptions[0].textContent}${variantField.hidden?'':` · ${variantSelect.selectedOptions[0].textContent}`}. Уровни 0–${data.scaleMax || 255}, ширина кадра 0–100%. ${summary}.`;
       card.canvas.setAttribute('aria-label', label);
       detailLines.push(label);
        plotSpatial(card.canvas, data, indices, maximum, undefined, overlap);
@@ -636,36 +625,38 @@ export function createAnalysis({ app }, deps) {
     const left = 36, top = 28, bottom = height - 25, right = width - 12, gap = 12;
      const planeWidth = overlap?right-left:(right - left - gap * (indices.length - 1)) / indices.length;
     ctx.font = '11px "Segoe UI", sans-serif'; ctx.textBaseline = 'middle';
-    const y = value => bottom - (bottom - top) * value / 255;
-    for (const value of [0, 64, 128, 192, 255]) {
+    const scaleMax = data.scaleMax || 255, levelBins = data.levelBins || 256;
+    const ticks = [0, .25, .5, .75, 1].map(ratio => Math.min(scaleMax, Math.round(ratio * (scaleMax + 1))));
+    const y = value => bottom - (bottom - top) * value / scaleMax;
+    for (const value of ticks) {
       ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'right'; ctx.fillText(String(value), left - 5, y(value));
     }
     indices.forEach((index, plane) => {
        const start = overlap?left:left + plane * (planeWidth + gap);
       ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
-      for (const value of [0, 64, 128, 192, 255]) {
+      for (const value of ticks) {
         ctx.beginPath(); ctx.moveTo(start, y(value)); ctx.lineTo(start + planeWidth, y(value)); ctx.stroke();
       }
-      const raster = document.createElement('canvas'); raster.width = data.columns; raster.height = 256;
-      const rasterCtx = raster.getContext('2d'), pixels = rasterCtx.createImageData(data.columns, 256);
+      const raster = document.createElement('canvas'); raster.width = data.columns; raster.height = levelBins;
+      const rasterCtx = raster.getContext('2d'), pixels = rasterCtx.createImageData(data.columns, levelBins);
        const color = index === 3 ? overlap ? [250, 204, 21] : [226, 232, 240] : index === 4 ? [34, 211, 238] : index === 5 ? [244, 114, 182] : index === 0 ? [251, 113, 133] : index === 1 ? [74, 222, 128] : [96, 165, 250];
-      for (let x = 0; x < data.columns; x++) for (let value = 0; value < 256; value++) {
-        const count = data.channels[index][x * 256 + value];
+      for (let x = 0; x < data.columns; x++) for (let value = 0; value < levelBins; value++) {
+        const count = data.channels[index][x * levelBins + value];
         if (!count) continue;
-        const p = ((255 - value) * data.columns + x) * 4;
+        const p = ((levelBins - 1 - value) * data.columns + x) * 4;
         pixels.data[p] = color[0]; pixels.data[p + 1] = color[1]; pixels.data[p + 2] = color[2];
         pixels.data[p + 3] = Math.round(255 * Math.pow(count / data.columnPixels[x] / maximum, 0.25));
       }
       rasterCtx.putImageData(pixels, 0, 0);
       // Preserve narrow peaks when a spatial/signal bin is smaller than a display pixel.
       // Max pooling is only a drawing operation; underlying counts stay exact.
-      const rows = Math.min(256, Math.max(1, Math.round((bottom - top) * dpr)));
+      const rows = Math.min(levelBins, Math.max(1, Math.round((bottom - top) * dpr)));
       const columns = Math.min(data.columns, Math.max(1, Math.round(planeWidth * dpr)));
-      if (rows < 256 || columns < data.columns) {
+      if (rows < levelBins || columns < data.columns) {
         const reduced = rasterCtx.createImageData(columns, rows);
-        for (let row = 0; row < 256; row++) for (let x = 0; x < data.columns; x++) {
+        for (let row = 0; row < levelBins; row++) for (let x = 0; x < data.columns; x++) {
           const from = (row * data.columns + x) * 4;
-          const to = (Math.floor(row * rows / 256) * columns + Math.floor(x * columns / data.columns)) * 4;
+          const to = (Math.floor(row * rows / levelBins) * columns + Math.floor(x * columns / data.columns)) * 4;
           if (pixels.data[from + 3] > reduced.data[to + 3]) reduced.data.set(pixels.data.subarray(from, from + 4), to);
         }
         raster.width = columns; raster.height = rows; rasterCtx.putImageData(reduced, 0, 0);

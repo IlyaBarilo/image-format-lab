@@ -1,5 +1,5 @@
 // Own combined scopes and size/metric scatter plot, MIT. Inputs are explicit.
-import {ANALYSIS_CHANNELS,analysisMaximum,spatialChannels,SIGNAL_NAMES} from '../core/analysis-output.mjs';
+import {ANALYSIS_CHANNELS,analysisMaximum,spatialChannels,spatialCount,SIGNAL_NAMES} from '../core/analysis-output.mjs';
 import {histogramView,histogramTick,groupHistogramDelta} from '../core/histogram-view.mjs';
 import {chromaCoordinates} from '../core/vectorscope.mjs';
 import {renderCieXy} from './scope-plots.mjs';
@@ -70,10 +70,10 @@ export function createAnalysisCombined(){
     if(model.scale){canvas.dataset.xMin=String(model.scale.min);canvas.dataset.xMax=String(model.scale.max);canvas.dataset.bins=String(model.bins);}
     const limit=model.maximum||1,profile=model.type==='profile',spatial=Boolean(model.columns);
     canvas.dataset.kind=model.type;canvas.dataset.mode='delta';canvas.dataset.maxAbs=String(model.maximum);
-    canvas.dataset.unit=model.unit;canvas.dataset.yMax=String(spatial?255:limit);canvas.dataset.yMin=String(spatial?0:-limit);
+    canvas.dataset.unit=model.unit;canvas.dataset.yMax=String(spatial?100:limit);canvas.dataset.yMin=String(spatial?0:-limit);
     if(spatial){
        const gap=14,span=(right-left-gap*(model.channels.length-1))/model.channels.length;
-      grid(ctx,left,right,top,bottom,255);
+      grid(ctx,left,right,top,bottom,100,true);
       model.channels.forEach(({index,values},j)=>{
         const start=left+j*(span+gap),w=Math.min(model.columns,Math.max(1,Math.round(span*dpr))),h=Math.min(256,Math.max(1,Math.round((bottom-top)*dpr)));
         const pooled=new Float64Array(w*h);
@@ -128,8 +128,8 @@ export function createAnalysisCombined(){
      const view=kind==='histogram'||signal?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}
     const channel=profile?settings.profileChannel:error?settings.errorChannel:settings.channel,indices=error?[channel==='alpha'?1:0]:ANALYSIS_CHANNELS[channel];
-    const maximum=analysisMaximum(kind,items,channel),left=56,right=width-18,top=30,bottom=height-28;
-    canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:255);canvas.dataset.densityMax=String(maximum);
+    const maximum=analysisMaximum(kind,items,channel,spatialChannels(kind).length?256:0),left=56,right=width-18,top=30,bottom=height-28;
+    canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:spatialChannels(kind).length?100:255);canvas.dataset.densityMax=String(maximum);
     if(hist||profile){
       const limit=hist?maximum:255;grid(ctx,left,right,top,bottom,limit,hist);
        items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error,signal},layer===0));
@@ -147,10 +147,10 @@ export function createAnalysisCombined(){
       ctx.fillStyle='#cbd5e1';ctx.textAlign='center';ctx.fillText('Cr ↑',cx,11);ctx.textAlign='left';ctx.fillText('Cb →',x0+size+6,cy+28);
     }else{
        const channels=spatialChannels(kind),combined=['rgbWaveform','ycbcrWaveform'].includes(kind),gap=14,span=combined?right-left:(right-left-gap*(channels.length-1))/channels.length;
-       grid(ctx,left,right,top,bottom,255);
+       grid(ctx,left,right,top,bottom,100,true);
        channels.forEach((c,j)=>{const start=combined?left:left+j*(span+gap);
          const base=kind==='ycbcrWaveform'?[[225,190,80],[75,185,205],[205,105,160]][j]:[[220,105,115],[76,198,100],[90,145,235]][j];
-         items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>data.channels[c][x*256+255-y]/data.columnPixels[x],maximum,combined?base.map(n=>Math.min(255,Math.round(n*(i?1.15:.6)))):i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
+         items.forEach(({data},i)=>density(ctx,data.columns,256,(x,y)=>spatialCount(data,c,x,255-y)/data.columnPixels[x],maximum,combined?base.map(n=>Math.min(255,Math.round(n*(i?1.15:.6)))):i?[255,130,55]:[70,210,255],start,top,span,bottom-top,dpr));
          ctx.fillStyle=spatialColor(c);ctx.textAlign='center';ctx.fillText(spatialName(c),combined?right-(2-j)*28:start+span/2,12);
          if(!combined||j===0){ctx.textAlign='left';ctx.fillText('0%',start,height-12);ctx.textAlign='right';ctx.fillText('100%',start+span,height-12);}
        });

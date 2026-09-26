@@ -1,5 +1,5 @@
 // Own signed differences of computed scopes, MIT. No pixels or UI state are changed.
-import { ANALYSIS_CHANNELS, spatialChannels } from './analysis-output.mjs';
+import { ANALYSIS_CHANNELS, spatialChannels, spatialCount } from './analysis-output.mjs';
 import { histogramView } from './histogram-view.mjs';
 
 export const DELTA_TYPES = Object.freeze(['histogram', 'signalHistogram', 'waveform', 'parade', 'rgbWaveform', 'ycbcrWaveform', 'ycbcrParade', 'profile']);
@@ -40,8 +40,8 @@ export function analysisDelta(items, settings) {
       const wa = columnWeights(a.columns, bins, x), wb = columnWeights(b.columns, bins, x);
       for (const { index, values } of channels) for (let y = 0; y < 256; y++) {
         let first = 0, second = 0;
-        for (const [column, weight] of wa) first += weight * a.channels[index][column * 256 + y] / a.columnPixels[column];
-        for (const [column, weight] of wb) second += weight * b.channels[index][column * 256 + y] / b.columnPixels[column];
+        for (const [column, weight] of wa) first += weight * spatialCount(a,index,column,y) / a.columnPixels[column];
+        for (const [column, weight] of wb) second += weight * spatialCount(b,index,column,y) / b.columnPixels[column];
         values[x * 256 + y] = clean((second - first) * 100);
       }
     }
@@ -61,5 +61,5 @@ export function analysisDelta(items, settings) {
     bins, ...(histogram ? { scale: histogram.scale, outside: indices.map(index => ({ index,
       below: ((b.underflow?.[index] || 0) / b.pixelCount - (a.underflow?.[index] || 0) / a.pixelCount) * 100,
       above: ((b.overflow?.[index] || 0) / b.pixelCount - (a.overflow?.[index] || 0) / a.pixelCount) * 100 })) } : {}),
-    ...(density ? { columns: bins, rows: 256 } : {}), maximum, channels };
+    ...(density ? { columns: bins, rows: 256, levelAlignment: 'normalized-256-intervals' } : {}), maximum, channels };
 }

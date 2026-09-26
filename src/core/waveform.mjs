@@ -1,33 +1,58 @@
 // Own spatial signal counts, MIT. Coefficients: ITU-R BT.709-6, section 3.2.
-// Applied to decoded RGB8 code values, not linear light or broadcast-range IRE.
-import { analysisBounds } from './analysis-region.mjs';
+// Derived from integer RGB code values, not linear light or codec YCbCr planes.
+import { analysisRegionBounds } from './analysis-region.mjs';
+import { createPixelBuffer } from './pixel-buffer.mjs';
 import { signalLevels } from './signal-scopes.mjs';
-export function computeWaveform(imageData, matte = 'white', region = null) {
-  const bounds = analysisBounds(imageData, region);
-  const { width, height, data } = imageData;
+export function computeWaveform(input, matte = 'white', region = null) {
+  const pixels = createPixelBuffer(input);
+  const { width, height, data, sampleType, bitDepth, colorSpace, alphaMode } = pixels;
+  if (sampleType === 'float32') throw new Error('Waveform и Parade поддерживают целые RGBA8/16; float32 пока недоступен.');
   if (matte !== 'white' && matte !== 'black') throw new Error('Неизвестная подложка анализа.');
+  const bounds = analysisRegionBounds(width, height, region);
+  const scaleMax = 2 ** bitDepth - 1;
+  const levelBins = Math.min(scaleMax + 1, 1024);
   const columns = Math.min(bounds.width, 256);
-  const channels = Array.from({ length: 6 }, () => new Uint32Array(columns * 256));
+  const channels = Array.from({ length: 6 }, () => new Uint32Array(columns * levelBins));
   const columnPixels = new Uint32Array(columns);
+  const sums = new Float64Array(6), minima = new Uint32Array(6).fill(scaleMax), maxima = new Uint32Array(6);
   const levels = [0, 0, 0];
-  const background = matte === 'white' ? 255 : 0;
-  // Each source column goes into one spatial bin; every row contributes.
+  const values = [0, 0, 0, 0, 0, 0];
+  const background = matte === 'white' ? scaleMax : 0;
+  const bucket = value => Math.min(levelBins - 1, Math.floor(value * levelBins / (scaleMax + 1)));
+  // Grouping follows native-value composition and BT.709 conversion.
   for (let x = 0; x < bounds.width; x++) {
-    const column = Math.floor(x * columns / bounds.width), offset = column * 256;
+    const column = Math.floor(x * columns / bounds.width), offset = column * levelBins;
     columnPixels[column] += bounds.height;
     for (let y = 0, i = (bounds.y * width + bounds.x + x) * 4; y < bounds.height; y++, i += width * 4) {
-      const alpha = data[i + 3], rest = background * (255 - alpha);
-      const r = Math.round((data[i] * alpha + rest) / 255);
-      const g = Math.round((data[i + 1] * alpha + rest) / 255);
-      const b = Math.round((data[i + 2] * alpha + rest) / 255);
-      signalLevels(r, g, b, levels);
-      channels[0][offset + r]++;
-      channels[1][offset + g]++;
-      channels[2][offset + b]++;
-      channels[3][offset + levels[0]]++;
-      channels[4][offset + levels[1]]++;
-      channels[5][offset + levels[2]]++;
+      const alpha = data[i + 3];
+      if (alpha > scaleMax) throw new Error('Отсчёт альфы не соответствует разрядности Waveform.');
+      for (let c = 0; c < 3; c++) {
+        const raw = data[i + c];
+        if (raw > scaleMax) throw new Error('Отсчёт цвета не соответствует разрядности Waveform.');
+        values[c] = Math.round(((alphaMode === 'straight' ? raw * alpha : raw * scaleMax) + background * (scaleMax - alpha)) / scaleMax);
+        if (values[c] > scaleMax) throw new Error('Некорректное предварительно умноженное значение Waveform.');
+      }
+      const [r, g, b] = values;
+      if (bitDepth === 8) signalLevels(r, g, b, levels);
+      else {
+        const yValue = (2126 * r + 7152 * g + 722 * b) / 10000;
+        levels[0] = Math.round(yValue);
+        levels[1] = Math.max(0, Math.min(scaleMax, Math.round((b - yValue) / 1.8556 + (scaleMax + 1) / 2)));
+        levels[2] = Math.max(0, Math.min(scaleMax, Math.round((r - yValue) / 1.5748 + (scaleMax + 1) / 2)));
+      }
+      values[3] = levels[0]; values[4] = levels[1]; values[5] = levels[2];
+      for (let c = 0; c < 6; c++) {
+        const value = values[c];
+        channels[c][offset + bucket(value)]++;
+        sums[c] += value;
+        minima[c] = Math.min(minima[c], value);
+        maxima[c] = Math.max(maxima[c], value);
+      }
     }
   }
-  return { width, height, bounds, pixelCount: bounds.width * bounds.height, matte, columns, columnPixels, channels };
+  const pixelCount = bounds.width * bounds.height;
+  return { width, height, bounds, pixelCount, matte, columns, columnPixels, channels,
+    sampleType, bitDepth, colorSpace, alphaMode, scaleMax, levelBins,
+    channelMin: Array.from(minima), channelMax: Array.from(maxima), means: Array.from(sums, sum => sum / pixelCount),
+    signal: `BT.709-derived-RGB${bitDepth}` };
 }

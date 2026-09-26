@@ -152,6 +152,21 @@ async function main() {
   const separateIcc=await exportReport(separateSnapshot);
   assert.equal(separateIcc.report.images.length,2);
   assert.ok(separateIcc.report.images.every(chart=>chart.ops.some(op=>op[0]==='set'&&op[1]==='strokeStyle'&&op[2]==='#c475ff')));
+  const {computeWaveform}=await import('../src/core/waveform.mjs');
+  const deep=await makeSnapshot('waveform','separate');
+  deep.items[0].data=computeWaveform({width:1,height:1,data:Uint16Array.from([32769,32768,32767,65535]),sampleType:'uint16',bitDepth:16,colorSpace:'srgb'});
+  deep.items[1].data=computeWaveform({width:1,height:1,data:Uint8ClampedArray.from([128,128,127,255])});
+  const deepSeparate=await exportReport(deep,{includeJSON:true});
+  assert.equal(deepSeparate.json.items[0].data.levelBins,1024);
+  assert.equal(deepSeparate.json.items[0].data.channelMax[0],32769);
+  assert.ok(deepSeparate.report.images[0].ops.some(op=>op[0]==='fillText'&&op[1]==='65535'),'16-bit report uses native code labels');
+  deep.settings.display='overlay';
+  const deepOverlay=await exportReport(deep);
+  assert.equal(deepOverlay.report.images.length,1);
+  deep.settings.display='delta';
+  const deepDelta=await exportReport(deep,{includeJSON:true});
+  assert.equal(deepDelta.json.delta.rows,256);
+  assert.ok(deepDelta.report.images[0].ops.some(op=>op[0]==='image'),'mixed-depth signed density is rendered');
   console.log('PASS report-sized redraw for all charts/modes, 2/4 cells, DPR, viewport data, common scale, unavailable cells and unchanged live dimensions');
 }
 module.exports = {makeSnapshot, exportReport};
