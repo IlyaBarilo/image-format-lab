@@ -136,6 +136,22 @@ async function main() {
   const xy = await exportReport(await makeSnapshot('cieXy','overlay'), {includeJSON:true});
   assert.equal(xy.json.items[0].data.bins.length,257*257);
   assert.ok(xy.report.images[0].ops.some(op => op[0] === 'image'), 'CIE xy includes color density in PNG');
+  const {createIccP3Sample}=await import('../src/core/reference-samples.mjs');
+  const {computeCieIcc,mapCieReferenceRegion}=await import('../src/core/color-sdr.mjs');
+  const {pixels,iccProfile}=createIccP3Sample(),iccSnapshot=await makeSnapshot('cieXy','overlay');
+  iccSnapshot.settings.cieView='icc';
+  const sourceRegion=mapCieReferenceRegion({unit:'pixels',x:8,y:4,width:48,height:24},64,32,pixels.width,pixels.height);
+  const reference=computeCieIcc(pixels,iccProfile,'white',sourceRegion);
+  for(const item of iccSnapshot.items)item.data={...item.data,iccReference:reference};
+  const iccReport=await exportReport(iccSnapshot,{includeJSON:true});
+  assert.equal(iccReport.json.settings.cieView,'icc');
+  assert.equal(iccReport.json.items[0].data.iccReference.outOfSrgbCount,reference.outOfSrgbCount);
+  assert.ok(iccReport.report.images[0].ops.some(op=>op[0]==='set'&&op[1]==='strokeStyle'&&op[2]==='#c475ff'));
+  assert.ok(iccReport.report.ops.some(op=>op[0]==='fillText'&&String(op[1]).includes('вне sRGB')));
+  const separateSnapshot=structuredClone(iccSnapshot);separateSnapshot.settings.display='separate';
+  const separateIcc=await exportReport(separateSnapshot);
+  assert.equal(separateIcc.report.images.length,2);
+  assert.ok(separateIcc.report.images.every(chart=>chart.ops.some(op=>op[0]==='set'&&op[1]==='strokeStyle'&&op[2]==='#c475ff')));
   console.log('PASS report-sized redraw for all charts/modes, 2/4 cells, DPR, viewport data, common scale, unavailable cells and unchanged live dimensions');
 }
 module.exports = {makeSnapshot, exportReport};

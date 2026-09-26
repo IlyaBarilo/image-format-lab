@@ -6,6 +6,7 @@ import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { profileBinAt } from '../core/line-profile.mjs';
 import { errorBinInterval, errorHistogramSummary } from '../core/error-histogram.mjs';
 import { renderCieXy } from './scope-plots.mjs';
+import { mapCieReferenceRegion } from '../core/color-sdr.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′', 'Cb', 'Cr'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0', '#facc15', '#22d3ee', '#f472b6'];
@@ -24,6 +25,7 @@ export function createAnalysis({ app }, deps) {
   const panel = get('analysisPanel'), body = get('analysisBody'), collapse = get('analysisCollapse');
   const channel = get('analysisChannel'), matte = get('analysisMatte');
   const type = get('analysisType'), variantSelect = get('analysisVariant'), variantField = get('analysisVariantField');
+  const cieView = get('analysisCieView'), cieViewField = get('analysisCieViewField');
   const differenceChannel = get('analysisDifferenceChannel'), gain = get('analysisGain');
   const profileChannel = get('analysisProfileChannel'), position = get('analysisPosition');
   const level = get('analysisLevel'), status = get('analysisStatus');
@@ -42,6 +44,7 @@ export function createAnalysis({ app }, deps) {
   const readViewports = () => cards.slice(0, app.layout).map((_, side) => deps.getAnalysisViewport(side));
 
   function syncControls() {
+    cieViewField.hidden = type.value !== 'cieXy';
     const variants = GRAPH_VARIANTS.find(group => group.some(([kind]) => kind === type.value));
     variantField.hidden = !variants;
     if (variants) {
@@ -110,6 +113,7 @@ export function createAnalysis({ app }, deps) {
     if(type.value==='cieXy'){
       help.title='Цвета каждой ячейки на диаграмме CIE xy. Белый треугольник — охват sRGB, точка D65 — белый. Нажмите для методики.';
       get('analysisMethod').textContent='CIE xy показывает цветность пикселей выбранной области после смешивания прозрачности с белой или чёрной подложкой. Расчёт: целые RGBA8/16 → SDR sRGB → линейный RGB → XYZ D65 → x=X/(X+Y+Z), y=Y/(X+Y+Z). Чёрные пиксели не имеют определённой цветности и подсчитываются отдельно. Плотность — число отсчётов в ячейке сетки 257×257; контур sRGB и D65 служат ориентирами. Для области свыше 500 000 пикселей берётся равномерная выборка до 500 000, её размер показан отдельно. Если у растра нет цветовой метки, предполагается sRGB. Это распределение показанных SDR-цветов после возможного ограничения гамута, не исходный охват ICC, HDR или измерение вывода монитора.';
+      if(cieView.value==='icc')get('analysisMethod').textContent='Фиолетовым показаны точные пиксели исходного файла до ограничения гамута sRGB по встроенному матричному RGB ICC (PNG, TIFF или JPEG 2000 при доступном точном растре). Профиль переводит RGB в PCS XYZ D50, затем выполняется адаптация к D65 и расчёт CIE xy. Голубым и оранжевым показаны результаты ячеек после SDR-преобразования; их исходный ICC не предполагается. Белый треугольник — sRGB, фиолетовый — первичные цвета профиля. Доля вне sRGB считается по линейному RGB до обрезки с допуском 0,001. Используются выбранная область каждой ячейки, общая подложка и равномерная выборка до 500 000 пикселей на растр. Это оценка данных файла, не измерение монитора, HDR или гарантия полного охвата устройства.';
     }
     if(type.value==='deltaE'){
       help.title='Средняя цветовая разница ΔE00 каждой ячейки относительно исходника. Меньше — ближе по этому методу; нажмите для методики.';
@@ -160,6 +164,8 @@ export function createAnalysis({ app }, deps) {
     const label = `${side + 1} · ${c ? deps.outputFormatLabel(c.format) : 'Нет результата'}${quality}${precision}`;
     if (!app.source) return { label, message: 'Добавьте изображение для анализа.' };
     if (app.sourceLoading) return { label, message: 'Исходник открывается…' };
+    if (type.value === 'cieXy' && cieView.value === 'icc' && (!app.source.nativePixelBuffer || !app.source.iccProfile))
+      return { label, message: 'Исходник ICC недоступен: нужен точный растр PNG, TIFF или JPEG 2000 с поддерживаемым матричным RGB-профилем.' };
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
     if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
@@ -258,6 +264,19 @@ export function createAnalysis({ app }, deps) {
     return result;
   }
 
+  async function computeIccReference(input, background) {
+    const source = app.source, native = source.nativePixelBuffer;
+    const region = mapCieReferenceRegion(input.region, input.imageData.width, input.imageData.height, native.width, native.height);
+    const activeCache = cache, key = `cieIcc:${background}:${JSON.stringify(region)}`;
+    let entry = activeCache.get(native);
+    if (entry?.has(key)) return entry.get(key);
+    if (typeof Worker === 'undefined') throw new Error('Для анализа ICC нужен браузер с поддержкой Worker.');
+    const result = await deps.workerCompute('cieIcc', {pixelBuffer:native, iccProfile:source.iccProfile, matte:background, region});
+    entry ??= new Map(); entry.set(key,result);
+    if (cache === activeCache) cache.set(native,entry);
+    return result;
+  }
+
   async function drain() {
     if (running) return;
     running = true;
@@ -270,7 +289,10 @@ export function createAnalysis({ app }, deps) {
         const computed = [];
         for (const input of inputs) {
           if (input.imageData) {
-            try { computed.push({ ...input, data: kind==='tradeoff'?{width:input.imageData.width,height:input.imageData.height}:await compute(input, background, kind, reference, line) }); }
+            try {
+              const data=kind==='tradeoff'?{width:input.imageData.width,height:input.imageData.height}:await compute(input, background, kind, reference, line);
+              computed.push({...input,data:kind==='cieXy'&&cieView.value==='icc'?{...data,iccReference:await computeIccReference(input,background)}:data});
+            }
             catch (error) { computed.push({ label: input.label, message: error.message || String(error) }); }
           } else computed.push(input);
           if (token !== generation || body.hidden || resizePaused) break;
@@ -292,7 +314,7 @@ export function createAnalysis({ app }, deps) {
 
   function getAnalysisSnapshot(){
     const output=deps.getAnalysisOutputSettings(),kind=type.value;
-    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:{})};
+    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:{})};
     return {version:1,revision:generation,source:app.source?{name:app.source.name,width:app.source.width,height:app.source.height,bytes:app.source.size}:null,settings,method:get('analysisMethod').textContent,
       items:cards.slice(0,app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
   }
@@ -455,11 +477,12 @@ export function createAnalysis({ app }, deps) {
       card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
       const sampled=data.exact?`${number(data.sampleCount)} пикселей`:`выборка ${number(data.sampleCount)} из ${number(data.pixelCount)} пикселей`;
       const description=`${rasterDescription(data)} · ${sampled} · чёрных без координат ${number(data.blackCount)} · ${data.colorAssumption==='srgb-assumed'?'sRGB предположен':'SDR sRGB'} на ${data.matte==='white'?'белой':'чёрной'} подложке`;
-      card.values.textContent=data.exact?'Все пиксели':`Выборка ${number(data.sampleCount)}`;
-      card.values.title=`${sampled}; ${number(data.occupiedBins)} занятых групп цветности.`;
+      const icc=data.iccReference, outside=icc?`Исходник ICC: вне sRGB ${number(icc.outOfSrgbPercent)}% (${number(icc.outOfSrgbCount)} из ${number(icc.sampleCount)} отсчётов); область ${icc.bounds.x}, ${icc.bounds.y}: ${icc.bounds.width}×${icc.bounds.height} px.`:'';
+      card.values.textContent=icc?`ICC вне sRGB ${number(icc.outOfSrgbPercent)}%`:data.exact?'Все пиксели':`Выборка ${number(data.sampleCount)}`;
+      card.values.title=`${sampled}; ${number(data.occupiedBins)} занятых групп цветности. ${outside}`;
       card.badge.title=`${item.label}. ${description}`;
-      card.canvas.setAttribute('aria-label',`${item.label}. CIE xy. ${description}. Белый контур показывает sRGB, жёлтая точка — D65.`);
-      renderCieXy(card.canvas,[data]);lines.push(`${item.label}: ${description}. Занято ${number(data.occupiedBins)} групп.`);
+      card.canvas.setAttribute('aria-label',`${item.label}. CIE xy. ${description}. ${outside} Белый контур показывает sRGB, фиолетовый — первичные цвета ICC, жёлтая точка — D65.`);
+      renderCieXy(card.canvas,icc?[icc,data]:[data]);lines.push(`${item.label}: ${description}. Занято ${number(data.occupiedBins)} групп. ${outside}`);
     });
     details.textContent=lines.join('\n');updateSizeNote();
   }
@@ -718,7 +741,7 @@ export function createAnalysis({ app }, deps) {
     else if (settings.type === 'errorProfile') deps.plotErrorProfile(canvas, data, settings.errorChannel==='alpha'?1:0, settings.position, maximum, outputSize);
     else if (settings.type === 'ssim') deps.plotSSIM(canvas, data, outputSize);
     else if (settings.type === 'deltaE') deps.plotDeltaE(canvas, data, outputSize);
-    else if (settings.type === 'cieXy') renderCieXy(canvas, [data], outputSize);
+    else if (settings.type === 'cieXy') renderCieXy(canvas, data.iccReference?[data.iccReference,data]:[data], outputSize);
     else if (settings.type === 'difference') plotDifference(canvas, data, settings.differenceChannel === 'alpha' ? 1 : 0, Array.from({length:256},(_,value)=>differenceColor(value,settings.gain)), outputSize);
     else if (settings.type === 'errorHistogram') plotErrorHistogram(canvas,data,settings.errorChannel,maximum,settings.level,outputSize);
     else throw new Error('Неизвестный вид графика отчёта.');
@@ -766,6 +789,7 @@ export function createAnalysis({ app }, deps) {
     });
     matte.addEventListener('change', updateAnalysis);
     type.addEventListener('change',()=>{deps.closeAnalysisRegion();updateAnalysis();});
+    cieView.addEventListener('change',updateAnalysis);
     variantSelect.addEventListener('change',()=>{type.value=variantSelect.value;deps.closeAnalysisRegion();updateAnalysis();});
     profileChannel.addEventListener('change',()=>{syncControls();drawAnalysis();});
     position.addEventListener('input',()=>{get('analysisPositionValue').textContent=number(Number(position.value)/10)+'%';drawAnalysis();});

@@ -119,7 +119,11 @@ export function createAnalysisCombined(){
     }
   }
   function renderAnalysisOverlay(canvas,items,settings,outputSize){
-    if(settings.type==='cieXy'){renderCieXy(canvas,items.map(item=>item.data),outputSize);return;}
+    if(settings.type==='cieXy'){
+      const references=new Map();
+      for(const item of items)if(item.data.iccReference){const reference=item.data.iccReference;references.set(JSON.stringify(reference.bounds),reference);}
+      renderCieXy(canvas,[...references.values(),...items.map(item=>item.data)],outputSize);return;
+    }
      const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',signal=kind==='signalHistogram',hist=kind==='histogram'||signal||error;
      const view=kind==='histogram'||signal?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}

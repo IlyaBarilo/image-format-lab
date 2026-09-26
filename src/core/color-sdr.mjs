@@ -3,6 +3,7 @@
 // Delta E 00 equations: Sharma, Wu and Dalal, Color Research & Application 30 (2005).
 import { createPixelBuffer } from './pixel-buffer.mjs';
 import { analysisRegionBounds } from './analysis-region.mjs';
+import { parseIccSdr } from './icc-sdr.mjs';
 
 export const COLOR_SAMPLE_LIMIT = 500000;
 export const CIE_GRID_SIZE = 257;
@@ -12,26 +13,39 @@ const D50 = [0.3457 / 0.3585, 1, (1 - 0.3457 - 0.3585) / 0.3585];
 const PI = Math.PI;
 const TO_RAD = PI / 180;
 const POW_25_7 = 25 ** 7;
+const RGB_TO_XYZ_D65 = [
+  [506752 / 1228815, 87881 / 245763, 12673 / 70218],
+  [87098 / 409605, 175762 / 245763, 12673 / 175545],
+  [7918 / 409605, 87881 / 737289, 1001167 / 1053270]
+];
+const D65_TO_D50 = [
+  [1.0479297925449969, 0.022946870601609652, -0.05019226628920524],
+  [0.02962780877005599, 0.9904344267538799, -0.017073799063418826],
+  [-0.009243040646204504, 0.015055191490298152, 0.7518742814281371]
+];
+function matrixVector(matrix, vector) { return matrix.map(row => row[0] * vector[0] + row[1] * vector[1] + row[2] * vector[2]); }
+function inverse3(matrix) {
+  const [a,b,c]=matrix,det=a[0]*(b[1]*c[2]-b[2]*c[1])-a[1]*(b[0]*c[2]-b[2]*c[0])+a[2]*(b[0]*c[1]-b[1]*c[0]);
+  if (!Number.isFinite(det) || Math.abs(det)<1e-12) throw new Error('Вырожденная матрица преобразования цвета.');
+  return [
+    [(b[1]*c[2]-b[2]*c[1])/det,(a[2]*c[1]-a[1]*c[2])/det,(a[1]*b[2]-a[2]*b[1])/det],
+    [(b[2]*c[0]-b[0]*c[2])/det,(a[0]*c[2]-a[2]*c[0])/det,(a[2]*b[0]-a[0]*b[2])/det],
+    [(b[0]*c[1]-b[1]*c[0])/det,(a[1]*c[0]-a[0]*c[1])/det,(a[0]*b[1]-a[1]*b[0])/det]
+  ];
+}
+const D50_TO_D65 = inverse3(D65_TO_D50);
+const XYZ_D65_TO_RGB = inverse3(RGB_TO_XYZ_D65);
 
 function linear(code) { return code <= 0.04045 ? code / 12.92 : ((code + 0.055) / 1.055) ** 2.4; }
 export function srgbToXyzD65(r, g, b) {
-  const a = linear(r), c = linear(g), d = linear(b);
-  return [
-    506752 / 1228815 * a + 87881 / 245763 * c + 12673 / 70218 * d,
-    87098 / 409605 * a + 175762 / 245763 * c + 12673 / 175545 * d,
-    7918 / 409605 * a + 87881 / 737289 * c + 1001167 / 1053270 * d
-  ];
+  return matrixVector(RGB_TO_XYZ_D65,[linear(r),linear(g),linear(b)]);
 }
 export function xyzChromaticity([x, y, z]) {
   const sum = x + y + z;
   return sum > 1e-15 ? [x / sum, y / sum] : null;
 }
 export function xyzD65ToLabD50([x, y, z]) {
-  const adapted = [
-    1.0479297925449969 * x + 0.022946870601609652 * y - 0.05019226628920524 * z,
-    0.02962780877005599 * x + 0.9904344267538799 * y - 0.017073799063418826 * z,
-    -0.009243040646204504 * x + 0.015055191490298152 * y + 0.7518742814281371 * z
-  ];
+  const adapted = matrixVector(D65_TO_D50,[x,y,z]);
   const epsilon = 216 / 24389, kappa = 24389 / 27;
   const f = adapted.map((value, i) => {
     const n = value / D50[i];
@@ -40,6 +54,7 @@ export function xyzD65ToLabD50([x, y, z]) {
   return [116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])];
 }
 export function srgbToLabD50(r, g, b) { return xyzD65ToLabD50(srgbToXyzD65(r, g, b)); }
+export function xyzD50ToD65(xyz) { return matrixVector(D50_TO_D65,xyz); }
 
 export function deltaE00([l1, a1, b1], [l2, a2, b2]) {
   if (![l1, a1, b1, l2, a2, b2].every(Number.isFinite)) throw new TypeError('Delta E 00: нужны конечные значения Lab.');
@@ -71,12 +86,12 @@ export function deltaE00([l1, a1, b1], [l2, a2, b2]) {
   return Math.sqrt(Math.max(0, dl * dl + dc * dc + hd * hd + rotation * dc * hd));
 }
 
-function raster(input) {
+function raster(input, allowIcc = false) {
   const pixels = createPixelBuffer(input);
   if (!((pixels.sampleType === 'uint8' && pixels.bitDepth === 8) || (pixels.sampleType === 'uint16' && pixels.bitDepth === 16)))
     throw new Error('Цветовой анализ поддерживает целые RGBA8 и RGBA16.');
   if (pixels.alphaMode !== 'straight') throw new Error('Цветовой анализ требует прямую прозрачность.');
-  if (!['srgb', 'unknown'].includes(pixels.colorSpace)) throw new Error('Цветовой анализ требует SDR sRGB; для другого пространства сначала нужно преобразование.');
+  if (!allowIcc && !['srgb', 'unknown'].includes(pixels.colorSpace)) throw new Error('Цветовой анализ требует SDR sRGB; для другого пространства сначала нужно преобразование.');
   return pixels;
 }
 function backgroundFor(matte) {
@@ -115,6 +130,45 @@ export function computeCieXy(input, matte = 'white', region = null, maxSamples =
   return { width: pixels.width, height: pixels.height, bounds, pixelCount, sampleCount,
     exact: sampleCount === pixelCount, matte, size: CIE_GRID_SIZE, xMax: CIE_X_MAX, yMax: CIE_Y_MAX,
     bins, blackCount, occupiedBins, colorAssumption: pixels.colorSpace === 'unknown' ? 'srgb-assumed' : 'srgb-managed' };
+}
+export function mapCieReferenceRegion(region,resultWidth,resultHeight,sourceWidth,sourceHeight) {
+  if(!region||region.unit!=='pixels')return region;
+  const bounds=analysisRegionBounds(resultWidth,resultHeight,region);
+  const x=Math.floor(bounds.x*sourceWidth/resultWidth),y=Math.floor(bounds.y*sourceHeight/resultHeight);
+  return {unit:'pixels',x,y,width:Math.ceil((bounds.x+bounds.width)*sourceWidth/resultWidth)-x,
+    height:Math.ceil((bounds.y+bounds.height)*sourceHeight/resultHeight)-y};
+}
+export function computeCieIcc(input, iccProfile, matte = 'white', region = null, maxSamples = COLOR_SAMPLE_LIMIT) {
+  const pixels = raster(input, true), profile = parseIccSdr(iccProfile), background = backgroundFor(matte);
+  const { bounds, pixelCount, sampleCount } = sampleBounds(pixels, region, maxSamples);
+  const peak=2**pixels.bitDepth-1,lookup=profile.curves.map(curve=>Float64Array.from({length:peak+1},(_,i)=>{
+    const value=curve(i/peak);
+    if(!Number.isFinite(value)||value<-.01||value>4)throw new Error('Некорректная кривая ICC-профиля.');
+    return value;
+  }));
+  const primaries=[0,1,2].map(index=>xyzChromaticity(xyzD50ToD65(profile.matrix.map(row=>row[index]))));
+  if(primaries.some(value=>!value||value.some(n=>!Number.isFinite(n))))throw new Error('Не удалось определить первичные цвета ICC-профиля.');
+  const bins=new Uint32Array(CIE_GRID_SIZE**2);
+  let blackCount=0,occupiedBins=0,outOfSrgbCount=0;
+  for(let n=0;n<sampleCount;n++){
+    const at=pixelOffset(pixels,bounds,n,pixelCount,sampleCount);
+    const coded=colorAt(pixels,at,background);
+    const rgb=coded.map((value,channel)=>lookup[channel][Math.round(value*peak)]);
+    const xyz50=matrixVector(profile.matrix,rgb),xyz65=xyzD50ToD65(xyz50);
+    const linearRgb=matrixVector(XYZ_D65_TO_RGB,xyz65);
+    if(linearRgb.some(value=>value<-.001||value>1.001))outOfSrgbCount++;
+    const xy=xyzChromaticity(xyz65);
+    if(!xy){blackCount++;continue;}
+    const bx=Math.max(0,Math.min(CIE_GRID_SIZE-1,Math.floor(xy[0]/CIE_X_MAX*CIE_GRID_SIZE)));
+    const by=Math.max(0,Math.min(CIE_GRID_SIZE-1,Math.floor((1-xy[1]/CIE_Y_MAX)*CIE_GRID_SIZE)));
+    const index=by*CIE_GRID_SIZE+bx;
+    if(!bins[index])occupiedBins++;
+    bins[index]++;
+  }
+  return {width:pixels.width,height:pixels.height,bounds,pixelCount,sampleCount,exact:sampleCount===pixelCount,
+    matte,size:CIE_GRID_SIZE,xMax:CIE_X_MAX,yMax:CIE_Y_MAX,bins,blackCount,occupiedBins,
+    outOfSrgbCount,outOfSrgbPercent:outOfSrgbCount/sampleCount*100,primaries,mode:'native-icc',
+    method:'matrix RGB ICC v2/v4, PCS XYZ D50 → D65; linear sRGB outside [-0.001, 1.001]'};
 }
 export function computeDeltaE00(input, reference, matte = 'white', region = null, maxSamples = COLOR_SAMPLE_LIMIT) {
   const result = raster(input), source = raster(reference), background = backgroundFor(matte);

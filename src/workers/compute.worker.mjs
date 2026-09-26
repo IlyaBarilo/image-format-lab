@@ -10,7 +10,7 @@ import { computeVectorscope } from '../core/vectorscope.mjs';
 import { computeLineProfile } from '../core/line-profile.mjs';
 import { computeErrorProfile } from '../core/error-profile.mjs';
 import { computeSSIM } from '../core/ssim.mjs';
-import { computeCieXy, computeDeltaE00 } from '../core/color-sdr.mjs';
+import { computeCieXy, computeCieIcc, computeDeltaE00 } from '../core/color-sdr.mjs';
 
 self.onmessage = event => {
   try {
@@ -27,6 +27,7 @@ self.onmessage = event => {
     else if (kind === 'errorProfile') result = computeErrorProfile(payload.pixelBuffer, payload.reference, payload.matte, payload.region, payload.line);
     else if (kind === 'ssim') result = computeSSIM(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
     else if (kind === 'cieXy') result = computeCieXy(payload.pixelBuffer, payload.matte, payload.region);
+    else if (kind === 'cieIcc') result = computeCieIcc(payload.pixelBuffer, payload.iccProfile, payload.matte, payload.region);
     else if (kind === 'deltaE') result = computeDeltaE00(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
     else {
       const { config, source } = payload;

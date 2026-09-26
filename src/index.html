@@ -232,6 +232,7 @@
         <div class="analysis-tools">
           <select class="select" id="analysisType" aria-label="Вид графика"><option value="histogram">Гистограмма</option><option value="signalHistogram" hidden>Гистограмма</option><option value="errorHistogram">Гистограмма ошибок</option><option value="waveform">Waveform</option><option value="rgbWaveform" hidden>Waveform</option><option value="ycbcrWaveform" hidden>Waveform</option><option value="parade">Parade</option><option value="ycbcrParade" hidden>Parade</option><option value="difference">Различия с исходником</option><option value="vectorscope">Вектороскоп</option><option value="cieXy">CIE xy</option><option value="profile">Профиль по линии</option><option value="errorProfile">Профиль ошибки</option><option value="ssim">SSIM</option><option value="deltaE">Цветовая разница ΔE00</option><option value="tradeoff">Размер и метрика</option></select>
           <label id="analysisVariantField">Модель <select class="select" id="analysisVariant" aria-label="Модель или каналы графика"></select></label>
+          <label id="analysisCieViewField" hidden>Цвета <select class="select" id="analysisCieView" aria-label="Источник цветов CIE xy"><option value="displayed">Показанные SDR</option><option value="icc">+ Исходник ICC</option></select></label>
           <div class="toolbar-group analysis-display-field" id="analysisDisplayField">
             <span class="toolbar-label">Вид</span>
             <div class="segmented analysis-display" role="radiogroup" aria-label="Вид сравнения графиков текущей диаграммы">

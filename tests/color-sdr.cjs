@@ -1,11 +1,14 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const {Worker} = require('node:worker_threads');
 const {buildSync} = require('../scripts/node_modules/esbuild');
 
 (async () => {
   const { createPixelBuffer } = await import('../src/core/pixel-buffer.mjs');
   const { srgbToXyzD65, xyzChromaticity, srgbToLabD50, deltaE00,
-    computeCieXy, computeDeltaE00, CIE_GRID_SIZE } = await import('../src/core/color-sdr.mjs');
+    computeCieXy, computeCieIcc, computeDeltaE00, xyzD50ToD65, mapCieReferenceRegion, CIE_GRID_SIZE } = await import('../src/core/color-sdr.mjs');
+  const {createIccP3Sample} = await import('../src/core/reference-samples.mjs');
   const near = (actual, expected, tolerance = 0.0002) => assert.ok(Math.abs(actual - expected) <= tolerance,
     `${actual} differs from ${expected} by more than ${tolerance}`);
 
@@ -69,6 +72,24 @@ const {buildSync} = require('../scripts/node_modules/esbuild');
   assert.throws(() => computeCieXy(rgba8(1, 1, [255,0,0,255], 'display-p3')), /SDR sRGB/);
   assert.equal(computeCieXy(rgba8(1, 1, [255,0,0,255], 'unknown')).colorAssumption, 'srgb-assumed');
   assert.throws(() => computeCieXy(sample, 'white', null, 500001), /предел/);
+  xyzD50ToD65([0.9642,1,0.8249]).forEach((value,i)=>near(value,[0.9504,1,1.0889][i],0.002));
+  const {pixels:p3Pixels,iccProfile:p3Profile}=createIccP3Sample();
+  const p3Red=rgba16(1,1,[65535,0,0,65535]);
+  const nativeRed=computeCieIcc(p3Red,p3Profile);
+  assert.equal(computeCieIcc(rgba16(1,1,[65535,0,0,65535],'display-p3'),p3Profile).outOfSrgbCount,1);
+  assert.deepEqual(mapCieReferenceRegion({unit:'pixels',x:3,y:2,width:5,height:4},10,10,20,20),{unit:'pixels',x:6,y:4,width:10,height:8});
+  assert.deepEqual(mapCieReferenceRegion({unit:'pixels',x:1,y:1,width:2,height:2},3,3,5,5),{unit:'pixels',x:1,y:1,width:4,height:4});
+  assert.deepEqual(mapCieReferenceRegion({x0:100,y0:100,x1:900,y1:900},10,10,20,20),{x0:100,y0:100,x1:900,y1:900});
+  near(nativeRed.primaries[0][0],0.68,0.005);near(nativeRed.primaries[0][1],0.32,0.005);
+  assert.equal(nativeRed.outOfSrgbCount,1);
+  assert.equal(nativeRed.outOfSrgbPercent,100);
+  const srgbProfile=new Uint8Array(fs.readFileSync(path.join(__dirname,'fixtures/srgb-test.icc')));
+  assert.equal(computeCieIcc(rgba8(1,1,[255,0,0,255]),srgbProfile).outOfSrgbCount,0);
+  const transparent=rgba16(2,1,[65535,0,0,0,65535,0,0,65535]);
+  assert.equal(computeCieIcc(transparent,p3Profile,'black').blackCount,1);
+  assert.equal(computeCieIcc(transparent,p3Profile,'white',{unit:'pixels',x:0,y:0,width:1,height:1}).outOfSrgbCount,0);
+  assert.equal(computeCieIcc(p3Pixels,p3Profile,'white',null,1000).sampleCount,1000);
+  assert.throws(()=>computeCieIcc(p3Red,new Uint8Array(8)),/профил/);
   const bundled = buildSync({entryPoints:['src/workers/compute.worker.mjs'],bundle:true,write:false,format:'iife',logLevel:'silent'}).outputFiles[0].text;
   const worker = new Worker(`const {parentPort,workerData}=require('node:worker_threads');const self={postMessage:value=>parentPort.postMessage(value)};new Function('self',workerData)(self);parentPort.on('message',data=>self.onmessage({data}));`,{eval:true,workerData:bundled});
   const run = (kind,payload) => new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);worker.postMessage({kind,payload});});
@@ -76,6 +97,7 @@ const {buildSync} = require('../scripts/node_modules/esbuild');
   try {
     assert.deepEqual((await run('cieXy',{pixelBuffer:same16,matte:'white'})).result, computeCieXy(same16));
     assert.deepEqual((await run('deltaE',{pixelBuffer:same16,reference,matte:'white'})).result, equal);
+    assert.deepEqual((await run('cieIcc',{pixelBuffer:p3Red,iccProfile:p3Profile,matte:'white'})).result,nativeRed);
     assert.deepEqual(same16.data,original);
   } finally { await worker.terminate(); }
   console.log('PASS CIE xy D65, D50 Lab, published CIEDE2000 vectors, alpha/ROI, precision and bounded sampling');

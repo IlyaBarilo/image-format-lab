@@ -14,7 +14,7 @@ export function renderCieXy(canvas, datasets, outputSize) {
   const scale=Math.max(1,Math.min((width-76)/0.8,(height-60)/0.9));
   const plotWidth=0.8*scale,plotHeight=0.9*scale,left=(width-plotWidth)/2,top=22;
   const px=x=>left+x*scale,py=y=>top+(0.9-y)*scale;
-  canvas.dataset.kind='cieXy';canvas.dataset.mode=datasets.length===2?'overlay':'separate';
+  canvas.dataset.kind='cieXy';canvas.dataset.mode=datasets.some(data=>data.mode==='native-icc')?'icc-reference':datasets.length===2?'overlay':'separate';
   canvas.dataset.xMin='0';canvas.dataset.xMax='0.8';canvas.dataset.yMin='0';canvas.dataset.yMax='0.9';
   let maximum=1e-12;
   for(const data of datasets)for(const bin of data.bins)maximum=Math.max(maximum,bin/data.sampleCount);
@@ -30,7 +30,8 @@ export function renderCieXy(canvas, datasets, outputSize) {
   }
   ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText('y ↑',left,10);
   ctx.textAlign='right';ctx.fillText('x →',left+plotWidth,height-12);
-  datasets.forEach((data,layer)=>{
+  let variantLayer=0;
+  datasets.forEach(data=>{
     const size=data.size,wide=Math.min(size,Math.max(1,Math.round(plotWidth*dpr)));
     const high=Math.min(size,Math.max(1,Math.round(plotHeight*dpr)));
     const pooled=new Uint32Array(wide*high);
@@ -40,7 +41,7 @@ export function renderCieXy(canvas, datasets, outputSize) {
     }
     const raster=document.createElement('canvas');raster.width=wide;raster.height=high;
     const rc=raster.getContext('2d'),pixels=rc.createImageData(wide,high);
-    const color=layer?[255,155,75]:[77,211,242];
+    const color=data.mode==='native-icc'?[196,117,255]:variantLayer++?[255,155,75]:[77,211,242];
     for(let p=0;p<pooled.length;p++)if(pooled[p]){
       pixels.data.set(color,p*4);
       pixels.data[p*4+3]=Math.round(255*Math.pow(pooled[p]/data.sampleCount/maximum,.25));
@@ -54,6 +55,13 @@ export function renderCieXy(canvas, datasets, outputSize) {
   ctx.fillStyle='#f8fafc';ctx.textAlign='left';
   for(const [name,x,y] of [['R',.64,.33],['G',.3,.6],['B',.15,.06]]){
     ctx.fillRect(px(x)-2,py(y)-2,4,4);ctx.fillText(name,px(x)+5,py(y)-6);
+  }
+  const icc=datasets.find(data=>data.mode==='native-icc');
+  if(icc?.primaries?.length===3){
+    ctx.strokeStyle='#c475ff';ctx.lineWidth=1.6;ctx.beginPath();
+    ctx.moveTo(px(icc.primaries[0][0]),py(icc.primaries[0][1]));
+    for(const point of icc.primaries.slice(1))ctx.lineTo(px(point[0]),py(point[1]));
+    ctx.closePath();ctx.stroke();
   }
   ctx.fillStyle='#facc15';ctx.beginPath();ctx.arc(px(.3127),py(.329),3,0,Math.PI*2);ctx.fill();
   ctx.fillText('D65',px(.3127)+6,py(.329)+8);

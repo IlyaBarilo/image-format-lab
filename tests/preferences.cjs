@@ -23,7 +23,7 @@ function events() {
   custom.comparison.metadataPolicy='none';custom.comparison.variants[1].quality=37;custom.comparison.variants[3].format='avif';
   custom.display={mode:'sdr',black:12,white:91,exposure:0.5,dither:false};
   custom.filesVisible=false;custom.pixelGrid=true;custom.gridMode='codec-blocks';custom.panels={size:'max',previous:'balance',ratio:.52,collapsed:true,lastManual:{size:'balance',ratio:.52}};
-  Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,
+  Object.assign(custom.analysis,{type:'profile',channel:'alpha',matte:'black',level:208,gain:16,differenceChannel:'alpha',profileChannel:'y',position:870,cieView:'icc',
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
       displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrWaveform:'delta',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
   assert.deepEqual(normalizePreferences(custom),custom);
@@ -36,6 +36,9 @@ function events() {
    assert.equal(colorModes.analysis.type,'cieXy');
    assert.equal(colorModes.analysis.displays.cieXy,'separate');
    assert.equal(colorModes.analysis.displays.deltaE,'separate','ΔE00 has no overlay mode');
+   assert.equal(colorModes.analysis.cieView,'displayed');
+   assert.equal(normalizePreferences({version:1,analysis:{cieView:'icc'}}).analysis.cieView,'icc');
+   assert.equal(normalizePreferences({version:1,analysis:{cieView:'unsupported'}}).analysis.cieView,'displayed');
    const invalidErrorMode=structuredClone(custom);invalidErrorMode.analysis.displays.errorHistogram='delta';
    assert.equal(normalizePreferences(invalidErrorMode).analysis.displays.errorHistogram,'overlay');
   const legacy=structuredClone(custom);legacy.comparison.autoApply=false;

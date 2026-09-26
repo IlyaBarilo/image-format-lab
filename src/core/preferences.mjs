@@ -9,6 +9,7 @@ export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
   type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
   channel: ['analysisChannel', 'rgb', ['rgb','r','g','b','alpha']],
   matte: ['analysisMatte', 'white', ['white','black']],
+  cieView: ['analysisCieView', 'displayed', ['displayed','icc']],
   level: ['analysisLevel', 128, [0,255]],
   differenceChannel: ['analysisDifferenceChannel', 'rgb', ['rgb','alpha']],
   gain: ['analysisGain', 4, [1,4,16,64]],
