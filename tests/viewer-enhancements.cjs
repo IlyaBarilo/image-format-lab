@@ -114,7 +114,8 @@ async function sample(page){await page.locator('#sampleImage').click();await rea
    await page.evaluate(async()=>{
     const c=document.createElement('canvas');c.width=32;c.height=16;const ctx=c.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,32,16);
     const blob=await new Promise(r=>c.toBlob(r));addFiles([new File([blob],'тест.png',{type:'image/png'}),new File([blob],'ТЕСТ.png',{type:'image/png'}),new File(['bad'],'broken.png',{type:'image/png'})]);
-   });await ready(page);
+   });
+   await page.waitForFunction(()=>app.files.length===3);
    await page.evaluate(async()=>{app.exportConfig.format='png';app.exportConfig.delivery='zip';await convertAllFiles();});
    assert.equal(await page.evaluate(()=>saved.length),1);assert.equal(await page.evaluate(()=>saved[0].name),'converted-partial.zip');
    const bytes=await page.evaluate(async()=>Array.from(new Uint8Array(await saved[0].blob.arrayBuffer())));
