@@ -305,6 +305,12 @@ async function snapshot(page) {
       await page.locator('#sampleMenu [data-sample-id="gradient"]').click();
       await page.waitForFunction(() => app.source?.name==='ifl-gradient-v1.png' && !app.sourceLoading, null, {timeout:60000});
       assert.deepEqual((await snapshot(page)).names,['ifl-tiff16-v1.tif','ifl-gradient-v1.png']);
+      await page.locator('#sampleMenuToggle').click();
+      await page.locator('#sampleMenu [data-sample-id="iccP3"]').click();
+      await page.waitForFunction(() => app.source?.name==='ifl-p3-icc16-v1.png' && !app.sourceLoading, null, {timeout:60000});
+      assert.equal(await page.evaluate(() => app.source.pixelBuffer.bitDepth),16);
+      assert.equal(await page.evaluate(() => app.source.iccProfile?.length),416);
+      assert.deepEqual((await snapshot(page)).names,['ifl-tiff16-v1.tif','ifl-gradient-v1.png','ifl-p3-icc16-v1.png']);
     });
 
     await check('long names are safe text, many rows scroll and responsive panels remain usable', async page => {

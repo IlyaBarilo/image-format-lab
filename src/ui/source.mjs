@@ -1,6 +1,6 @@
 
 
-import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels } from '../core/reference-samples.mjs';
+import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels, createIccP3Sample } from '../core/reference-samples.mjs';
 import { pngPreview } from '../core/png.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -65,6 +65,11 @@ export function createSource({app, els}, deps) {
     if(!sample)throw new Error('Неизвестный образец.');
     if(REFERENCE_SAMPLES[id]){
       const blob=await deps.encodeExactPng(createReferenceSamplePixels(id),8);
+      return new File([blob],sample.fileName,{type:'image/png'});
+    }
+    if(id==='iccP3'){
+      const {pixels,iccProfile}=createIccP3Sample();
+      const blob=await deps.encodeExactPng(pixels,16,{iccProfile});
       return new File([blob],sample.fileName,{type:'image/png'});
     }
     if(id==='tiff16'){

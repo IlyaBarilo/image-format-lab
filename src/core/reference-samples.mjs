@@ -12,7 +12,9 @@ export const SAMPLE_CATALOG = Object.freeze([
     description:'Текст, тонкие линии, цветные переходы и прозрачные детали.'}),
   ...Object.entries(REFERENCE_SAMPLES).map(([id, sample]) => Object.freeze({id,...sample,size:'512×320'})),
   Object.freeze({id:'tiff16',label:'TIFF16 · точность градиента',fileName:'ifl-tiff16-v1.tif',size:'512×256',
-    description:'Точный 16-битный градиент с различающимися младшими разрядами.'})
+    description:'Точный 16-битный градиент с различающимися младшими разрядами.'}),
+  Object.freeze({id:'iccP3',label:'PNG16 · цветовой профиль P3',fileName:'ifl-p3-icc16-v1.png',size:'256×128',
+    description:'Градиент с синтетическим ICC Display P3: сравните исходные значения и sRGB-показ.'})
 ]);
 
 export function createReferenceSamplePixels(id) {
@@ -50,4 +52,45 @@ export function createTiff16SamplePixels() {
     data[at+3]=65535;
   }
   return createPixelBuffer({width,height,data,sampleType:'uint16',bitDepth:16,colorSpace:'srgb',alphaMode:'straight'});
+}
+
+export function createIccP3Sample() {
+  const width=256,height=128,data=new Uint16Array(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    const at=(y*width+x)*4;
+    data[at]=Math.round(65535*x/(width-1));
+    data[at+1]=Math.round(65535*y/(height-1));
+    data[at+2]=Math.round(65535*(1-x/(width-1)));
+    data[at+3]=65535;
+  }
+  const pixels=createPixelBuffer({width,height,data,sampleType:'uint16',bitDepth:16,alphaMode:'straight'});
+  const iccProfile=new Uint8Array(416),view=new DataView(iccProfile.buffer);
+  const ascii=(offset,value)=>{for(let i=0;i<value.length;i++)iccProfile[offset+i]=value.charCodeAt(i);};
+  view.setUint32(0,iccProfile.length);
+  view.setUint32(8,0x04300000);
+  ascii(12,'mntr');ascii(16,'RGB ');ascii(20,'XYZ ');ascii(36,'acsp');
+  view.setUint32(128,7);
+  const names=['rXYZ','gXYZ','bXYZ','rTRC','gTRC','bTRC','wtpt'];
+  const matrix=[
+    [0.515102,0.241182,-0.001049],
+    [0.291965,0.692236,0.041882],
+    [0.157153,0.066582,0.784378]
+  ];
+  for(let index=0;index<names.length;index++){
+    const offset=216+(index<3?index*20:index<6?60+(index-3)*40:180);
+    const size=index>=3&&index<6?40:20;
+    ascii(132+index*12,names[index]);
+    view.setUint32(136+index*12,offset);
+    view.setUint32(140+index*12,size);
+    if(index<3||index===6){
+      ascii(offset,'XYZ ');
+      const values=index===6?[0.9642,1,0.8249]:matrix[index];
+      for(let row=0;row<3;row++)view.setInt32(offset+8+row*4,Math.round(values[row]*65536));
+    }else{
+      ascii(offset,'para');view.setUint16(offset+8,4);
+      const values=[2.4,1/1.055,0.055/1.055,1/12.92,0.04045,0,0];
+      for(let part=0;part<values.length;part++)view.setInt32(offset+12+part*4,Math.round(values[part]*65536));
+    }
+  }
+  return {pixels,iccProfile};
 }
