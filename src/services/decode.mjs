@@ -33,7 +33,9 @@ export function createDecode({}, deps) {
       const metadata = await deps.readPanoramaMetadata(file);
       return { ...metadata, file, name: file.name || "image", size: file.size || 0, type: file.type || "unknown",
         width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: decoded.pixelBuffer || pixelBufferFromImageData(imageData),
+        nativePixelBuffer: decoded.nativePixelBuffer || null,
         iccProfile: decoded.iccProfile || null,
+        colorManagementNote: decoded.colorManagementNote || '',
         precisionNote:decoded.precisionNote||'',
         hasAlpha: decoded.pixelBuffer ? decoded.pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**decoded.pixelBuffer.bitDepth-1) : deps.detectAlpha(imageData.data) };
     } finally { if (decoded.close) decoded.close(); }

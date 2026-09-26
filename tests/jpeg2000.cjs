@@ -22,6 +22,7 @@ async function main() {
     pixelBuffer: { width: 2, height: 1, sampleType: 'uint16', bitDepth: 16,
       data: new Uint16Array([257, 514, 771, 65535, 1028, 1285, 1542, 65535]) },
     iccProfile: new Uint8Array([1, 2, 3]) };
+  source.nativePixelBuffer = source.pixelBuffer;
   const calls = [];
   const deps = { outputSourceForConfig: () => source,
     loadOptionalCodec: async () => ({ encode: async (...args) => {

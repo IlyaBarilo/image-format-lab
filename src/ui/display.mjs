@@ -116,6 +116,8 @@ export function createDisplay({ app, els }, deps) {
       : high && float16Eligible ? 'Подготавливаю Canvas float16; пока показана 8-битная копия. Точные отсчёты и файл не меняются.'
       : high ? 'Путь вывода: Canvas RGBA8 с дизерингом. Точные отсчёты, анализ и файл не меняются.'
         : 'Путь вывода: Canvas RGBA8. Исходник имеет до 8 бит/канал; это не HDR и не подтверждение 10-битного сигнала монитора.';
+    if (app.source?.iccProfile) els.displayOutputNote.textContent +=
+      ' ICC исходника преобразован в sRGB для SDR-просмотра и сравнения; исходные отсчёты и профиль сохранены отдельно.';
     els.displayMenuToggle.title = els.displayOutputNote.textContent;
   }
 

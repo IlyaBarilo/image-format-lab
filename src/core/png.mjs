@@ -65,7 +65,25 @@ function filterRow(output,offset,row,previous,bpp,choice) {
     output[offset+1+i]=(row[i]-predictor)&255;
   }
 }
-export function decodePng(bytes, pako) {
+function unpackIcc(data, pako) {
+  const separator=data.indexOf(0);
+  if(separator<1||separator>79||separator+2>=data.length||data[separator+1]!==0||
+      data.length-separator-2>1024*1024)fail('неверный блок iCCP.');
+  const compressed=data.subarray(separator+2),chunks=[];let length=0;
+  const inflater=new pako.Inflate({chunkSize:65536});
+  inflater.onData=chunk=>{
+    length+=chunk.length;
+    if(length>1024*1024)fail('ICC-профиль больше 1 МиБ.');
+    chunks.push(chunk);
+  };
+  inflater.push(compressed,true);
+  if(inflater.err||!inflater.ended||inflater.strm.total_in!==compressed.length)fail('повреждён ICC-профиль.');
+  const profile=new Uint8Array(length);let at=0;
+  for(const chunk of chunks){profile.set(chunk,at);at+=chunk.length;}
+  return profile;
+}
+
+export function decodePng(bytes, pako, { withIcc = false } = {}) {
   if (!(bytes instanceof Uint8Array)||bytes.length>PNG_MAX_FILE_BYTES) fail('файл больше 128 МиБ или имеет неверный тип.');
   const h=pngHeader(bytes);
   if (!h||![8,16].includes(h.depth)||!channels[h.type]) fail('точное чтение поддерживает серый, RGB, серый с alpha и RGBA по 8/16 бит.');
@@ -98,8 +116,12 @@ export function decodePng(bytes, pako) {
   }
   if(!ended)fail('нет конца файла.');
   const standardChromaticities=[31270,32900,64000,33000,30000,60000,15000,6000];
+  if(srgb&&colorChunks.has('iCCP'))fail('одновременно заданы sRGB и iCCP.');
+  if(colorChunks.has('iCCP')&&![2,6].includes(h.type))fail('серый ICC-профиль пока не поддерживается точным путём.');
+  let iccProfile=null;
   for(const [name,data] of colorChunks){
     if(name==='sRGB')continue;
+    if(name==='iCCP'&&withIcc){iccProfile=unpackIcc(data,pako);continue;}
     if(name==='gAMA'&&srgb&&data.length===4&&view(data).getUint32(0)===45455)continue;
     if(name==='cHRM'&&srgb&&data.length===32&&standardChromaticities.every((n,i)=>view(data).getUint32(i*4)===n))continue;
     fail('точное чтение этого цветового описания ('+name+') пока не поддерживается. Нужен PNG с sRGB или без цветовых блоков; ICC/HDR-преобразование не выполняется.');
@@ -137,7 +159,8 @@ export function decodePng(bytes, pako) {
       [row,previous]=[previous,row];
     }
   }
-  return createPixelBuffer({width:h.width,height:h.height,data,sampleType:h.depth===16?'uint16':'uint8',colorSpace:srgb?'srgb':'unknown'});
+  const pixels=createPixelBuffer({width:h.width,height:h.height,data,sampleType:h.depth===16?'uint16':'uint8',colorSpace:srgb?'srgb':'unknown'});
+  return withIcc?{pixels,iccProfile}:pixels;
 }
 function chunk(name,data){
   const out=new Uint8Array(data.length+12),v=view(out);v.setUint32(0,data.length);
@@ -195,11 +218,22 @@ export function encodePng(input,depth,pako,options={}){
   const pixels=createPixelBuffer(input);checkPngSize(pixels.width,pixels.height);
   const {pngFilter,pngLevel}=normalizePngOptions(options);
   if(![8,16].includes(depth)||!['uint8','uint16'].includes(pixels.sampleType)||pixels.alphaMode!=='straight')fail('для записи нужны целые независимые каналы RGB и alpha.');
-  if(!['srgb','unknown'].includes(pixels.colorSpace))fail('запись этого цветового пространства пока не поддерживается.');
+  const iccProfile=options.iccProfile??null;
+  if(iccProfile!==null&&(!(iccProfile instanceof Uint8Array)||iccProfile.length<132||iccProfile.length>1024*1024))
+    fail('неверный ICC-профиль для записи.');
+  if(!['srgb','unknown'].includes(pixels.colorSpace)||iccProfile&&pixels.colorSpace==='srgb')
+    fail('запись этого цветового пространства пока не поддерживается.');
   const peak=2**pixels.bitDepth-1,outPeak=2**depth-1,bpp=4*depth/8,rowSize=pixels.width*bpp;
   const header=new Uint8Array(13);view(header).setUint32(0,pixels.width);view(header).setUint32(4,pixels.height);header[8]=depth;header[9]=6;
   const pieces=[new Uint8Array(signature),chunk('IHDR',header)];
   if(pixels.colorSpace==='srgb')pieces.push(chunk('sRGB',new Uint8Array([0])));
+  if(iccProfile){
+    const compressed=pako.deflate(iccProfile,{level:9});
+    const payload=new Uint8Array(9+compressed.length);
+    payload.set([73,70,76,32,73,67,67,0,0]);
+    payload.set(compressed,9);
+    pieces.push(chunk('iCCP',payload));
+  }
   const pushRow=rowDeflater(pako,pngLevel,pieces);
   const filtered=new Uint8Array(rowSize+1),row=new Uint8Array(rowSize),previous=new Uint8Array(rowSize);
   for(let y=0;y<pixels.height;y++){

@@ -1,6 +1,8 @@
 import workerSource from 'viewer:jpeg2000-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
 import { createPixelBuffer } from '../core/pixel-buffer.mjs';
+import { prepareIccSdr } from '../core/icc-sdr.mjs';
+import { pngPreview } from '../core/png.mjs';
 
 export function createJpeg2000() {
   let session, sequence = 0, queue = Promise.resolve();
@@ -72,12 +74,16 @@ export function createJpeg2000() {
     if (!file?.size || file.size > 64 * 1024 * 1024 || !['jp2', 'j2k'].includes(format))
       throw new Error('JPEG 2000: нужен JP2/J2K размером до 64 МиБ');
     const result = await operate('decode', () => file.arrayBuffer(), { format });
-    const pixelBuffer = result.exactBuffer ? createPixelBuffer({ width: result.width, height: result.height,
-      data: new Uint16Array(result.exactBuffer), sampleType: 'uint16', bitDepth: 16 }) : null;
+    const native = result.exactBuffer ? createPixelBuffer({ width: result.width, height: result.height,
+      data: new Uint16Array(result.exactBuffer), sampleType: 'uint16', bitDepth: 16 })
+      : createPixelBuffer({ width: result.width, height: result.height,
+        data: new Uint8ClampedArray(result.buffer), sampleType: 'uint8', bitDepth: 8 });
+    const prepared = await prepareIccSdr(native,result.iccBuffer ? new Uint8Array(result.iccBuffer) : null);
+    const preview = pngPreview(prepared.pixelBuffer);
     return { width: result.width, height: result.height,
-      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height),
-      pixelBuffer, iccProfile: result.iccBuffer ? new Uint8Array(result.iccBuffer) : null,
-      precisionNote: result.depth === 16 ? '16 бит/канал · показ 8 бит' : '', close: null };
+      imageData: new ImageData(preview.data, result.width, result.height), ...prepared,
+      precisionNote:result.depth === 16 ? '16 бит/канал · показ 8 бит' : '',
+      colorManagementNote:result.iccBuffer?'ICC→sRGB':'',close: null };
   }
   async function encode(pixels, quality, format = 'jp2', iccProfile = null) {
     const source = createPixelBuffer(pixels);

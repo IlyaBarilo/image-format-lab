@@ -23,7 +23,8 @@ export function createEncode({}, deps) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return { ...source, width: canvas.width, height: canvas.height, canvas, ctx, imageData,
       precisionNote: source.pixelBuffer?.bitDepth>8 ? `Уменьшение и кодирование по 8 бит/канал (исходник ${source.pixelBuffer.bitDepth} бит)` : source.precisionNote,
-      pixelBuffer: pixelBufferFromImageData(imageData), hasAlpha: deps.detectAlpha(imageData.data) };
+      pixelBuffer: pixelBufferFromImageData(imageData), nativePixelBuffer: null, iccProfile: null,
+      hasAlpha: deps.detectAlpha(imageData.data) };
   }
   
   async function encodeOne(config, source) {
@@ -39,8 +40,10 @@ export function createEncode({}, deps) {
       if(depth===16&&(dims.width!==source.width||dims.height!==source.height))throw new Error('PNG16 пока сохраняется только в исходном размере. Уберите уменьшение или явно выберите 8 бит на канал.');
       if(depth===16||highDepth||(config.pngFilter&&config.pngFilter!=='default')){
         const prepared=deps.outputSourceForConfig(config,source);
-        const input=prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
-        return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth,config),exactPng:true,
+        const preserveIcc=depth===16&&prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
+        const input=preserveIcc?source.nativePixelBuffer:(prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData));
+        return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth,
+          preserveIcc?{...config,iccProfile:source.iccProfile}:config),exactPng:true,
           precisionNote:depth===16?'16 бит/канал · показ 8 бит':highDepth?`8 бит/канал · из ${pixels.bitDepth} бит`:'8 бит/канал',panoramaPreserved:false},prepared);
       }
     }
@@ -58,12 +61,13 @@ export function createEncode({}, deps) {
     }
     if (format === 'jp2' || format === 'j2k') {
       const prepared = deps.outputSourceForConfig(config, source);
-      const candidate = prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
+      const preserveIcc=format==='jp2'&&prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
+      const candidate = preserveIcc?source.nativePixelBuffer:(prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData));
       const exact = candidate.sampleType === 'uint16' && candidate.bitDepth === 16;
       const input = exact || candidate.sampleType === 'uint8' ? candidate : pixelBufferFromImageData(prepared.imageData);
       const codec = await deps.loadOptionalCodec('jpeg2000');
       const blob = await codec.encode(input, config.quality, format,
-        format === 'jp2' && prepared === source ? source.iccProfile : null);
+        preserveIcc ? source.iccProfile : null);
       return deps.withEncodedMeta({ blob, panoramaPreserved: false,
         precisionNote: input.sampleType === 'uint16' ? '16 бит/канал · показ 8 бит' :
           pixels.bitDepth > 8 ? `8 бит/канал · из ${pixels.bitDepth} бит` : '' }, prepared);
@@ -121,8 +125,11 @@ export function createEncode({}, deps) {
   }
   
   function withEncodedMeta(encoded, source) {
+    const baseNote=encoded.precisionNote || (source.pixelBuffer?.bitDepth>8 ? encoded.previewOnly
+      ? `${source.pixelBuffer.bitDepth} бит/канал · показ 8 бит` : `8 бит/канал · из ${source.pixelBuffer.bitDepth} бит`
+      : source.precisionNote || '');
     return { ...encoded, sourceImageData: source.imageData, sourcePixelBuffer: source.pixelBuffer ?? pixelBufferFromImageData(source.imageData),
-      precisionNote: encoded.precisionNote || (source.pixelBuffer?.bitDepth>8 ? encoded.previewOnly ? `${source.pixelBuffer.bitDepth} бит/канал · показ 8 бит` : `8 бит/канал · из ${source.pixelBuffer.bitDepth} бит` : source.precisionNote || ''),
+      precisionNote:[baseNote,source.colorManagementNote ? 'сравнение ' + source.colorManagementNote : ''].filter(Boolean).join(' · '),
       width: source.width, height: source.height };
   }
   
