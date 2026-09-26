@@ -20,19 +20,19 @@ const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 const clamp = value => Math.max(0, Math.min(255, value));
 
 // Values are mapped in their stored code space. This is an SDR preview, not ICC or HDR conversion.
-export function createSdrMapper(input, output, options = DEFAULT_DISPLAY) {
+function createMapper(input, output, options, floatOutput) {
   const pixels = createPixelBuffer(input);
   if (!['uint8', 'uint16'].includes(pixels.sampleType) || pixels.alphaMode !== 'straight')
     throw new TypeError('Для SDR-просмотра нужны целочисленные RGBA с независимой альфой.');
   const rowLength = pixels.width * 4;
-  if (!(output instanceof Uint8ClampedArray) || output.length < rowLength ||
+  if (!(floatOutput ? typeof Float16Array === 'function' && output instanceof Float16Array : output instanceof Uint8ClampedArray) || output.length < rowLength ||
       output.length > pixels.data.length || output.length % rowLength !== 0)
     throw new RangeError('Неверный размер буфера SDR-просмотра.');
   const settings = normalizeDisplay(options);
   const full = 2 ** pixels.bitDepth - 1;
   const black = settings.black / 100, span = (settings.white - settings.black) / 100;
   const exposure = 2 ** settings.exposure;
-  const dither = settings.dither && pixels.bitDepth > 8;
+  const dither = !floatOutput && settings.dither && pixels.bitDepth > 8;
   const fullFrame = output.length === pixels.data.length;
   return function mapRows(first, last) {
     if (!Number.isInteger(first) || !Number.isInteger(last) || first < 0 || last < first || last > pixels.height)
@@ -46,9 +46,18 @@ export function createSdrMapper(input, output, options = DEFAULT_DISPLAY) {
       const offset = dither ? ((BAYER4[(y & 3) * 4 + (x & 3)] + 0.5) / 16 - 0.5) : 0;
       for (let channel = 0; channel < 3; channel++) {
         const code = (source[at + channel] / full * exposure - black) / span;
-        output[out + channel] = Math.round(clamp(code * 255 + offset));
+        output[out + channel] = floatOutput ? Math.max(0, Math.min(1, code)) : Math.round(clamp(code * 255 + offset));
       }
-      output[out + 3] = Math.round(clamp(source[at + 3] / full * 255));
+      const alpha = source[at + 3] / full;
+      output[out + 3] = floatOutput ? alpha : Math.round(clamp(alpha * 255));
     }
   };
+}
+
+export function createSdrMapper(input, output, options = DEFAULT_DISPLAY) {
+  return createMapper(input, output, options, false);
+}
+
+export function createFloat16SdrMapper(input, output, options = DEFAULT_DISPLAY) {
+  return createMapper(input, output, options, true);
 }

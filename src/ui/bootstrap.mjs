@@ -12,7 +12,8 @@ export function createBootstrap({app, els}, deps) {
       head: cell.querySelector(".cell-head"),
       foot: cell.querySelector(".cell-foot"),
       canvas: cell.querySelector("canvas"),
-      ctx: cell.querySelector("canvas").getContext("2d", { alpha: false }),
+      ctx: cell.querySelector("canvas").getContext("2d", app.float16Canvas
+        ? { alpha: false, colorSpace: 'srgb', colorType: 'float16' } : { alpha: false }),
       config: { ...DEFAULT_VARIANTS[index] },
       controls: {},
       generation: 0,
@@ -24,6 +25,8 @@ export function createBootstrap({app, els}, deps) {
       metrics: null,
       error: null
     }));
+    try { app.float16CanvasReady = app.float16Canvas && app.wipeFloat16 && app.variants.every(variant => variant.ctx?.getContextAttributes?.().colorType === 'float16'); }
+    catch { app.float16CanvasReady = false; }
   
     deps.restoreUserPreferences();
     for (const variant of app.variants) {

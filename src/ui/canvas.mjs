@@ -6,7 +6,10 @@ import { analysisGuideGeometry } from '../core/analysis-guides.mjs';
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createCanvas({app, els}, deps) {
   const lastViewport = new WeakMap();
-  const wipeContext=els.wipeCanvas?.getContext('2d',{alpha:false});
+  const wipeContext=els.wipeCanvas?.getContext('2d',app.float16Canvas
+    ? {alpha:false,colorSpace:'srgb',colorType:'float16'} : {alpha:false});
+  try { app.wipeFloat16 = app.float16Canvas && wipeContext?.getContextAttributes?.().colorType === 'float16'; }
+  catch { app.wipeFloat16 = false; }
   function resizeCanvases() {
     if (deps.isAnalysisResizing()) return;
     const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
@@ -79,7 +82,7 @@ export function createCanvas({app, els}, deps) {
   
     if (!app.source) return;
   
-    const image = variant.bitmap ? (deps.displayImage?.(variant.pixelBuffer, variant.bitmap) || variant.bitmap) : null;
+    const image = variant.bitmap ? (deps.displayImage?.(variant.pixelBuffer, variant.bitmap, ctx) || variant.bitmap) : null;
     const sourceW = image ? image.width : app.source.width;
     const sourceH = image ? image.height : app.source.height;
     const scale = deps.getDrawScale(canvas);
@@ -93,7 +96,7 @@ export function createCanvas({app, els}, deps) {
       ctx.drawImage(image, x, y, sourceW * scale, sourceH * scale);
     } else {
       ctx.globalAlpha = 0.42;
-      ctx.drawImage(deps.displayImage?.(app.source.pixelBuffer, app.source.canvas) || app.source.canvas, x, y, sourceW * scale, sourceH * scale);
+      ctx.drawImage(deps.displayImage?.(app.source.pixelBuffer, app.source.canvas, ctx) || app.source.canvas, x, y, sourceW * scale, sourceH * scale);
       ctx.globalAlpha = 1;
       if (variant.error) {
         deps.drawOverlayMessage(ctx, canvas, "Ошибка кодирования");
@@ -248,9 +251,9 @@ export function createCanvas({app, els}, deps) {
     const divider=canvas.width*app.wipe.position;
     ctx.imageSmoothingEnabled=scale<1;ctx.imageSmoothingQuality='high';
     ctx.save();ctx.beginPath();ctx.rect(0,0,divider,canvas.height);ctx.clip();
-    ctx.drawImage(deps.displayImage?.(first.pixelBuffer,first.bitmap)||first.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    ctx.drawImage(deps.displayImage?.(first.pixelBuffer,first.bitmap,ctx)||first.bitmap,x,y,width*scale,height*scale);ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(divider,0,canvas.width-divider,canvas.height);ctx.clip();
-    ctx.drawImage(deps.displayImage?.(second.pixelBuffer,second.bitmap)||second.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    ctx.drawImage(deps.displayImage?.(second.pixelBuffer,second.bitmap,ctx)||second.bitmap,x,y,width*scale,height*scale);ctx.restore();
     deps.drawImageFrame(ctx,x,y,width*scale,height*scale);
     if(app.pixelGrid){
       if(app.gridMode==='codec-blocks'){

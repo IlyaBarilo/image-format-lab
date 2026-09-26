@@ -24,7 +24,7 @@ import { createControls } from './ui/controls.mjs';
 import { createComparison } from './ui/comparison.mjs';
 import { createSource } from './ui/source.mjs';
 import { createCanvas } from './ui/canvas.mjs';
-import { createDisplay } from './ui/display.mjs';
+import { createDisplay, probeFloat16Canvas } from './ui/display.mjs';
 import { createStudy } from './ui/study.mjs';
 import { createQualitySeries } from './ui/quality-series.mjs';
 import { createLicenses } from './ui/licenses.mjs';
@@ -51,6 +51,7 @@ import { createCompute } from './services/compute.mjs';
 // One composition root; feature modules do not import one another.
 export function createApplication() {
   const app = createState(), els = collectElements();
+  app.float16Canvas = probeFloat16Canvas();
   const context = { app, els };
   const actions = Object.assign({}, utils, gif, bmp, metrics, metadata, settings, zip, pixels, passport);
   function dependencies(names) {
