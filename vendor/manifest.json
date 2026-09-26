@@ -515,7 +515,7 @@
       "file": "heic-decoder.js",
       "url": "Built from sources/heic/ using Emscripten 6.0.9; libheif 1.23.4, libde265 1.1.2 and Kvazaar 2.3.2",
       "bytes": 6982259,
-      "sha256": "caffb08545d49bfe87b59e0a519a70d67e8a2c6c4188c83bdc24fcacf1813b55"
+      "sha256": "ebfccb43e8aad4d66a1f8b7f7eebd899d3f92ecf34ed8329c673def9c71f37da"
     },
     {
       "file": "heic-sources.zip",

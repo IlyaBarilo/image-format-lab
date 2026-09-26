@@ -13,6 +13,7 @@
 /vendor/** -text !eol
 # The generated codec script retains its pinned CRLF bytes.
 /vendor/modern-codecs.js whitespace=-trailing-space
+/vendor/heic-decoder.js whitespace=-trailing-space
 
 *.png binary
 *.jpg binary

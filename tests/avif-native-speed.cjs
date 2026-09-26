@@ -3,6 +3,8 @@ const createCodec = require('../vendor/heic-decoder.js');
 
 (async () => {
   const codec = await createCodec({ print() {}, printErr() {} });
+  assert.equal(codec.UTF8ToString(codec._viewer_heic_version()), '1.23.4');
+  assert.equal(codec.UTF8ToString(codec._viewer_de265_version()), '1.1.2', 'libde265 version must match the supplied source package');
   const width = 64, height = 48, pixels = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const i = (y * width + x) * 4;
@@ -39,6 +41,7 @@ const createCodec = require('../vendor/heic-decoder.js');
     assert.notEqual(codec._viewer_avif_encode(pointer, pixels.length, width, height, 75, 10), 0);
     assert.equal(codec._viewer_heic_encode(pointer, pixels.length, width, height, 75), 0,
       codec.UTF8ToString(codec._viewer_heic_error()));
+    checkDecodes({ bytes: codec.HEAPU8.slice(codec._viewer_heic_output(), codec._viewer_heic_output() + codec._viewer_heic_output_size()) });
     console.log('PASS AVIF speeds produce different valid files; HEIC ABI remains unchanged',
       JSON.stringify([[0, slowest.bytes.length, slowest.elapsedMs], [3, slow.bytes.length, slow.elapsedMs], [6, before.bytes.length, before.elapsedMs], [9, fast.bytes.length, fast.elapsedMs]]));
   } finally { codec._viewer_heic_clear(); codec._free(pointer); }
