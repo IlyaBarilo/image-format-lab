@@ -7,7 +7,7 @@ const pako=require('../vendor/pako-2.1.0.min.js');
   const {prepareIccSdr}=await import('../src/core/icc-sdr.mjs');
   const {encodePng,decodePng}=await import('../src/core/png.mjs');
   const {encodeTiff16,decodeTiff16}=await import('../src/core/tiff16.mjs');
-  assert.deepEqual(SAMPLE_CATALOG.map(sample=>sample.id),['canvas','gradient','alpha','palette','tiff16','iccP3']);
+  assert.deepEqual(SAMPLE_CATALOG.map(sample=>sample.id),['canvas','gradient','alpha','palette','tiff16','iccP3','tiffFloat']);
   assert.ok(SAMPLE_CATALOG.every(sample=>sample.label&&sample.description&&sample.size&&sample.fileName));
   const hashes={
     gradient:'c28f734486bfd7e44d317d650c536bcc019e07e6ac1e3c7d01f300c5ed41ed5d',
@@ -48,5 +48,5 @@ const pako=require('../vendor/pako-2.1.0.min.js');
   assert.deepEqual(p3Decoded.iccProfile,p3.iccProfile);
   const managed=await prepareIccSdr(p3Decoded.pixels,p3Decoded.iccProfile);
   assert.ok(managed.pixelBuffer.data.some((value,index)=>index%4!==3&&value!==p3.pixels.data[index]));
-  console.log('PASS six sample definitions, exact PNG8/TIFF16/ICC PNG16 generated pixels: '+JSON.stringify(hashes));
+  console.log('PASS seven sample definitions, exact PNG8/TIFF16/TIFF float32/ICC PNG16 generated pixels: '+JSON.stringify(hashes));
 })().catch(error=>{console.error(error);process.exitCode=1;});

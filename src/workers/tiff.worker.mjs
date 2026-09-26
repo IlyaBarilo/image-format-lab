@@ -4,6 +4,7 @@ import { installTiffJpeg } from '../core/tiff-jpeg.mjs';
 import { decodeLegacyTiff } from '../core/tiff-legacy.mjs';
 import { decodeBmpPixels, decodeTiffPixels, encodeTiffPixels } from '../core/raster-codecs.mjs';
 import { decodeTiff16, encodeTiff16 } from '../core/tiff16.mjs';
+import { decodeTiffFloat } from '../core/tiff-float.mjs';
 import { pngPreview } from '../core/png.mjs';
 
 let modulePromise;
@@ -32,6 +33,14 @@ self.onmessage=async({data:request})=>{
     let result;
     if(type==='decode-bmp')result=decodeBmpPixels(codec.bmp,request.buffer,request.ico);
     else if(type==='decode'){
+      const floating=decodeTiffFloat(request.buffer,request.page??0,pako);
+      if(floating){
+        self.postMessage({type:'decoded',id,width:floating.pixels.width,height:floating.pixels.height,
+          pages:floating.pages,buffer:floating.preview.buffer,exactBuffer:floating.pixels.data.buffer,
+          sampleType:'float32',floatStats:floating.stats,
+          precisionNote:'float32 исходник · SDR-предпросмотр 8 бит (обрезка 0–1)'},
+        [floating.preview.buffer,floating.pixels.data.buffer]);return;
+      }
       const exact=decodeTiff16(request.buffer,request.page??0,pako);
       if(exact&&!exact.fallback){
         const preview=exact.iccProfile?null:pngPreview(exact);

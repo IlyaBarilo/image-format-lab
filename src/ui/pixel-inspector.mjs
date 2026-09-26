@@ -28,7 +28,7 @@ export function createPixelInspector({ app }, deps) {
   function entry(label, pixels, message = '') { return { label, ...(message ? { message } : read(pixels)) }; }
   function snapshot() {
     if (!point || !source) return [];
-    const reference = entry('Исходник', source.pixelBuffer);
+    const reference = entry('Исходник', source.nativePixelBuffer?.sampleType === 'float32' ? source.nativePixelBuffer : source.pixelBuffer);
     const result = [reference];
     for (const variant of app.variants.slice(0, app.layout)) {
       const ready = deps.isVariantReady(variant);
@@ -82,7 +82,9 @@ export function createPixelInspector({ app }, deps) {
     xInput.max = String(Math.max(0, (source?.width || 1) - 1));
     yInput.max = String(Math.max(0, (source?.height || 1) - 1));
     get('pixelHint').textContent = enabled
-      ? 'Щёлкните по готовому изображению или введите X и Y от 0. Перетаскивание перемещает просмотр. Δ = результат − исходник.'
+      ? source.nativePixelBuffer?.sampleType === 'float32'
+        ? 'Исходник: точные значения float32. Результаты и просмотр: SDR 8 бит; Δ без общего диапазона недоступна. Щёлкните по изображению или введите X и Y.'
+        : 'Щёлкните по готовому изображению или введите X и Y от 0. Перетаскивание перемещает просмотр. Δ = результат − исходник.'
       : 'Откройте изображение для проверки пикселей.';
     render(active() ? snapshot() : []);
     if (redraw && active() && point) deps.redrawPreviews();

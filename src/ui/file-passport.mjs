@@ -14,7 +14,7 @@ export function createFilePassport({ app }, deps) {
     const source = app.source;
     if (!source) return { target, source: null, message: 'Откройте изображение.' };
     const common = { target, source, sourceGeneration: app.sourceGeneration };
-    if (target === 'source') return { ...common, blob: source.file, pixels: source.pixelBuffer, label: source.name };
+    if (target === 'source') return { ...common, blob: source.file, pixels: source.nativePixelBuffer?.sampleType === 'float32' ? source.nativePixelBuffer : source.pixelBuffer, floatStats:source.floatStats, label: source.name };
     const variant = app.variants[Number(target)];
     if (!variant || !deps.isVariantReady(variant)) return { ...common, generation: variant?.generation,
       message: variant?.error ? 'Ошибка обработки. Паспорт результата недоступен.' : 'Дождитесь пересчёта результата.' };
@@ -98,13 +98,20 @@ export function createFilePassport({ app }, deps) {
   function raster(snapshot) {
     let info;
     try { info = deps.workingRasterInfo(snapshot.pixels); } catch { info = null; }
-    fields(rasterFields, info ? [
+    const rows=info ? [
       ['Размеры рабочего растра', `${info.width} × ${info.height}`],
       ['Рабочие отсчёты', `RGBA · ${info.bitDepth} бит/канал · ${info.sampleType}`],
       ['Объём одного RGBA-буфера', `${deps.formatBytes(info.byteLength)} (${number(info.byteLength)} байт)`],
       ['Цветовая метка растра', { srgb: 'sRGB', 'display-p3': 'Display P3', unknown: 'Неизвестна' }[info.colorSpace]],
       ['Хранение alpha', info.alphaMode === 'straight' ? 'Независимый канал' : 'RGB умножен на alpha']
-    ] : [['Рабочий растр', 'Недоступен']]);
+    ] : [['Рабочий растр', 'Недоступен']];
+    if (snapshot.floatStats) {
+      const stats=snapshot.floatStats;
+      rows.push(['Диапазон float32 (R, G, B, α)', stats.min.map((value,i)=>`${String(value).replace('.', ',')}…${String(stats.max[i]).replace('.', ',')}`).join(' · ')],
+        ['RGB ниже 0 / выше 1', `${number(stats.negative)} / ${number(stats.aboveOne)} отсчётов`],
+        ['Экран и сравнение', 'SDR-предпросмотр 8 бит: 0–1 → 0–255 с обрезкой; точные значения — в пиксельном инспекторе.']);
+    }
+    fields(rasterFields,rows);
     return info;
   }
   function present(snapshot, info) {

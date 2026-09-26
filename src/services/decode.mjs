@@ -35,6 +35,7 @@ export function createDecode({}, deps) {
         width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: decoded.pixelBuffer || pixelBufferFromImageData(imageData),
         nativePixelBuffer: decoded.nativePixelBuffer || null,
         iccProfile: decoded.iccProfile || null,
+        floatStats: decoded.floatStats || null,
         colorManagementNote: decoded.colorManagementNote || '',
         precisionNote:decoded.precisionNote||'',
         hasAlpha: decoded.pixelBuffer ? decoded.pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**decoded.pixelBuffer.bitDepth-1) : deps.detectAlpha(imageData.data) };

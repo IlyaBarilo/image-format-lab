@@ -77,6 +77,16 @@ export function createTiff() {
     if (!file.size || file.size > 256 * 1024 * 1024) throw new Error('TIFF: пустой файл или размер более 256 МиБ');
     const result = await operate('decode', () => file.arrayBuffer(), {page});
     if(result.exactBuffer){
+      if(result.sampleType==='float32'){
+        const native=createPixelBuffer({width:result.width,height:result.height,
+          data:new Float32Array(result.exactBuffer),sampleType:'float32',bitDepth:32,colorSpace:'unknown'});
+        const preview=new Uint8ClampedArray(result.buffer);
+        return {width:result.width,height:result.height,pages:result.pages,page,
+          imageData:new ImageData(preview,result.width,result.height),
+          pixelBuffer:createPixelBuffer({width:result.width,height:result.height,data:preview,colorSpace:'unknown'}),
+          nativePixelBuffer:native,floatStats:result.floatStats,
+          precisionNote:result.precisionNote,close:null};
+      }
       const native=createPixelBuffer({width:result.width,height:result.height,
         data:new Uint16Array(result.exactBuffer),sampleType:'uint16',bitDepth:16});
       const prepared=await prepareIccSdr(native,result.iccProfileBuffer?new Uint8Array(result.iccProfileBuffer):null);

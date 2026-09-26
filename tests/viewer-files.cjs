@@ -323,6 +323,19 @@ async function snapshot(page) {
       assert.equal(await page.evaluate(() => app.source.pixelBuffer.bitDepth),16);
       assert.equal(await page.evaluate(() => app.source.iccProfile?.length),416);
       assert.deepEqual((await snapshot(page)).names,['ifl-tiff16-v1.tif','ifl-gradient-v1.png','ifl-p3-icc16-v1.png']);
+      await page.locator('#sampleMenuToggle').click();
+      await page.locator('#sampleMenu [data-sample-id="tiffFloat"]').click();
+      await page.waitForFunction(() => app.source?.name==='ifl-float32-v1.tif' && !app.sourceLoading, null, {timeout:60000});
+      assert.equal(await page.evaluate(() => app.source.nativePixelBuffer?.sampleType),'float32');
+      assert.equal(await page.evaluate(() => app.source.pixelBuffer?.bitDepth),8);
+      assert.equal(await page.evaluate(() => app.source.floatStats.negative>0 && app.source.floatStats.aboveOne>0),true);
+      await page.locator('#pixelInspector summary').click();
+      await page.locator('#pixelX').fill('0'); await page.locator('#pixelY').fill('0');
+      await page.locator('#pixelShow').click();
+      assert.match(await page.locator('#pixelRows tr').first().textContent(),/32 бит float.*-0.25/);
+      await page.locator('.cell').first().getByRole('button',{name:'О файле ячейки 1'}).click();
+      assert.match(await page.locator('#filePassportRaster').textContent(),/float32.*RGB ниже 0 \/ выше 1/s);
+      await page.keyboard.press('Escape');
     });
 
     await check('long names are safe text, many rows scroll and responsive panels remain usable', async page => {

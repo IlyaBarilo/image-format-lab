@@ -14,7 +14,9 @@ export const SAMPLE_CATALOG = Object.freeze([
   Object.freeze({id:'tiff16',label:'TIFF16 · точность градиента',fileName:'ifl-tiff16-v1.tif',size:'512×256',
     description:'Точный 16-битный градиент с различающимися младшими разрядами.'}),
   Object.freeze({id:'iccP3',label:'PNG16 · цветовой профиль P3',fileName:'ifl-p3-icc16-v1.png',size:'256×128',
-    description:'Градиент с синтетическим ICC Display P3: сравните исходные значения и sRGB-показ.'})
+    description:'Градиент с синтетическим ICC Display P3: сравните исходные значения и sRGB-показ.'}),
+  Object.freeze({id:'tiffFloat',label:'TIFF float32 · диапазон значений',fileName:'ifl-float32-v1.tif',size:'64×32',
+    description:'Дробные и отрицательные значения, участки выше 1 и полупрозрачность. Показ — условный SDR.'})
 ]);
 
 export function createReferenceSamplePixels(id) {
@@ -52,6 +54,38 @@ export function createTiff16SamplePixels() {
     data[at+3]=65535;
   }
   return createPixelBuffer({width,height,data,sampleType:'uint16',bitDepth:16,colorSpace:'srgb',alphaMode:'straight'});
+}
+
+export function createTiffFloatSample() {
+  const width=64,height=32,data=new Float32Array(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    const at=(y*width+x)*4;
+    data[at]=-0.25+2.25*x/(width-1);
+    data[at+1]=y/(height-1);
+    data[at+2]=0.25;
+    data[at+3]=x<width/4?0:x<width/2?0.5:1;
+  }
+  const pixels=createPixelBuffer({width,height,data,sampleType:'float32',bitDepth:32,colorSpace:'unknown'});
+  const tags=[[256,4,1,width],[257,4,1,height],[258,3,4,0],[259,3,1,1],[262,3,1,2],
+    [273,4,1,0],[277,3,1,4],[278,4,1,height],[279,4,1,data.byteLength],
+    [284,3,1,1],[338,3,1,2],[339,3,4,0]];
+  const bitsAt=8+2+tags.length*12+4,formatsAt=bitsAt+8,pixelsAt=formatsAt+8;
+  tags.find(tag=>tag[0]===258)[3]=bitsAt;
+  tags.find(tag=>tag[0]===339)[3]=formatsAt;
+  tags.find(tag=>tag[0]===273)[3]=pixelsAt;
+  const bytes=new Uint8Array(pixelsAt+data.byteLength),view=new DataView(bytes.buffer);
+  bytes.set([73,73]);view.setUint16(2,42,true);view.setUint32(4,8,true);view.setUint16(8,tags.length,true);
+  tags.forEach(([tag,type,count,value],index)=>{
+    const at=10+index*12;
+    view.setUint16(at,tag,true);view.setUint16(at+2,type,true);view.setUint32(at+4,count,true);
+    if(type===3&&count===1)view.setUint16(at+8,value,true);else view.setUint32(at+8,value,true);
+  });
+  for(let c=0;c<4;c++){
+    view.setUint16(bitsAt+c*2,32,true);
+    view.setUint16(formatsAt+c*2,3,true);
+  }
+  for(let i=0;i<data.length;i++)view.setFloat32(pixelsAt+i*4,data[i],true);
+  return {pixels,bytes};
 }
 
 export function createIccP3Sample() {
