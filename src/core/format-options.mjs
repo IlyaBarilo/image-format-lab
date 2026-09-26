@@ -23,5 +23,6 @@ export function reportFormatConfig(config) {
   else if(format==='webp') result.formatMode='lossy';
   else if(format==='jxlLossless') { result.format='jxl'; result.formatMode='lossless'; }
   else if(format==='jxl') result.formatMode='lossy';
+  else if(format==='jp2'||format==='j2k') result.formatMode=config.quality===100?'lossless':'lossy';
   return result;
 }

@@ -119,6 +119,7 @@ gifenc. Сохраняйте полные лицензионные тексты 
 | JPEG | [Закреплённые исходники libjpeg-turbo и WASM-сборщик](../vendor/sources/jpeg/README.md) |
 | HEIC / AVIF | [Исходный комплект, сборка и замена библиотеки](../vendor/sources/heic/README.md) |
 | WebP / JPEG XL | [Исходники и сборка современных кодеков](../vendor/sources/modern/README.md) |
+| JPEG 2000 | [OpenJPEG, мост и автономная сборка](../vendor/sources/jpeg2000/README.md) |
 
 Для gifenc нужны Node.js и esbuild. Для нативных библиотек используются
 Emscripten, CMake и Ninja; точные версии и команды закреплены в соответствующих

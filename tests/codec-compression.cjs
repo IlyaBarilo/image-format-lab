@@ -39,7 +39,7 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
   const urls = new Map(), revoked = [], appended = [], failures = [];
   const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL;
   let inflateCalls = 0, holdPako = true, held, failPako = true, workerLoads = 0, reads = 0;
-  const workers = [], workerEntries = { heic: 'heic-decoder.js', utif: 'jpeg-decoder.js', modern: 'modern-codecs.js' };
+  const workers = [], workerEntries = { heic: 'heic-decoder.js', utif: 'jpeg-decoder.js', modern: 'modern-codecs.js', jpeg2000: 'jpeg2000-codec.js' };
   try {
     global.window = global;
     delete global.pako; delete global.UPNG; delete global.gifenc;
@@ -78,7 +78,7 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
     const els = { codecStatus: { dataset: {} }, codecNotice: {}, retryCodecs: {} };
     const deps = { updateFormatOptions() {} };
     for (const [key, name] of Object.entries(workerEntries)) {
-      deps[{ heic: 'loadHeicCodec', utif: 'loadTiffCodec', modern: 'loadModernCodec' }[key]] = async () => {
+      deps[{ heic: 'loadHeicCodec', utif: 'loadTiffCodec', modern: 'loadModernCodec', jpeg2000: 'loadJpeg2000Codec' }[key]] = async () => {
         assert.equal(typeof global.pako?.ungzip, 'function', 'Inflater must be ready before worker creation');
         workerLoads++;
         const source = reader.embeddedCodecSource('vendor/' + name);
@@ -117,12 +117,12 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
     assert.equal(els.codecStatus.dataset.state, 'ready');
     assert.equal(els.codecNotice.hidden, true);
     assert.equal(els.retryCodecs.hidden, true);
-    assert.equal(Object.keys(app.codecs).length, 5);
-    assert.equal(workerLoads, 3);
-    assert.equal(inflateCalls, 5);
+    assert.equal(Object.keys(app.codecs).length, 6);
+    assert.equal(workerLoads, 4);
+    assert.equal(inflateCalls, 6);
     for (const name of Object.values(workerEntries)) reader.embeddedCodecSource('vendor/' + name);
     await actions.loadAdditionalCodecs();
-    assert.equal(inflateCalls, 5, 'Decoded text is reused for later worker creation');
+    assert.equal(inflateCalls, 6, 'Decoded text is reused for later worker creation');
     assert.equal(reader.embeddedCodecsNeedInflater(), false);
     assert.equal(reads, 1);
     assert.deepEqual(failures, []);
@@ -134,5 +134,5 @@ const pack = bytes => ({ encoding: 'gzip-base64', bytes: bytes.length, data: gzi
     URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;
     workers.length = 0;
   }
-  console.log('PASS real startup controller on mock DOM: coalesced bootstrap, delayed load, error/retry, five real WASM initializations, decode-once cache, revoked Blob URLs, no network');
+  console.log('PASS real startup controller on mock DOM: coalesced bootstrap, delayed load, error/retry, six real WASM initializations, decode-once cache, revoked Blob URLs, no network');
 })().catch(error => { console.error(error); process.exitCode = 1; });

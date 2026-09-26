@@ -33,6 +33,7 @@ export function createDecode({}, deps) {
       const metadata = await deps.readPanoramaMetadata(file);
       return { ...metadata, file, name: file.name || "image", size: file.size || 0, type: file.type || "unknown",
         width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: decoded.pixelBuffer || pixelBufferFromImageData(imageData),
+        iccProfile: decoded.iccProfile || null,
         precisionNote:decoded.precisionNote||'',
         hasAlpha: decoded.pixelBuffer ? decoded.pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**decoded.pixelBuffer.bitDepth-1) : deps.detectAlpha(imageData.data) };
     } finally { if (decoded.close) decoded.close(); }
@@ -44,6 +45,7 @@ export function createDecode({}, deps) {
     const kind = deps.fileKind(file);
     if (kind === 'bmp') return (await deps.loadOptionalCodec('utif')).decodeBmp(file);
     if (kind === 'tiff') return deps.decodeTiffFile(file);
+    if (kind === 'jp2' || kind === 'j2k') return (await deps.loadOptionalCodec('jpeg2000')).decode(file, kind);
     if (kind === 'jxl' || kind === 'avif') {
       const codec = await deps.loadOptionalCodec(kind === 'avif' ? 'heic' : 'modern');
       return codec.decode(file, kind);
@@ -70,6 +72,8 @@ export function createDecode({}, deps) {
     const type = (file.type || "").toLowerCase();
     if (/\.bmp$/.test(name) || type === 'image/bmp' || type === 'image/x-ms-bmp') return 'bmp';
     if (/\.(tif|tiff)$/.test(name) || type === "image/tiff") return "tiff";
+    if (/\.jp2$/.test(name) || type === 'image/jp2') return 'jp2';
+    if (/\.(j2k|j2c)$/.test(name) || type === 'image/j2k' || type === 'image/j2c') return 'j2k';
     if (/\.(heic|heif)$/.test(name) || type === "image/heic" || type === "image/heif") return "heic";
     for (const [extension, mime] of [['avif', 'image/avif'], ['jxl', 'image/jxl'], ['webp', 'image/webp'], ['ico', 'image/x-icon']]) {
       if (name.endsWith('.' + extension) || type === mime || (extension === 'ico' && type === 'image/vnd.microsoft.icon')) return extension;

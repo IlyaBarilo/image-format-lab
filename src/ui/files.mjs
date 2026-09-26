@@ -4,7 +4,7 @@
 export function createFiles({app, els}, deps) {
   function isImageCandidate(file) {
     return file && ((file.type || "").toLowerCase().startsWith("image/") ||
-      /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif|tif|tiff|jxl|ico)$/i.test(file.name || ""));
+      /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif|tif|tiff|jxl|jp2|j2k|j2c|ico)$/i.test(file.name || ""));
   }
   
   function addFiles(fileList, { openFirst = false } = {}) {

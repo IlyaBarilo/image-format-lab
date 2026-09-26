@@ -94,8 +94,8 @@
     {
       "file": "components.json",
       "url": "Project component registry with licenses and source references",
-      "bytes": 18686,
-      "sha256": "6a974044a6edc784b0fee3c0b75fbb12c7e443725c7fe57dd68576c8e9729bed"
+      "bytes": 19653,
+      "sha256": "70f16dd8972c39e683dfd38a0f4d755d20cdc017cd4454671bea49ab10c460ee"
     },
     {
       "file": "sources/gifenc-1.0.3/src/color.js",
@@ -894,6 +894,54 @@
       "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
       "bytes": 615888,
       "sha256": "3d8f498bf52d309a4ab8fcdcf52190253a0d580d29175545404ea296cf2a3edd"
+    },
+    {
+      "file": "sources/jpeg2000/bridge.c",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 8501,
+      "sha256": "9e6a8fe6cb4508b07c45f59881a63205a2ae8b81db0cfac952bdb358b23da5bf"
+    },
+    {
+      "file": "sources/jpeg2000/build.py",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 3378,
+      "sha256": "b87ab806ff6c777114d7396a9fd3830e02138650b7b9afe8a2154b3419e1d7bb"
+    },
+    {
+      "file": "sources/jpeg2000/README.md",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 1560,
+      "sha256": "75d80d1909cb360fec2b57a499a3d3057055c479c7b30a0806886347f05fdc57"
+    },
+    {
+      "file": "sources/jpeg2000/PROJECT-LICENSE",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 1089,
+      "sha256": "fe3f318a223c65ec6895fbae7e8268c8cdf6bd9883459f3caa3a2ceea8d7c8c1"
+    },
+    {
+      "file": "sources/jpeg2000/upstream/openjpeg-v2.5.4.tar.gz",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 2157028,
+      "sha256": "a695fbe19c0165f295a8531b1e4e855cd94d0875d2f88ec4b61080677e27188a"
+    },
+    {
+      "file": "openjpeg-LICENSE",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 2112,
+      "sha256": "a6af136f3e15038a666b61f376612a07d9a4e48cb7c01adbf3e33b3f14ab49b6"
+    },
+    {
+      "file": "OPENJPEG-NOTICE",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 640,
+      "sha256": "b77b12ab2b970cdef5a2a054c09fdd9c1f55527bd9f52b4941fe09e0ef154702"
+    },
+    {
+      "file": "jpeg2000-codec.js",
+      "url": "OpenJPEG 2.5.4 and project bridge; see sources/jpeg2000/README.md and OPENJPEG-NOTICE",
+      "bytes": 450511,
+      "sha256": "f212e8131038d445ee5651d21b0fffea218124b5845f0d3b8f69c1c629728d39"
     },
     {
       "file": "gifenc-1.0.3.browser.js",

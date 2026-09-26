@@ -354,6 +354,29 @@
       ]
     },
     {
+      "id": "openjpeg",
+      "name": "OpenJPEG",
+      "version": "2.5.4",
+      "scope": "JPEG 2000 Part 1: чтение и сохранение JP2/J2K",
+      "license": "BSD-2-Clause",
+      "licenseFiles": [
+        "openjpeg-LICENSE",
+        "OPENJPEG-NOTICE"
+      ],
+      "status": "documented",
+      "notes": "Библиотека openjp2 без зависимостей консольных инструментов. Собственный мост и сборщик — MIT. Лицензия OpenJPEG не предоставляет патентных прав.",
+      "sources": [
+        {
+          "label": "Исходники OpenJPEG 2.5.4",
+          "url": "https://github.com/uclouvain/openjpeg/releases/tag/v2.5.4"
+        },
+        {
+          "label": "Исходный комплект в проекте",
+          "url": "https://github.com/IlyaBarilo/image-format-lab/tree/main/vendor/sources/jpeg2000"
+        }
+      ]
+    },
+    {
       "id": "brotli",
       "name": "Brotli",
       "version": "028fb5a",

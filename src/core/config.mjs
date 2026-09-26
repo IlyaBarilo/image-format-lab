@@ -61,6 +61,8 @@ export const FORMAT_DEFS = {
   webpLossless: { label: "WebP lossless", mime: "image/webp", ext: "webp", lossy: false, alpha: "full", native: false, codec: "modern" },
   jxl: { label: "JPEG XL", mime: "image/jxl", ext: "jxl", lossy: true, alpha: "full", native: false, codec: "modern" },
   jxlLossless: { label: "JPEG XL lossless", mime: "image/jxl", ext: "jxl", lossy: false, alpha: "full", native: false, codec: "modern" },
+  jp2: { label: "JPEG 2000 · JP2", mime: "image/jp2", ext: "jp2", lossy: true, alpha: "full", native: false, codec: "jpeg2000" },
+  j2k: { label: "JPEG 2000 · J2K", mime: "image/j2k", ext: "j2k", lossy: true, alpha: "full", native: false, codec: "jpeg2000" },
   tiff: { label: "TIFF", mime: "image/tiff", ext: "tif", lossy: false, alpha: "full", native: false, codec: "utif" },
   ico: { label: "ICO · 7 размеров", mime: "image/x-icon", ext: "ico", lossy: false, alpha: "full", native: false },
   heic: {
@@ -146,6 +148,7 @@ export const MATTES = {
 
 export const OPTIONAL_CODECS = {
   modern: { label: "WebP lossless / JPEG XL", version: "libwebp 1.6.0 / libjxl 0.12.0", kind: "worker" },
+  jpeg2000: { label: "JPEG 2000 · JP2/J2K", version: "OpenJPEG 2.5.4", kind: "worker" },
   upng: {
     label: "UPNG",
     version: "2.1.0 (pako 2.1.0)",

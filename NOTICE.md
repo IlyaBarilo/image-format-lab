@@ -39,6 +39,7 @@ MIT/Zlib, MPL, LGPL, IJG/BSD и другие лицензии библиотек
 - [JPEG-NOTICE](vendor/JPEG-NOTICE) и [JPEG-RUNTIME-NOTICE](vendor/JPEG-RUNTIME-NOTICE) — libjpeg-turbo и используемый runtime.
 - [HEIC-NOTICE](vendor/HEIC-NOTICE) и [HEIC-RUNTIME-NOTICE](vendor/HEIC-RUNTIME-NOTICE) — libheif, libde265, Kvazaar и runtime.
 - [MODERN-NOTICE](vendor/MODERN-NOTICE) — libaom, libwebp/libsharpyuv, libjxl, Brotli, Highway и skcms.
+- [OPENJPEG-NOTICE](vendor/OPENJPEG-NOTICE) и [openjpeg-LICENSE](vendor/openjpeg-LICENSE) — OpenJPEG для JP2/J2K.
 
 ## Уведомление Independent JPEG Group
 
@@ -108,7 +109,8 @@ libheif и libde265 сохраняют LGPL-3.0-or-later:
 [UTIF](vendor/sources/utif/README.md),
 [JPEG](vendor/sources/jpeg/README.md),
 [WebP/JPEG XL](vendor/sources/modern/README.md),
-[BMP/TIFF](vendor/sources/raster/README.md).
+[BMP/TIFF](vendor/sources/raster/README.md),
+[JPEG 2000](vendor/sources/jpeg2000/README.md).
 Порядок пересборки и сопровождения — в документе
 [«Для разработчика»](docs/DEVELOPMENT.md#пересборка-библиотек).
 Подготовка адресов и файлов выпуска — в [инструкции публикации](docs/PUBLISHING.md).

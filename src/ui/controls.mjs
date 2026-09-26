@@ -528,6 +528,9 @@ export function createControls({els, app}, deps) {
       variant.controls.tiffPredictor.checked = options.tiffPredictor;
     }
     variant.controls.qualityWrap.style.display = isQuality ? "" : "none";
+    variant.controls.qualityWrap.title = format === 'jp2' || format === 'j2k'
+      ? 'JPEG 2000: Q100 сохраняет пиксели без потерь; Q1–99 задаёт приблизительную степень сжатия с потерями.'
+      : 'Качество кодирования';
     variant.controls.gifWrap.style.display = isGif ? "" : "none";
     variant.controls.ditherLabel.style.display = format === "gif" || format === "pngIndexed" ? "" : "none";
     variant.controls.matteWrap.style.display = needsMatte ? "" : "none";
@@ -650,6 +653,7 @@ export function createControls({els, app}, deps) {
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
       avif: "Встроенные libheif / libaom",
       jxl: "Встроенный libjxl", jxlLossless: "Встроенный libjxl",
+      jp2: "Встроенный OpenJPEG · контейнер JP2", j2k: "Встроенный OpenJPEG · поток J2K",
       bmp8: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
       tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; точный целочисленный TIFF16 для серого/RGB/RGBA без сжатия, с Deflate или PackBits; первая страница",
       ico: "Наибольший PNG внутри ICO — браузер; BMP внутри ICO — встроенный libnsbmp"
@@ -663,6 +667,8 @@ export function createControls({els, app}, deps) {
       avif: "Встроенные libheif / libaom; качество 1–100 и скорость 0–9, поддерживает прозрачность",
       jxl: "Встроенный libjxl; качество 1–100, усилие 1–10, поддерживает прозрачность",
       jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; усилие 1–10",
+      jp2: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — приблизительная степень сжатия; поддерживаются точные 8/16 бит и прозрачность; ICC сохраняется при повторной записи JP2 без изменения размера",
+      j2k: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — с потерями; J2K не содержит контейнерных метаданных JP2",
       tiff: "RGBA8 без потерь: без сжатия, Deflate, LZW или PackBits. RGBA16 в исходном размере: без сжатия или Deflate, предиктор по выбору; просмотр 8-битный",
       ico: "7 PNG-размеров: 16, 24, 32, 48, 64, 128, 256 px; пропорции сохраняются, поля прозрачные; маленький исходник не растягивается",
       heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",

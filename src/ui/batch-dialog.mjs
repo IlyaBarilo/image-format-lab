@@ -138,6 +138,8 @@ export function createBatchDialog({els, app}, deps) {
     els.batchMetadataHint.textContent = config.format === "jpeg"
       ? "В JPEG можно сохранить только GPano. EXIF и остальные метаданные удаляются."
       : config.format === 'png' ? 'Исходные метаданные удаляются. Точный PNG записывает известную метку sRGB; GPano применяется только к JPEG.'
+      : config.format === 'jp2' ? 'При повторной записи JP2 без изменения размеров сохраняется ICC-профиль исходного JP2. EXIF и GPano не переносятся. Q100 — без потерь.'
+      : config.format === 'j2k' ? 'J2K — поток без контейнерных метаданных. Q100 — без потерь; меньшие значения — с потерями.'
       : "В выбранном формате метаданные удаляются. Сохранение GPano применяется только к JPEG.";
     const count = deps.selectedBatchFiles().length;
     els.batchDialogCount.textContent = `Будет обработано: ${deps.batchFilesLabel(count)} из ${app.files.length} — отметки общего списка.`;

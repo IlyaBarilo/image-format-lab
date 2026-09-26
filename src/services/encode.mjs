@@ -56,6 +56,18 @@ export function createEncode({}, deps) {
           precisionNote:pixels.bitDepth===16?'16 бит/канал · показ 8 бит':'16 бит/канал · из 8 бит; деталей не добавлено'},source);
       }
     }
+    if (format === 'jp2' || format === 'j2k') {
+      const prepared = deps.outputSourceForConfig(config, source);
+      const candidate = prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
+      const exact = candidate.sampleType === 'uint16' && candidate.bitDepth === 16;
+      const input = exact || candidate.sampleType === 'uint8' ? candidate : pixelBufferFromImageData(prepared.imageData);
+      const codec = await deps.loadOptionalCodec('jpeg2000');
+      const blob = await codec.encode(input, config.quality, format,
+        format === 'jp2' && prepared === source ? source.iccProfile : null);
+      return deps.withEncodedMeta({ blob, panoramaPreserved: false,
+        precisionNote: input.sampleType === 'uint16' ? '16 бит/канал · показ 8 бит' :
+          pixels.bitDepth > 8 ? `8 бит/канал · из ${pixels.bitDepth} бит` : '' }, prepared);
+    }
     const outputSource = deps.outputSourceForConfig(config, source);
     if (format === 'pngIndexed') return deps.withEncodedMeta(
       await deps.encodePalettePng(outputSource,config.gifColors,config.gifDither,config),outputSource);

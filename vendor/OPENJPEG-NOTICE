@@ -1,0 +1,6 @@
+OpenJPEG 2.5.4 — JPEG 2000 Part 1 codec (JP2/J2K)
+Official source: https://github.com/uclouvain/openjpeg/releases/tag/v2.5.4
+Archive SHA-256: a695fbe19c0165f295a8531b1e4e855cd94d0875d2f88ec4b61080677e27188a
+License: BSD-2-Clause. The complete copyright notice, conditions and disclaimer are in openjpeg-LICENSE and are embedded in the application's Licenses window.
+The license does not grant patent rights. Project-owned build and memory bridge: MIT.
+The codec is built from upstream source without PNG, TIFF, LCMS or Zlib CLI-tool dependencies. The generated module includes the Emscripten runtime; its notices are supplied separately.

@@ -21,6 +21,7 @@ tests.push('avif-speed');
 tests.push('avif-native-speed');
 tests.push('tiff16');
 tests.push('display-sdr');
+tests.push('jpeg2000');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

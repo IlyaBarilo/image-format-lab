@@ -40,6 +40,7 @@ import { createAnalysisOutput } from './ui/analysis-output.mjs';
 import { createStatus } from './ui/status.mjs';
 import { createCodecs } from './services/codecs.mjs';
 import { createModern } from './services/modern.mjs';
+import { createJpeg2000 } from './services/jpeg2000.mjs';
 import { createHeic } from './services/heic.mjs';
 import { createTiff } from './services/tiff.mjs';
 import { createSupport } from './services/support.mjs';
@@ -329,10 +330,12 @@ export function createApplication() {
   ])));
   Object.assign(actions, createHeic());
   Object.assign(actions, createModern());
+  Object.assign(actions, createJpeg2000());
   Object.assign(actions, createTiff());
   Object.assign(actions, createCodecs(context, dependencies([
     "loadHeicCodec",
     "loadModernCodec",
+    "loadJpeg2000Codec",
     "loadTiffCodec",
     "loadOptionalCodec",
     "loadScript",

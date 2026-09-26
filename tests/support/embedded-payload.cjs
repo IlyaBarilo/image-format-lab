@@ -4,12 +4,12 @@ const path = require('node:path');
 const { codecNames, licenseNames } = require('../../scripts/vendor-files.cjs');
 const { decodeScript } = require('./codec-payload.cjs');
 
-const packedCodecNames = ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js', 'bmp-decoder.js', 'tiff-codec.js'].map(name => 'vendor/' + name).sort();
+const packedCodecNames = ['heic-decoder.js', 'jpeg-decoder.js', 'modern-codecs.js', 'bmp-decoder.js', 'tiff-codec.js', 'jpeg2000-codec.js'].map(name => 'vendor/' + name).sort();
 
 function assertEmbeddedPayload(payload, root) {
   assert.deepEqual(Object.keys(payload.scripts).sort(), codecNames.map(name => 'vendor/' + name).sort(), 'include every declared codec, with no extra scripts');
   assert.deepEqual(Object.keys(payload.licenses).sort(), [...licenseNames].sort(), 'include every declared license, with no extra texts');
-  assert.deepEqual(Object.entries(payload.scripts).filter(([, entry]) => entry?.encoding === 'gzip-base64').map(([name]) => name).sort(), packedCodecNames, 'pack all five WASM modules');
+  assert.deepEqual(Object.entries(payload.scripts).filter(([, entry]) => entry?.encoding === 'gzip-base64').map(([name]) => name).sort(), packedCodecNames, 'pack all six WASM modules');
   for (const [name, entry] of Object.entries(payload.scripts)) {
     if (entry?.encoding === 'gzip-base64') assert.equal(Buffer.from(entry.data, 'base64')[9], 255, 'gzip OS must be platform-neutral: ' + name);
     assert.equal(decodeScript(entry), fs.readFileSync(path.join(root, name), 'utf8'), 'exact codec bytes: ' + name);

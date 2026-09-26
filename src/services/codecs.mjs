@@ -32,7 +32,8 @@ export function createCodecs({els, app}, deps) {
         // The small pako script stays uncompressed and already serves PNG/TIFF.
         // loadScript coalesces this with PNG and other worker startup requests.
         if (embeddedCodecsNeedInflater()) await deps.loadScript('vendor/pako-2.1.0.min.js');
-        const loaded = await (name === 'utif' ? deps.loadTiffCodec() : name === 'modern' ? deps.loadModernCodec() : deps.loadHeicCodec());
+        const loaded = await (name === 'utif' ? deps.loadTiffCodec() : name === 'modern' ? deps.loadModernCodec() :
+          name === 'jpeg2000' ? deps.loadJpeg2000Codec() : deps.loadHeicCodec());
         app.codecs[name] = loaded;
         return loaded;
       }
