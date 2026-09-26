@@ -10,6 +10,12 @@ async function ready(page, name) {
     app.files.find(f => f.id === app.selectedFileId)?.status === 'ready' &&
     app.variants.filter(v => !v.cell.classList.contains('hidden')).every(isVariantReady), name);
 }
+async function selectedSource(page, name) {
+  await page.waitForFunction(name => app.source?.name === name &&
+    app.files.find(f => f.id === app.selectedFileId)?.name === name &&
+    document.querySelector('.file-select[aria-current="true"]')?.closest('.file-row')?.querySelector('.file-name')?.textContent === name,
+  name, {timeout:20000});
+}
 async function snapshot(page) {
   return page.evaluate(() => ({
     names: app.files.map(f => f.name), selected: app.files.find(f => f.id === app.selectedFileId)?.name || null,
@@ -133,17 +139,17 @@ async function snapshot(page) {
     });
 
     await check('keyboard and previous/next controls preserve focus and stop at list ends', async page => {
-      await page.locator('#fileInput').setInputFiles(files); await ready(page,'first.png');
+      await page.locator('#fileInput').setInputFiles(files); await selectedSource(page,'first.png');
       assert.equal(await page.locator('#previousFile').isDisabled(),true);
       await page.locator('.file-select').first().focus();
-      await page.keyboard.press('ArrowDown'); await ready(page,'second.png');
+      await page.keyboard.press('ArrowDown'); await selectedSource(page,'second.png');
       assert.equal(await page.locator('.file-select').nth(1).evaluate(el => el === document.activeElement),true);
-      await page.keyboard.press('End'); await ready(page,'third.png');
+      await page.keyboard.press('End'); await selectedSource(page,'third.png');
       assert.equal(await page.locator('#nextFile').isDisabled(),true);
       await page.keyboard.press('ArrowDown');
       assert.equal((await snapshot(page)).selected,'third.png');
-      await page.keyboard.press('Home'); await ready(page,'first.png');
-      await page.locator('#nextFile').click(); await ready(page,'second.png');
+      await page.keyboard.press('Home'); await selectedSource(page,'first.png');
+      await page.locator('#nextFile').click(); await selectedSource(page,'second.png');
       assert.equal((await snapshot(page)).current,1);
     });
 
