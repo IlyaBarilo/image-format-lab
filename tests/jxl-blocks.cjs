@@ -18,7 +18,7 @@ const createCodec=require(process.env.IMAGE_TEST_MODERN_CODEC || '../vendor/mode
     const input=codec._malloc(pixels.length);
     try{
       codec.HEAPU8.set(pixels,input);
-      assert.equal(codec._viewer_modern_encode(input,pixels.length,width,height,80,kind),0,codec.UTF8ToString(codec._viewer_modern_error()));
+      assert.equal(codec._viewer_modern_encode(input,pixels.length,width,height,80,kind,4,5),0,codec.UTF8ToString(codec._viewer_modern_error()));
       const encoded=codec.HEAPU8.slice(codec._viewer_modern_output(),codec._viewer_modern_output()+codec._viewer_modern_output_size());
       codec._viewer_modern_clear();
       const compressed=codec._malloc(encoded.length);
@@ -44,7 +44,7 @@ const createCodec=require(process.env.IMAGE_TEST_MODERN_CODEC || '../vendor/mode
   await self.onmessage({data:{type:'init'}});
   assert.equal(messages.pop().type,'ready');
   for(const [format,expectGrid] of [['jxl',true],['jxlLossless',false]]){
-    await self.onmessage({data:{type:'encode',id:1,format,width,height,quality:80,buffer:pixels.slice().buffer}});
+    await self.onmessage({data:{type:'encode',id:1,format,width,height,quality:80,webpMethod:4,jxlEffort:5,buffer:pixels.slice().buffer}});
     const encoded=messages.pop();
     assert.equal(encoded.type,'encoded');
     await self.onmessage({data:{type:'decode',id:2,format:'jxl',buffer:encoded.buffer}});

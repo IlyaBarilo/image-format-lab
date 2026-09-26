@@ -31,14 +31,14 @@ int viewer_modern_height(){return height;}
 const uint32_t* viewer_modern_block_owners(){return block_owners.data();}
 size_t viewer_modern_block_count(){return block_owners.size();}
 // kind: 1 WebP lossless, 2 JPEG XL lossy, 3 JPEG XL lossless.
-int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind) {
+int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort) {
  viewer_modern_clear();
- if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4 || quality<1 || quality>100 || kind<1 || kind>3) return fail("Invalid image or quality; limit 40 megapixels");
+ if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4 || quality<1 || quality>100 || kind<1 || kind>3 || webp_method<0 || webp_method>6 || jxl_effort<1 || jxl_effort>10) return fail("Invalid image or encoder options; limit 40 megapixels");
  if (kind==1) {
   if(w>16383 || h>16383) return fail("WebP dimensions exceed 16383 pixels");
   WebPConfig config;WebPPicture picture;
   if(!WebPConfigInit(&config) || !WebPPictureInit(&picture)) return fail("WebP ABI mismatch");
-  config.lossless=1;config.quality=100;config.method=4;config.exact=1;config.thread_level=0;
+  config.lossless=1;config.quality=100;config.method=webp_method;config.exact=1;config.thread_level=0;
   picture.use_argb=1;picture.width=w;picture.height=h;
   picture.custom_ptr=&output;
   picture.writer=[](const uint8_t* data,size_t size,const WebPPicture* p)->int {
@@ -58,7 +58,7 @@ int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quali
   JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
   if(JxlEncoderSetBasicInfo(enc.get(),&info)!=JXL_ENC_SUCCESS || JxlEncoderSetColorEncoding(enc.get(),&color)!=JXL_ENC_SUCCESS) return fail("JPEG XL image setup failed");
   auto* frame=JxlEncoderFrameSettingsCreate(enc.get(),nullptr);
-  if(!frame || JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_EFFORT,5)!=JXL_ENC_SUCCESS ||
+  if(!frame || JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_EFFORT,jxl_effort)!=JXL_ENC_SUCCESS ||
      JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_KEEP_INVISIBLE,1)!=JXL_ENC_SUCCESS ||
      JxlEncoderSetFrameDistance(frame,lossless?0:std::max(0.01f,JxlEncoderDistanceFromQuality(quality)))!=JXL_ENC_SUCCESS ||
      JxlEncoderSetFrameLossless(frame,lossless)!=JXL_ENC_SUCCESS || JxlEncoderSetExtraChannelDistance(frame,0,0)!=JXL_ENC_SUCCESS) return fail("JPEG XL frame setup failed");

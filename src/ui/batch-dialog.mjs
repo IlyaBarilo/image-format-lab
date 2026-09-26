@@ -1,5 +1,6 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
+import { normalizeModernOptions } from '../core/modern-options.mjs';
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
@@ -34,6 +35,9 @@ export function createBatchDialog({els, app}, deps) {
     const jpeg=normalizeJpegOptions(config);
     document.getElementById('batchJpegSubsampling').value=jpeg.jpegSubsampling;
     document.getElementById('batchJpegProgressive').checked=jpeg.jpegProgressive;
+    const modern=normalizeModernOptions(config);
+    document.getElementById('batchWebpMethod').value=String(modern.webpMethod);
+    document.getElementById('batchJxlEffort').value=String(modern.jxlEffort);
     app.batchTiffDraft = normalizeTiffOptions(config);
     document.getElementById("batchTiffSettings").onclick = () => deps.openTiffSettings(app.batchTiffDraft, options => {
       app.batchTiffDraft = options;
@@ -71,6 +75,8 @@ export function createBatchDialog({els, app}, deps) {
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
       jpegSubsampling:document.getElementById('batchJpegSubsampling').value,
       jpegProgressive:document.getElementById('batchJpegProgressive').checked,
+      webpMethod:Number(document.getElementById('batchWebpMethod').value),
+      jxlEffort:Number(document.getElementById('batchJxlEffort').value),
       format,
       quality: def?.lossy || (Number.isInteger(quality) && quality >= 1 && quality <= 100) ? quality : app.exportConfig.quality,
       gifColors: ["gif", "gifenc", "pngIndexed"].includes(format) || (Number.isInteger(colors) && colors >= 2 && colors <= 256) ? colors : app.exportConfig.gifColors,
@@ -109,6 +115,10 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
     document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
+    document.getElementById('batchWebpMethodField').hidden=config.format!=='webpLossless';
+    document.getElementById('batchJxlEffortField').hidden=!['jxl','jxlLossless'].includes(config.format);
+    document.getElementById('batchWebpMethodValue').textContent=String(config.webpMethod);
+    document.getElementById('batchJxlEffortValue').textContent=String(config.jxlEffort);
     document.getElementById('batchPngField').hidden=config.format!=='png';
     document.getElementById('batchPngModeField').hidden=!['png','pngIndexed','pngUpng'].includes(config.format);
     document.getElementById('batchPngFilterField').hidden=!['png','pngIndexed'].includes(config.format);

@@ -1,6 +1,7 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { normalizeTiffOptions } from "./../core/raster-codecs.mjs";
 import { normalizeJpegOptions } from './../core/jpeg-encode.mjs';
+import { normalizeModernOptions } from '../core/modern-options.mjs';
 import { FORMAT_OPTIONS, isBmpFormat, isPngFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -221,6 +222,15 @@ export function createControls({els, app}, deps) {
     jpegProgressive.checked=jpegOptions.jpegProgressive;
     jpegProgressiveWrap.append(jpegProgressive,document.createTextNode('Прогр.'));
     head.append(jpegSubsamplingWrap,jpegProgressiveWrap);
+
+    const modernEffortWrap=document.createElement('label');
+    modernEffortWrap.className='quality-wrap modern-effort-wrap';
+    const modernEffort=document.createElement('input');
+    modernEffort.className='modern-effort';modernEffort.type='range';modernEffort.step='1';
+    const modernEffortValue=document.createElement('span');
+    modernEffortValue.className='quality-value modern-effort-value';
+    modernEffortWrap.append(document.createTextNode('Усилие'),modernEffort,modernEffortValue);
+    head.append(modernEffortWrap);
   
     const tiffOptions = normalizeTiffOptions(variant.config);
     const tiffCompressionWrap = document.createElement("label");
@@ -298,6 +308,9 @@ export function createControls({els, app}, deps) {
       jpegSubsampling,
       jpegProgressiveWrap,
       jpegProgressive,
+      modernEffortWrap,
+      modernEffort,
+      modernEffortValue,
       select,
       qualityWrap,
       quality,
@@ -325,6 +338,12 @@ export function createControls({els, app}, deps) {
     });
     jpegProgressive.addEventListener('change',()=>{
       variant.config.jpegProgressive=jpegProgressive.checked;
+      deps.markDirty(variant);
+    });
+    modernEffort.addEventListener('input',()=>{
+      const key=variant.config.format==='webpLossless'?'webpMethod':'jxlEffort';
+      variant.config[key]=Number(modernEffort.value);
+      modernEffortValue.textContent=modernEffort.value;
       deps.markDirty(variant);
     });
   
@@ -444,6 +463,18 @@ export function createControls({els, app}, deps) {
       variant.controls.jpegProgressiveWrap.hidden=format!=='jpeg';
       variant.controls.jpegSubsampling.value=options.jpegSubsampling;
       variant.controls.jpegProgressive.checked=options.jpegProgressive;
+    }
+    if(variant.controls.modernEffortWrap){
+      const webp=format==='webpLossless',jxl=format==='jxl'||format==='jxlLossless';
+      const options=normalizeModernOptions(variant.config);
+      variant.controls.modernEffortWrap.hidden=!webp&&!jxl;
+      variant.controls.modernEffortWrap.title=webp?'Метод WebP 0–6: большее значение обычно сжимает дольше; пиксели сохраняются без потерь.'
+        :'Усилие JPEG XL 1–10: большее значение обычно сжимает дольше; максимум может работать очень медленно. Качество задаётся отдельно.';
+      variant.controls.modernEffort.min=webp?'0':'1';
+      variant.controls.modernEffort.max=webp?'6':'10';
+      variant.controls.modernEffort.setAttribute('aria-label',webp?'Метод WebP lossless':'Усилие JPEG XL');
+      variant.controls.modernEffort.value=String(webp?options.webpMethod:options.jxlEffort);
+      variant.controls.modernEffortValue.textContent=variant.controls.modernEffort.value;
     }
   
     if (variant.controls.tiffCompressionWrap) {
@@ -588,10 +619,10 @@ export function createControls({els, app}, deps) {
       jpeg: "Встроенный libjpeg-turbo; качество 1–100, 4:4:4 / 4:2:2 / 4:2:0, обычный или прогрессивный JPEG; прозрачность заменяется заливкой",
       png: "Полные цвета: Авто / 8 / 16 бит на канал, точный PNG до 12 Мп; обычный PNG8 — браузер. Палитра: 2–256 цветов, дизеринг, двоичная прозрачность. PNG opt: UPNG / pako, 8 бит/канал",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
-      webpLossless: "Встроенный libwebp; без потерь, полная прозрачность",
+      webpLossless: "Встроенный libwebp; без потерь, полная прозрачность; метод 0–6 меняет усилие сжатия",
       avif: "Встроенные libheif / libaom; качество 1–100, поддерживает прозрачность",
-      jxl: "Встроенный libjxl; качество 1–100, поддерживает прозрачность",
-      jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность",
+      jxl: "Встроенный libjxl; качество 1–100, усилие 1–10, поддерживает прозрачность",
+      jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; усилие 1–10",
       tiff: "Встроенный libtiff; RGBA8 без потерь: без сжатия, Deflate или LZW; уровень Deflate 1–9 и предиктор",
       ico: "7 PNG-размеров: 16, 24, 32, 48, 64, 128, 256 px; пропорции сохраняются, поля прозрачные; маленький исходник не растягивается",
       heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",

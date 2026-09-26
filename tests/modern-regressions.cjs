@@ -74,6 +74,23 @@ async function download(page, button) {
       assert.ok(saved.bytes.length>10);
     }
     report.checks.push('all six selectors, appropriate quality visibility, current comparison preview and downloads');
+    await cell.locator('.format-select').selectOption('webpLossless');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.modern-effort').isVisible(),true);
+    assert.equal(await cell.locator('.modern-effort').inputValue(),'4');
+    await cell.locator('.modern-effort').press('Home');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.webpMethod===0);
+    await cell.locator('.modern-effort').press('ArrowRight');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.webpMethod===1);
+    await cell.locator('.format-select').selectOption('jxlLossless');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.modern-effort').inputValue(),'5');
+    await cell.locator('.modern-effort').press('Home');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.jxlEffort===1);
+    await cell.locator('.format-select').selectOption('webp');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.modern-effort').isVisible(),false);
+    report.checks.push('WebP lossless method and JPEG XL effort are separate, live cell controls; browser WebP has no method control');
     await cell.locator('.format-select').selectOption('tiff');
     await cell.locator('.tiff-compression').selectOption('lzw');
     await page.waitForFunction(()=>app.variants[1].resultConfig?.tiffCompression==='lzw'&&isVariantReady(app.variants[1]));
@@ -92,6 +109,8 @@ async function download(page, button) {
     await page.locator('#batchResizeMode').selectOption('limit');await page.locator('#batchDialogWidth').fill('37');
     for(const format of formats) {
       await page.locator('#batchFormat').selectOption(format);
+      assert.equal(await page.locator('#batchWebpMethodField').isVisible(),format==='webpLossless');
+      assert.equal(await page.locator('#batchJxlEffortField').isVisible(),['jxl','jxlLossless'].includes(format));
       if(format==='tiff') {
         await page.locator('#batchTiffSettings').click();
         await page.locator('#tiffCompression').selectOption('lzw');

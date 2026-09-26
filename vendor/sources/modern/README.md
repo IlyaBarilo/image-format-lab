@@ -29,7 +29,8 @@ frame. Modular images do not have that map.
 The C interface accepts 8-bit straight RGBA up to 40 million pixels. A fresh
 Worker owns the heap and is terminated after each operation. WebP has an
 additional 16383-pixel per-axis format limit. Encoded buffers are capped at
-256 MiB. JPEG XL uses effort 5, a single thread, and scalar Highway targets;
+256 MiB. WebP lossless accepts method 0–6 (default 4). JPEG XL accepts effort
+1–10 (default 5), uses a single thread and scalar Highway targets;
 lossless preserves invisible RGB. Native browser canvas conversions may already
 have changed source samples before they reach the encoder.
 

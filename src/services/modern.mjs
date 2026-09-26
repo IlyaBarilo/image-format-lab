@@ -1,5 +1,6 @@
 import workerSource from 'viewer:modern-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
+import { normalizeModernOptions } from '../core/modern-options.mjs';
 
 export function createModern() {
   let session, sequence = 0, queue = Promise.resolve();
@@ -77,13 +78,14 @@ export function createModern() {
       imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null,
       blockGrid: owners?.length === columns * rows ? { kind: 'jxl-vardct', columns, rows, owners } : null };
   }
-  async function encode(imageData, quality, format = 'jxl') {
+  async function encode(imageData, quality, format = 'jxl', options = {}) {
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100)
       throw new Error('Некорректные параметры WebP / JPEG XL или превышен лимит 40 мегапикселей');
     // Transfer a new buffer, never the viewer's source pixels.
-    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format });
+    const { webpMethod, jxlEffort } = normalizeModernOptions(options);
+    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format, webpMethod, jxlEffort });
     return new Blob([result.buffer], { type: format === 'webpLossless' ? 'image/webp' : 'image/jxl' });
   }
   const api = { decode, encode };

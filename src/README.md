@@ -311,7 +311,11 @@ libjpeg-turbo описаны в [инструкции](../vendor/sources/jpeg/RE
 
 `services/heic.mjs` и HEIC Worker обслуживают также AVIF (libaom).
 `services/modern.mjs` / `workers/modern.worker.mjs` обслуживают JPEG XL и WebP lossless;
-[сборка из исходников](../vendor/sources/modern/README.md). TIFF Worker использует
+[сборка из исходников](../vendor/sources/modern/README.md).
+`core/modern-options.mjs` проверяет WebP method 0–6 и JPEG XL effort 1–10
+с прежними значениями 4 и 5; параметры доходят до пересобранного C++-моста.
+Обычный WebP использует браузерный кодировщик, поэтому его метод недоступен.
+TIFF Worker использует
 `core/raster-codecs.mjs` и libtiff с zlib: без сжатия, Deflate или LZW;
 PackBits записывается собственным кодировщиком RGBA8 в том же модуле.
 `core/tiff-encode.mjs` сохраняется как независимая реализация для тестов. `core/ico.mjs` записывает контейнер PNG

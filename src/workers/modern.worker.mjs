@@ -15,9 +15,10 @@ self.onmessage = async ({ data: request }) => {
       codec.HEAPU8.set(input, pointer);
       let status;
       if (type === 'encode') {
-        const { width, height, quality } = request, kind = { webpLossless: 1, jxl: 2, jxlLossless: 3 }[format];
-        if (!kind || !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 || input.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100) throw new Error('Некорректные параметры изображения');
-        status = codec._viewer_modern_encode(pointer, input.length, width, height, quality, kind);
+        const { width, height, quality, webpMethod, jxlEffort } = request, kind = { webpLossless: 1, jxl: 2, jxlLossless: 3 }[format];
+        if (!kind || !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 || input.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100
+          || !Number.isInteger(webpMethod) || webpMethod < 0 || webpMethod > 6 || !Number.isInteger(jxlEffort) || jxlEffort < 1 || jxlEffort > 10) throw new Error('Некорректные параметры изображения или кодирования');
+        status = codec._viewer_modern_encode(pointer, input.length, width, height, quality, kind, webpMethod, jxlEffort);
       } else {
         if (!['webp', 'jxl'].includes(format)) throw new Error('Неизвестный формат');
         status = codec._viewer_modern_decode(pointer, input.length, format === 'webp' ? 1 : 2);

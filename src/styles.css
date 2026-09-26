@@ -554,6 +554,12 @@ select:disabled {
   accent-color: var(--accent);
 }
 
+.modern-effort { width: 94px; accent-color: var(--accent); }
+.modern-effort-wrap[hidden],
+#batchWebpMethodField[hidden],
+#batchJxlEffortField[hidden] { display: none; }
+.batch-field > input[type="range"] { accent-color: var(--accent); }
+
 .workspace:not(.files-hidden) .quality { width: 94px; }
 
 .quality-value {

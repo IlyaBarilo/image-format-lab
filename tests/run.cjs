@@ -14,6 +14,8 @@ tests.push('signal-scopes');
 tests.push('error-profile');
 tests.push('ssim');
 tests.push('png-indexed');
+tests.push('modern-options');
+tests.push('modern-native-options');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

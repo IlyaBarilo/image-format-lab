@@ -354,6 +354,8 @@
         <div class="batch-field" id="batchTiffField" hidden><span>Сжатие TIFF</span><button class="text-btn" id="batchTiffSettings" type="button" aria-haspopup="dialog" aria-controls="tiffSettingsDialog">Настройки…</button></div>
         <label class="batch-field" id="batchJpegSubsamplingField" for="batchJpegSubsampling" hidden>Цветность JPEG<select class="select" id="batchJpegSubsampling"><option value="420">4:2:0 · меньше файл</option><option value="422">4:2:2</option><option value="444">4:4:4 · без субдискретизации цветности</option></select></label>
         <label class="switch" id="batchJpegProgressiveField" hidden><input id="batchJpegProgressive" type="checkbox">Прогрессивный JPEG</label>
+        <label class="batch-field" id="batchWebpMethodField" for="batchWebpMethod" hidden>Метод WebP lossless <output id="batchWebpMethodValue" for="batchWebpMethod">4</output><input id="batchWebpMethod" type="range" min="0" max="6" step="1" value="4"><span class="batch-hint">Увеличение метода обычно требует больше времени; пиксели сохраняются без потерь.</span></label>
+        <label class="batch-field" id="batchJxlEffortField" for="batchJxlEffort" hidden>Усилие JPEG XL <output id="batchJxlEffortValue" for="batchJxlEffort">5</output><input id="batchJxlEffort" type="range" min="1" max="10" step="1" value="5"><span class="batch-hint">Влияет на время и сжатие; максимум может работать очень медленно. Качество задаётся отдельно.</span></label>
         <div class="batch-field" id="batchQualityField">
           <label for="batchQualityNumber">Качество кодирования</label>
           <div class="batch-quality-row">
