@@ -1,5 +1,6 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
+import { createPixelBuffer } from '../core/pixel-buffer.mjs';
 import workerSource from 'viewer:tiff-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
 
@@ -74,16 +75,25 @@ export function createTiff() {
     if (!file.size || file.size > 256 * 1024 * 1024) throw new Error('TIFF: пустой файл или размер более 256 МиБ');
     const result = await operate('decode', () => file.arrayBuffer(), {page});
     return { width: result.width, height: result.height, pages: result.pages, page,
-      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null };
+      imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height),
+      pixelBuffer: result.exactBuffer ? createPixelBuffer({width:result.width,height:result.height,
+        data:new Uint16Array(result.exactBuffer),sampleType:'uint16',bitDepth:16}) : null,
+      precisionNote:result.precisionNote||'',close: null };
   }
-  async function encode(imageData, options={}) {
+  async function encode(imageData, options={}, pixelBuffer=null) {
     options=normalizeTiffOptions(options);
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4)
       throw new Error('Некорректные параметры TIFF или превышен лимит 40 мегапикселей');
     // Transfer a new buffer, never the viewer's source pixels.
-    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, options });
+    const exact = options.tiffDepth === '16';
+    if (exact && (!pixelBuffer || !['uint8','uint16'].includes(pixelBuffer.sampleType)))
+      throw new Error('TIFF16: точные целочисленные пиксели недоступны.');
+    const buffer = new Uint8ClampedArray(data).buffer;
+    const exactBuffer = exact ? new pixelBuffer.data.constructor(pixelBuffer.data).buffer : null;
+    const result = await operate('encode', () => buffer, { width, height, options, exactBuffer,
+      sampleType:exact?pixelBuffer.sampleType:null,bitDepth:exact?pixelBuffer.bitDepth:null });
     return new Blob([result.buffer], { type: 'image/tiff' });
   }
   async function encodeJpeg(imageData, options={}) {

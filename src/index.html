@@ -417,7 +417,7 @@
       <p class="batch-dialog-summary" id="batchDialogSummary"></p>
       <p class="batch-note" id="batchNameExample"></p>
       <p class="batch-note">Отдельные скачивания могут потребовать разрешения браузера. ZIP содержит успешно обработанные файлы, в том числе при отмене; предел результатов одного архива — 256 МиБ. Совпадающие имена различаются номером.</p>
-      <p class="batch-note">При перекодировании сохраняется один неподвижный кадр или одна страница. Анимация и остальные страницы GIF/APNG/WebP/AVIF/JPEG XL/TIFF/HEIC не переносятся. Скачивание «Исходного файла» сохраняет его байты. PNG16 сохраняется без изменения размера; для уменьшения выберите 8 бит. Другие кодеки используют 8-битное представление. TIFF сохраняется в RGBA8 без сжатия, с Deflate или LZW. ICO содержит размеры 16, 24, 32, 48, 64, 128 и 256 px: пропорции сохраняются, свободное место прозрачное; предпросмотр показывает 256 px. Уменьшение ограничивает рисунок внутри значка; размеры ICO остаются стандартными.</p>
+      <p class="batch-note">При перекодировании сохраняется один неподвижный кадр или одна страница. Анимация и остальные страницы GIF/APNG/WebP/AVIF/JPEG XL/TIFF/HEIC не переносятся. Скачивание «Исходного файла» сохраняет его байты. PNG16 и TIFF16 сохраняются без изменения размера; для уменьшения выберите 8 бит. Другие кодеки используют 8-битное представление. TIFF8 поддерживает сжатие Deflate, LZW и PackBits, TIFF16 — Deflate; оба поддерживают запись без сжатия. ICO содержит размеры 16, 24, 32, 48, 64, 128 и 256 px: пропорции сохраняются, свободное место прозрачное; предпросмотр показывает 256 px. Уменьшение ограничивает рисунок внутри значка; размеры ICO остаются стандартными.</p>
       <p class="batch-note" id="batchStorageNotice" role="status">Настройки сохраняются в этом браузере при сохранении или запуске. Файлы в хранилище не записываются.</p>
       <p class="batch-dialog-error" id="batchDialogError" role="alert" hidden></p>
       </div>
@@ -471,10 +471,11 @@
   <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
     <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
     <div class="batch-dialog-body">
+      <label class="batch-field" for="tiffDepth">Разрядность<select id="tiffDepth" class="select"><option value="auto">Авто</option><option value="8">8 бит/канал</option><option value="16">16 бит/канал</option></select></label>
       <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option><option value="packbits">PackBits</option></select></label>
       <label class="batch-field" id="tiffLevelField" for="tiffLevel">Уровень Deflate <output id="tiffLevelValue" for="tiffLevel">6</output><input id="tiffLevel" type="range" min="1" max="9" value="6"></label>
       <label class="switch" id="tiffPredictorField"><input id="tiffPredictor" type="checkbox" checked>Предиктор по соседним пикселям</label>
-      <p class="batch-hint" id="tiffSettingsHint">Все режимы сохраняют RGBA8 без потерь. Уровень и предиктор применяются только к Deflate/LZW; PackBits использует серии одинаковых байтов. Изменения учитываются автоматически.</p>
+      <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; просмотр остаётся 8-битным. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически.</p>
     </div>
   </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
@@ -515,7 +516,7 @@
     </section>
     <section><details><summary>Форматы и ограничения</summary>
       <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>
-      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16 сохраняет точные 16-битные отсчёты и alpha. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC и JPEG XL не гарантируется.</p>
+      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16 и поддерживаемый TIFF16 сохраняют точные 16-битные отсчёты и alpha. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC и JPEG XL не гарантируется.</p>
       <p class="batch-note">Режим «GPano в JPEG» переносит поддерживаемые данные панорамы из исходного JPEG только в JPEG. Прочие исходные метаданные не копируются; перенос исходного ICC не реализован. «Исходный файл» скачивается без изменения байтов и сохраняет все метаданные.</p>
       <p class="batch-note">Все дополнительные библиотеки находятся внутри HTML и запускаются автоматически, без обращения к интернету. AVIF, JPEG XL и WebP lossless кодируются встроенными библиотеками. Обычный WebP зависит от возможностей браузера. JPEG, PNG и другие базовые операции доступны также при ошибке запуска дополнительных кодеков.</p>
       <p class="batch-note">HEIC сохраняет неподвижное изображение с HEVC: SDR 8-bit, 4:2:0, качество 1–100. Качество 100 не означает отсутствие потерь; прозрачность также может сжиматься с потерями. HDR, Live Photos и метаданные камеры не сохраняются.</p>

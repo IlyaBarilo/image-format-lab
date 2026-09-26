@@ -44,6 +44,18 @@ export function createEncode({}, deps) {
           precisionNote:depth===16?'16 бит/канал · показ 8 бит':highDepth?`8 бит/канал · из ${pixels.bitDepth} бит`:'8 бит/канал',panoramaPreserved:false},prepared);
       }
     }
+    if(format==='tiff'){
+      const depth=config.tiffDepth==='16'||(config.tiffDepth!=='8'&&pixels.sampleType==='uint16'&&pixels.bitDepth===16)?16:8;
+      const dims=deps.outputDimensionsForConfig(config,source);
+      if(depth===16&&(dims.width!==source.width||dims.height!==source.height))
+        throw new Error('TIFF16 пока сохраняется только в исходном размере. Уберите изменение размеров или выберите 8 бит на канал.');
+      if(depth===16){
+        const codec=await deps.loadOptionalCodec('utif');
+        const blob=await codec.encode(source.imageData,{...config,tiffDepth:'16'},pixels);
+        return deps.withEncodedMeta({blob,previewImageData:null,panoramaPreserved:false,
+          precisionNote:pixels.bitDepth===16?'16 бит/канал · показ 8 бит':'16 бит/канал · из 8 бит; деталей не добавлено'},source);
+      }
+    }
     const outputSource = deps.outputSourceForConfig(config, source);
     if (format === 'pngIndexed') return deps.withEncodedMeta(
       await deps.encodePalettePng(outputSource,config.gifColors,config.gifDither,config),outputSource);

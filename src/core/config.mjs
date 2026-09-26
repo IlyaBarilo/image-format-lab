@@ -124,7 +124,7 @@ export const DEFAULT_VARIANTS = [
 
 export const BATCH_STORAGE_KEY = "image-format-viewer.batch-settings.v1";
 
-export const DEFAULT_EXPORT_CONFIG = { pngDepth: "auto", pngFilter: "default", pngLevel: 6, tiffCompression: "deflate", tiffLevel: 6, tiffPredictor: true, ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
+export const DEFAULT_EXPORT_CONFIG = { pngDepth: "auto", pngFilter: "default", pngLevel: 6, tiffDepth: "auto", tiffCompression: "deflate", tiffLevel: 6, tiffPredictor: true, ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
 
 export const BACKGROUNDS = {
   red: "#ef4444",

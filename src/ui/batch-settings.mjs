@@ -83,7 +83,7 @@ export function createBatchSettings({app}, deps) {
     const avifText=config.format==='avif'?`, скорость ${normalizeAvifOptions(config).avifSpeed}`:'';
     const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}${pngCompression}`
-      : tiff ? `, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
+      : tiff ? `, ${tiff.tiffDepth==='auto'?'разрядность исходника':tiff.tiffDepth+' бит/канал'}, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
       : ["gif", "gifenc", "pngIndexed"].includes(config.format) ? `, до ${config.gifColors} цветов${config.format === 'gifenc' ? '' : config.gifDither ? ', с дизерингом' : ', без дизеринга'}${config.format==='pngIndexed'?pngCompression:''}`
       : config.format === 'bmp8' ? `, до ${config.bmpColors} цветов, ${config.bmpCompression === 'rle8' ? 'RLE8' : 'без сжатия'}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };

@@ -11,9 +11,9 @@ const worker=new Worker(`
   env.self=env;env.window=env;vm.createContext(env);
   for(const name of ['pako-2.1.0.min.js','UTIF-3.1.0.js'])vm.runInContext(fs.readFileSync(path.join(workerData.root,'vendor',name),'utf8'),env);
   const self={postMessage:(data,transfer)=>parentPort.postMessage(data,transfer)};
-  new Function('self','ViewerJpegModule','ViewerBmpModule','ViewerTiffModule','UTIF',workerData.source)(self,
+  new Function('self','ViewerJpegModule','ViewerBmpModule','ViewerTiffModule','UTIF','pako',workerData.source)(self,
     require(path.join(workerData.root,'vendor/jpeg-decoder.js')),require(path.join(workerData.root,'vendor/bmp-decoder.js')),
-    require(path.join(workerData.root,'vendor/tiff-codec.js')),env.UTIF);
+    require(path.join(workerData.root,'vendor/tiff-codec.js')),env.UTIF,env.pako);
   parentPort.on('message',data=>self.onmessage({data}));
 `,{eval:true,workerData:{root,source}});
 let sequence=0;
@@ -43,6 +43,15 @@ function request(type,data={},transfer=[]){return new Promise((resolve,reject)=>
       const decoded=await request('decode',{buffer:encoded.buffer},[encoded.buffer]);
       assert.equal(decoded.type,'decoded');assert.deepEqual(new Uint8ClampedArray(decoded.buffer),image.data);
     }
+    const exact=Uint16Array.from({length:9*7*4},(_,i)=>i%4===3?65535:(i*997+1)&65535);
+    const encoded16=await request('encode',{width:9,height:7,buffer:image.data.slice().buffer,
+      exactBuffer:exact.slice().buffer,sampleType:'uint16',bitDepth:16,
+      options:{tiffDepth:'16',tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true}});
+    assert.equal(encoded16.type,'encoded');
+    const decoded16=await request('decode',{buffer:encoded16.buffer});
+    assert.equal(decoded16.type,'decoded');
+    assert.deepEqual(new Uint16Array(decoded16.exactBuffer),exact);
+    assert.equal(new Uint8ClampedArray(decoded16.buffer)[0],0);
     const {encodeBmp}=await import('../src/core/bmp.mjs');
     const buffer=await encodeBmp(true,'white',{width:9,height:7,imageData:image},false).blob.arrayBuffer();
     const result=await request('decode-bmp',{buffer},[buffer]);assert.equal(result.type,'decoded');assert.deepEqual(new Uint8ClampedArray(result.buffer),image.data);
@@ -50,6 +59,9 @@ function request(type,data={},transfer=[]){return new Promise((resolve,reject)=>
     const file=fs.readFileSync(path.join(root,'tests/fixtures/tiff/baseline.tiff'));
     const jpeg=await request('decode',{buffer:file.buffer.slice(file.byteOffset,file.byteOffset+file.length)});
     assert.equal(jpeg.type,'decoded');assert.equal(jpeg.width,37,'JPEG compatibility after error');
+    const legacy16=fs.readFileSync(path.join(root,'tests/fixtures/tiff/lossless16-p1.tiff'));
+    const fallback=await request('decode',{buffer:legacy16.buffer.slice(legacy16.byteOffset,legacy16.byteOffset+legacy16.length)});
+    assert.equal(fallback.type,'decoded');assert.match(fallback.precisionNote,/8 бит/);
     console.log('PASS actual raster Worker entry: JPEG encoding, three TIFF codecs, BMP alpha, transferred buffers, JPEG fallback and error recovery');
   }finally{await worker.terminate();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

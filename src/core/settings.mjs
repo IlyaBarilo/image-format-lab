@@ -15,6 +15,7 @@ export function normalizeBatchSettings(value) {
   if (Number.isInteger(value.bmpColors) && value.bmpColors >= 2 && value.bmpColors <= 256) config.bmpColors = value.bmpColors;
   if (['none','rle8'].includes(value.bmpCompression)) config.bmpCompression = value.bmpCompression;
   if (["auto","8","16"].includes(value.pngDepth)) config.pngDepth=value.pngDepth;
+  if (["auto","8","16"].includes(value.tiffDepth)) config.tiffDepth=value.tiffDepth;
   if (['default','adaptive','none','sub','up','average','paeth'].includes(value.pngFilter)) config.pngFilter=value.pngFilter;
   if (Number.isInteger(value.pngLevel) && value.pngLevel>=1 && value.pngLevel<=9) config.pngLevel=value.pngLevel;
   if (Number.isInteger(value.webpMethod) && value.webpMethod>=0 && value.webpMethod<=6) config.webpMethod=value.webpMethod;
@@ -29,7 +30,7 @@ export function normalizeBatchSettings(value) {
     const size = value[key];
     if ((typeof size === "string" || typeof size === "number") && Number.isInteger(Number(size)) && Number(size) >= 1 && Number(size) <= 32768) config[key] = String(Number(size));
   }
-  if (["none", "deflate", "lzw"].includes(value.tiffCompression)) config.tiffCompression = value.tiffCompression;
+  if (["none", "deflate", "lzw", "packbits"].includes(value.tiffCompression)) config.tiffCompression = value.tiffCompression;
   if (Number.isInteger(value.tiffLevel) && value.tiffLevel >= 1 && value.tiffLevel <= 9) config.tiffLevel = value.tiffLevel;
   if (typeof value.tiffPredictor === "boolean") config.tiffPredictor = value.tiffPredictor;
   if (['444','422','420'].includes(value.jpegSubsampling)) config.jpegSubsampling = value.jpegSubsampling;
@@ -49,7 +50,7 @@ export function validateComparison(value) {
     const bmpCompression = Object.hasOwn(v,'bmpCompression') ? v.bmpCompression : 'none';
     if (!Number.isInteger(bmpColors) || bmpColors < 2 || bmpColors > 256 || !['none','rle8'].includes(bmpCompression))
       throw new Error('Некорректные параметры BMP.');
-    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === 'png' || v.format === 'pngIndexed' || ['pngFilter','pngLevel'].some(key => Object.hasOwn(v,key)) ? normalizePngOptions(v) : {}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), ...normalizeModernOptions(v), ...normalizeAvifOptions(v), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
+    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === 'png' || v.format === 'pngIndexed' || ['pngFilter','pngLevel'].some(key => Object.hasOwn(v,key)) ? normalizePngOptions(v) : {}), ...(v.format === "tiff" || ["tiffDepth", "tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), ...normalizeModernOptions(v), ...normalizeAvifOptions(v), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
   });
   // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
   return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};

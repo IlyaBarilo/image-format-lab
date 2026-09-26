@@ -538,6 +538,7 @@ select:disabled {
 .bmp-depth-wrap,
 .bmp-colors-wrap,
 .bmp-compression-wrap,
+.tiff-depth-wrap,
 .tiff-compression-wrap,
 .matte-wrap {
   display: inline-flex;
@@ -587,6 +588,7 @@ select:disabled {
 .bmp-depth-wrap,
 .bmp-colors-wrap,
 .bmp-compression-wrap,
+.tiff-depth-wrap,
 .tiff-compression-wrap,
 .tiff-level-wrap,
 .tiff-predictor-wrap {
@@ -601,6 +603,7 @@ select:disabled {
 }
 
 .cell-head .png-depth,
+.cell-head .tiff-depth,
 .cell-head .bmp-depth {
   flex: 0 0 auto;
   min-width: 152px;

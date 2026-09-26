@@ -31,7 +31,7 @@ class Element {
   const {normalizeBatchSettings,validateComparison,parseProfiles}=await import('../src/core/settings.mjs');
   const {DEFAULT_VARIANTS,DEFAULT_EXPORT_CONFIG}=await import('../src/core/config.mjs');
   const {normalizeTiffOptions}=await import('../src/core/raster-codecs.mjs');
-  const options={tiffCompression:'lzw',tiffLevel:9,tiffPredictor:false};
+  const options={tiffDepth:'auto',tiffCompression:'lzw',tiffLevel:9,tiffPredictor:false};
   const comparison={layout:2,background:'checker',metadataPolicy:'panorama',variants:DEFAULT_VARIANTS.map(v=>({...v}))};
   comparison.variants[1]={...comparison.variants[1],format:'tiff',...options};
   assert.deepEqual(normalizeTiffOptions(validateComparison(comparison).variants[1]),options);
@@ -45,6 +45,7 @@ class Element {
   const settings=createFormatSettings();let result;
   settings.openTiffSettings(options,value=>{result=value;});
   const dialog=get('tiffSettingsDialog');assert.equal(dialog.open,true);assert.equal(get('tiffLevelField').hidden,true);
+  get('tiffDepth').value='16';dialog.emit('input');assert.equal(result.tiffDepth,'16');
   get('tiffCompression').value='none';dialog.emit('input');assert.equal(get('tiffPredictorField').hidden,true);assert.equal(result.tiffCompression,'none');
   get('tiffCompression').value='deflate';get('tiffLevel').value='3';dialog.emit('input');assert.equal(result.tiffLevel,3);assert.equal(get('tiffLevelField').hidden,false);
   get('tiffCompression').value='packbits';dialog.emit('input');assert.equal(result.tiffCompression,'packbits');assert.equal(get('tiffLevelField').hidden,true);assert.equal(get('tiffPredictorField').hidden,true);
@@ -57,11 +58,14 @@ class Element {
   controls.buildCellControls(variant);controls.syncControlsVisibility(variant);
   const c=variant.controls;
   assert.equal(c.tiffCompressionWrap.hidden,false);assert.equal(c.tiffCompression.value,'lzw');
+  assert.equal(c.tiffDepthWrap.hidden,false);assert.equal(c.tiffDepth.value,'auto');
   assert.equal(c.tiffLevelWrap.hidden,true);assert.equal(c.tiffPredictorWrap.hidden,false);assert.equal(c.tiffPredictor.checked,false);
   c.tiffCompression.value='deflate';c.tiffCompression.emit('change');assert.equal(c.tiffLevelWrap.hidden,false);
   c.tiffLevel.value='7';c.tiffLevel.emit('input');assert.equal(c.tiffLevelValue.textContent,'7');
   c.tiffPredictor.checked=true;c.tiffPredictor.emit('change');
   assert.equal(variant.config.tiffLevel,7);assert.equal(variant.config.tiffPredictor,true);assert.equal(dirty,3,'Each inline codec option invalidates and schedules comparison');
+  const beforeDepth=dirty;c.tiffDepth.value='16';c.tiffDepth.emit('change');
+  assert.equal(variant.config.tiffDepth,'16');assert.equal(dirty,beforeDepth+1);
   assert.equal(dialog.open,false,'Comparison options do not open a dialog');
   c.tiffCompression.value='none';c.tiffCompression.emit('change');
   assert.equal(c.tiffLevelWrap.hidden,true);assert.equal(c.tiffPredictorWrap.hidden,true);
@@ -71,10 +75,12 @@ class Element {
   assert.equal(c.tiffLevel.value,'7');assert.equal(c.tiffPredictor.checked,true,'Hidden settings survive format/compression changes');
   controls.buildCellControls(variant);controls.syncControlsVisibility(variant);
   assert.equal(variant.controls.tiffLevel.value,'7','Rebuilt controls restore saved settings');
+  assert.equal(variant.controls.tiffDepth.value,'16');
   const other={index:2,head:new Element(),config:{...DEFAULT_VARIANTS[2]}};
   controls.buildCellControls(other);assert.equal(other.controls.tiffCompressionWrap.hidden,true);
   other.config.format='tiff';controls.syncControlsVisibility(other);
   assert.equal(other.controls.tiffCompression.value,'deflate');assert.equal(other.controls.tiffLevel.value,'6','Cells keep independent settings');
+  assert.equal(other.controls.tiffDepth.value,'auto');
 
   const bmpSettings=structuredClone(comparison);
   bmpSettings.variants[0].format='bmp24';bmpSettings.variants[1].format='bmp32';

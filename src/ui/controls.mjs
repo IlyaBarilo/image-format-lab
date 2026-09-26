@@ -245,6 +245,16 @@ export function createControls({els, app}, deps) {
     head.append(avifSpeedWrap);
   
     const tiffOptions = normalizeTiffOptions(variant.config);
+    const tiffDepthWrap=document.createElement('label');
+    tiffDepthWrap.className='tiff-depth-wrap';
+    tiffDepthWrap.hidden=variant.config.format!=='tiff';
+    tiffDepthWrap.title='Авто сохраняет 16-битные отсчёты исходника. TIFF16 доступен без изменения размеров с Deflate или без сжатия; экранный показ остаётся 8-битным.';
+    const tiffDepth=document.createElement('select');tiffDepth.className='select tiff-depth';
+    for(const [value,label] of [['auto','Авто'],['8','8 бит/канал'],['16','16 бит/канал']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;tiffDepth.append(option);
+    }
+    tiffDepth.value=tiffOptions.tiffDepth;
+    tiffDepthWrap.append(document.createTextNode('Разрядность'),tiffDepth);
     const tiffCompressionWrap = document.createElement("label");
     tiffCompressionWrap.className = "tiff-compression-wrap";
     tiffCompressionWrap.hidden = variant.config.format !== "tiff";
@@ -286,7 +296,7 @@ export function createControls({els, app}, deps) {
     tiffPredictor.type = "checkbox";
     tiffPredictor.checked = tiffOptions.tiffPredictor;
     tiffPredictorWrap.append(tiffPredictor, document.createTextNode("Предиктор"));
-    head.append(tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
+    head.append(tiffDepthWrap,tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
     const content = document.createElement("div");
     content.className = "cell-head-content";
     content.append(...head.childNodes);
@@ -310,6 +320,8 @@ export function createControls({els, app}, deps) {
       bmpCompressionWrap,
       bmpCompression,
       tiffCompressionWrap,
+      tiffDepthWrap,
+      tiffDepth,
       tiffCompression,
       tiffLevelWrap,
       tiffLevel,
@@ -339,12 +351,13 @@ export function createControls({els, app}, deps) {
     };
 
     function updateTiffSettings() {
-      Object.assign(variant.config, normalizeTiffOptions({tiffCompression: tiffCompression.value,
+      Object.assign(variant.config, normalizeTiffOptions({tiffDepth:tiffDepth.value,tiffCompression: tiffCompression.value,
         tiffLevel: Number(tiffLevel.value), tiffPredictor: tiffPredictor.checked}));
       deps.syncControlsVisibility(variant);
       deps.markDirty(variant);
     }
     tiffCompression.addEventListener("change", updateTiffSettings);
+    tiffDepth.addEventListener('change',updateTiffSettings);
     tiffLevel.addEventListener("input", updateTiffSettings);
     tiffPredictor.addEventListener("change", updateTiffSettings);
     jpegSubsampling.addEventListener('change',()=>{
@@ -504,6 +517,8 @@ export function createControls({els, app}, deps) {
   
     if (variant.controls.tiffCompressionWrap) {
       const options = normalizeTiffOptions(variant.config);
+      variant.controls.tiffDepthWrap.hidden=format!=='tiff';
+      variant.controls.tiffDepth.value=options.tiffDepth;
       variant.controls.tiffCompressionWrap.hidden = format !== "tiff";
       variant.controls.tiffLevelWrap.hidden = format !== "tiff" || options.tiffCompression !== "deflate";
       variant.controls.tiffPredictorWrap.hidden = format !== "tiff" || !["deflate","lzw"].includes(options.tiffCompression);
@@ -636,7 +651,7 @@ export function createControls({els, app}, deps) {
       avif: "Встроенные libheif / libaom",
       jxl: "Встроенный libjxl", jxlLossless: "Встроенный libjxl",
       bmp8: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
-      tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; TIFF/BigTIFF, первая страница",
+      tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; точный целочисленный TIFF16 для серого/RGB/RGBA без сжатия, с Deflate или PackBits; первая страница",
       ico: "Наибольший PNG внутри ICO — браузер; BMP внутри ICO — встроенный libnsbmp"
     };
     const write = {
@@ -648,7 +663,7 @@ export function createControls({els, app}, deps) {
       avif: "Встроенные libheif / libaom; качество 1–100 и скорость 0–9, поддерживает прозрачность",
       jxl: "Встроенный libjxl; качество 1–100, усилие 1–10, поддерживает прозрачность",
       jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; усилие 1–10",
-      tiff: "Встроенный libtiff; RGBA8 без потерь: без сжатия, Deflate или LZW; уровень Deflate 1–9 и предиктор",
+      tiff: "RGBA8 без потерь: без сжатия, Deflate, LZW или PackBits. RGBA16 в исходном размере: без сжатия или Deflate, предиктор по выбору; просмотр 8-битный",
       ico: "7 PNG-размеров: 16, 24, 32, 48, 64, 128, 256 px; пропорции сохраняются, поля прозрачные; маленький исходник не растягивается",
       heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",
       gif: "Собственный кодировщик; один кадр, 2–256 цветов, переключаемый дизеринг, двоичная прозрачность",

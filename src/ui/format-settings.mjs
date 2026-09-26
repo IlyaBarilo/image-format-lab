@@ -12,6 +12,7 @@ export function createFormatSettings() {
     const dialog = get('tiffSettingsDialog');
     if (dialog.open) return;
     const options = normalizeTiffOptions(config);
+    get('tiffDepth').value = options.tiffDepth;
     get('tiffCompression').value = options.tiffCompression;
     get('tiffLevel').value = String(options.tiffLevel);
     get('tiffPredictor').checked = options.tiffPredictor;
@@ -20,7 +21,7 @@ export function createFormatSettings() {
       attached = true;
       dialog.addEventListener('input', () => {
         sync();
-        change?.(normalizeTiffOptions({tiffCompression:get('tiffCompression').value,
+        change?.(normalizeTiffOptions({tiffDepth:get('tiffDepth').value,tiffCompression:get('tiffCompression').value,
           tiffLevel:Number(get('tiffLevel').value), tiffPredictor:get('tiffPredictor').checked}));
       });
       dialog.addEventListener('close', () => { change = null; });

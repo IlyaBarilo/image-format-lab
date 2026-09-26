@@ -33,9 +33,10 @@ export function decodeTiffPixels(codec, buffer, page=0) {
 }
 export function normalizeTiffOptions(value={}) {
   const compression=value.tiffCompression??'deflate', level=value.tiffLevel??6, predictor=value.tiffPredictor??true;
-  if(!['none','deflate','lzw','packbits'].includes(compression)||!Number.isInteger(level)||level<1||level>9||typeof predictor!=='boolean')
+  const depth=value.tiffDepth??'auto';
+  if(!['auto','8','16'].includes(depth)||!['none','deflate','lzw','packbits'].includes(compression)||!Number.isInteger(level)||level<1||level>9||typeof predictor!=='boolean')
     throw new Error('Некорректные настройки сжатия TIFF');
-  return {tiffCompression:compression,tiffLevel:level,tiffPredictor:predictor};
+  return {tiffDepth:depth,tiffCompression:compression,tiffLevel:level,tiffPredictor:predictor};
 }
 // Baseline little-endian RGBA8 TIFF with one PackBits stream per strip.
 export function encodePackBitsTiff(image) {
