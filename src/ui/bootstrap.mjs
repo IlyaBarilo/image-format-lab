@@ -126,7 +126,7 @@ export function createBootstrap({app, els}, deps) {
     document.addEventListener('keydown',event=>{
       if(event.key==='Escape'&&!els.sampleMenu.hidden){event.preventDefault();setSampleMenuOpen(false);els.sampleMenuToggle.focus();}
     });
-    document.addEventListener('pointerdown',event=>{if(!samplePicker.contains(event.target))setSampleMenuOpen(false);});
+    document.addEventListener('pointerdown',event=>{if(!samplePicker.contains(event.target)&&!els.sampleMenu.contains(event.target))setSampleMenuOpen(false);});
   
     els.toggleFiles.addEventListener("click", () => {
       const hidden = els.workspace.classList.toggle("files-hidden");

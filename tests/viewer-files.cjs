@@ -283,6 +283,16 @@ async function snapshot(page) {
       assert.equal(await page.locator('#sampleMenu .sample-menu-item').count(),5);
       assert.equal(await page.locator('#sampleMenu .sample-menu-item').first().evaluate(element=>element===document.activeElement),true);
       assert.match(await page.locator('#sampleMenu').textContent(),/младшими разрядами/);
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({width,height:1000});
+        const bounds=await page.evaluate(()=>{
+          const panel=document.getElementById('filePanel').getBoundingClientRect();
+          const menu=document.getElementById('sampleMenu').getBoundingClientRect();
+          const buttons=document.querySelector('.file-add-actions').getBoundingClientRect();
+          return {panelLeft:panel.left,panelRight:panel.right,menuLeft:menu.left,menuRight:menu.right,menuTop:menu.top,buttonsBottom:buttons.bottom};
+        });
+        assert.ok(bounds.menuLeft>=bounds.panelLeft && bounds.menuRight<=bounds.panelRight && bounds.menuTop>=bounds.buttonsBottom,bounds);
+      }
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('#sampleMenuToggle').getAttribute('aria-expanded'),'false');
       await page.locator('#sampleMenuToggle').click();
