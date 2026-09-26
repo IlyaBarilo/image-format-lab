@@ -16,7 +16,7 @@ function workerProbe() {
   globalThis.Worker = class extends Native {
     constructor(...args) {
       super(...args);
-      this.record = { terminated: false };
+      this.record = { terminated: false, decodes: 0 };
       this.addEventListener('message', ({ data }) => {
         if (data.type === 'ready' && data.version) {
           Object.assign(this.record, { version: data.version, decoder: data.decoder });
@@ -24,6 +24,7 @@ function workerProbe() {
         }
       });
     }
+    postMessage(...args) { if (args[0]?.type === 'decode') this.record.decodes++; return super.postMessage(...args); }
     terminate() { this.record.terminated = true; return super.terminate(); }
   };
 }
@@ -80,18 +81,21 @@ function workerProbe() {
       report.checks.push(name + ' rejected and next image decoded: ' + outcome.message);
     }
     const concurrent = await page.evaluate(async bytes => {
+      const priorDecodes = new Map(heicWorkers.map(worker => [worker, worker.decodes]));
       const file = new File([new Uint8Array(bytes)], 'queued.heic');
       const results = await Promise.all([decodeHeicFile(file), decodeHeicFile(file), decodeHeicFile(file)]);
       let sizeError;
       try { await decodeHeicFile({ size: 256 * 1024 * 1024 + 1, arrayBuffer() { throw new Error('must not read'); } }); }
       catch (error) { sizeError = error.message; }
-      return { dimensions: results.map(item => [item.width, item.height]), sizeError, workers: heicWorkers };
+      const workers = heicWorkers.filter(worker => worker.decodes > (priorDecodes.get(worker) || 0));
+      return { dimensions: results.map(item => [item.width, item.height]), sizeError, workers, totalWorkers: heicWorkers.length };
     }, [...valid]);
     assert.deepEqual(concurrent.dimensions, [[96,64],[96,64],[96,64]]);
     assert.match(concurrent.sizeError, /256/);
-    assert.ok(concurrent.workers.length >= 17);
-    assert.ok(concurrent.workers.every(worker => worker.version === '1.23.4' && worker.decoder === '1.1.2' && worker.terminated));
-    report.checks.push('queued HEIC operations succeed; every initialized WASM Worker terminated; 256 MiB cap checked before reading');
+    assert.ok(concurrent.totalWorkers >= 17);
+    assert.equal(concurrent.workers.length, 3, JSON.stringify(concurrent.workers));
+    assert.ok(concurrent.workers.every(worker => worker.version === '1.23.4' && worker.decoder === '1.1.2' && worker.terminated), JSON.stringify(concurrent.workers));
+    report.checks.push('three queued HEIC decodes succeed and their WASM Workers terminate; 256 MiB cap checked before reading');
     await page.evaluate(async bytes => {
       const decoded = await decodeHeicFile(new File([new Uint8Array(bytes)], 'unretained.heic'));
       globalThis.heicBufferWeak = new WeakRef(decoded.imageData.data.buffer);

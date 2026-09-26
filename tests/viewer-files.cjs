@@ -239,7 +239,9 @@ async function snapshot(page) {
     });
 
     await check('clear during encoding revokes completed URLs and discards pending results', async page => {
-      await page.locator('#fileInput').setInputFiles(files); await ready(page,'first.png');
+      await page.locator('#fileInput').setInputFiles(files);
+      await page.waitForFunction(() => app.source?.name === 'first.png' && !app.sourceLoading &&
+        app.variants.slice(0, 2).every(isVariantReady), null, { timeout: 30000 });
       const result = await page.evaluate(async () => {
         const real=encodeFromSource, realRevoke=URL.revokeObjectURL;
         const urls=app.variants.map(v=>v.url).filter(Boolean), revoked=[];
