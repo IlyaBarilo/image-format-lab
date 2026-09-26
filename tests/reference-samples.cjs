@@ -3,8 +3,11 @@ const {createHash}=require('node:crypto');
 const pako=require('../vendor/pako-2.1.0.min.js');
 
 (async()=>{
-  const {REFERENCE_SAMPLES,createReferenceSamplePixels}=await import('../src/core/reference-samples.mjs');
+  const {REFERENCE_SAMPLES,SAMPLE_CATALOG,createReferenceSamplePixels,createTiff16SamplePixels}=await import('../src/core/reference-samples.mjs');
   const {encodePng,decodePng}=await import('../src/core/png.mjs');
+  const {encodeTiff16,decodeTiff16}=await import('../src/core/tiff16.mjs');
+  assert.deepEqual(SAMPLE_CATALOG.map(sample=>sample.id),['canvas','gradient','alpha','palette','tiff16']);
+  assert.ok(SAMPLE_CATALOG.every(sample=>sample.label&&sample.description&&sample.size&&sample.fileName));
   const hashes={
     gradient:'c28f734486bfd7e44d317d650c536bcc019e07e6ac1e3c7d01f300c5ed41ed5d',
     alpha:'8351788e8b30b14afcba806ed8b0db5afd9dcec9ff2034a22eb9ddcf8b2373bf',
@@ -26,5 +29,12 @@ const pako=require('../vendor/pako-2.1.0.min.js');
   assert.ok(alpha.some((n,i)=>i%4===3&&n===255));
   assert.ok(createReferenceSamplePixels('palette').data.some((n,i)=>i%4!==3&&n>0));
   assert.throws(()=>createReferenceSamplePixels('__proto__'),/Неизвестный/);
-  console.log('PASS three deterministic, exact PNG8 reference samples: '+JSON.stringify(hashes));
+  const tiff=createTiff16SamplePixels(),again=createTiff16SamplePixels();
+  assert.equal(tiff.width,512);assert.equal(tiff.height,256);assert.equal(tiff.bitDepth,16);
+  assert.deepEqual(tiff.data,again.data);
+  assert.notEqual(tiff.data[4]%257,0,'TIFF16 retains values unavailable in RGBA8');
+  const bytes=encodeTiff16(tiff,{tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true},pako);
+  assert.deepEqual(decodeTiff16(bytes,0,pako).data,tiff.data);
+  assert.equal(bytes.byteLength,6261);
+  console.log('PASS five sample definitions, exact PNG8 and TIFF16 generated pixels: '+JSON.stringify(hashes));
 })().catch(error=>{console.error(error);process.exitCode=1;});

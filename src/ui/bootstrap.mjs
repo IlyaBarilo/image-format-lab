@@ -1,4 +1,5 @@
 import { DEFAULT_VARIANTS } from "./../core/config.mjs";
+import { SAMPLE_CATALOG } from '../core/reference-samples.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createBootstrap({app, els}, deps) {
@@ -82,17 +83,50 @@ export function createBootstrap({app, els}, deps) {
       els.fileInput.value = "";
     });
   
-    els.sampleImage.addEventListener("click", async () => {
-      if (app.batchRun?.running) return;
+    const samplePicker=document.getElementById('samplePicker');
+    const setSampleMenuOpen=open=>{
+      els.sampleMenu.hidden=!open;
+      els.sampleMenuToggle.setAttribute('aria-expanded',String(open));
+    };
+    async function addSample(id){
+      if (app.batchRun?.running || app.samplePending) return;
       const generation = app.listGeneration;
       app.samplePending = true;
       deps.updateBatchUI();
       try {
-        const file = await deps.createSampleFile();
+        const file = await deps.createSampleFile(id);
         if (generation === app.listGeneration) deps.addFiles([file]);
       } catch (error) { deps.showStatus("Не удалось создать образец: " + (error.message || error), true); }
       finally { app.samplePending = false; deps.updateBatchUI(); }
+    }
+    for(const sample of SAMPLE_CATALOG){
+      const button=document.createElement('button'),label=document.createElement('strong'),description=document.createElement('span');
+      button.type='button';button.className='sample-menu-item';button.dataset.sampleId=sample.id;
+      label.textContent=sample.label;
+      description.textContent=`${sample.size} · ${sample.description}`;
+      button.append(label,description);
+      button.addEventListener('click',async()=>{
+        setSampleMenuOpen(false);
+        await addSample(sample.id);
+        if(document.activeElement===button||document.activeElement===document.body)els.sampleMenuToggle.focus();
+      });
+      els.sampleMenu.append(button);
+    }
+    els.sampleImage.addEventListener('click',()=>{setSampleMenuOpen(false);void addSample('canvas');});
+    els.sampleMenuToggle.addEventListener('click',()=>setSampleMenuOpen(els.sampleMenu.hidden));
+    els.sampleMenuToggle.addEventListener('keydown',event=>{
+      if(event.key==='ArrowDown'){event.preventDefault();setSampleMenuOpen(true);els.sampleMenu.querySelector('button')?.focus();}
     });
+    els.sampleMenu.addEventListener('keydown',event=>{
+      if(!['ArrowDown','ArrowUp'].includes(event.key))return;
+      event.preventDefault();
+      const buttons=[...els.sampleMenu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+      buttons[(index+(event.key==='ArrowDown'?1:buttons.length-1))%buttons.length].focus();
+    });
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&!els.sampleMenu.hidden){event.preventDefault();setSampleMenuOpen(false);els.sampleMenuToggle.focus();}
+    });
+    document.addEventListener('pointerdown',event=>{if(!samplePicker.contains(event.target))setSampleMenuOpen(false);});
   
     els.toggleFiles.addEventListener("click", () => {
       const hidden = els.workspace.classList.toggle("files-hidden");

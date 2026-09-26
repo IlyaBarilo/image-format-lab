@@ -7,6 +7,14 @@ export const REFERENCE_SAMPLES = Object.freeze({
   palette: Object.freeze({label:'Палитра и дизеринг',fileName:'ifl-palette-v1.png',experiment:'palette',description:'Градиенты, редкие цвета и детерминированная мелкая текстура.'})
 });
 
+export const SAMPLE_CATALOG = Object.freeze([
+  Object.freeze({id:'canvas',label:'Текст, линии и прозрачность',fileName:'sample-alpha-lines.png',size:'960×640',
+    description:'Текст, тонкие линии, цветные переходы и прозрачные детали.'}),
+  ...Object.entries(REFERENCE_SAMPLES).map(([id, sample]) => Object.freeze({id,...sample,size:'512×320'})),
+  Object.freeze({id:'tiff16',label:'TIFF16 · точность градиента',fileName:'ifl-tiff16-v1.tif',size:'512×256',
+    description:'Точный 16-битный градиент с различающимися младшими разрядами.'})
+]);
+
 export function createReferenceSamplePixels(id) {
   if (!Object.hasOwn(REFERENCE_SAMPLES,id)) throw new Error('Неизвестный контрольный образец.');
   const width=512,height=320,data=new Uint8Array(width*height*4);
@@ -30,4 +38,16 @@ export function createReferenceSamplePixels(id) {
     data[i]=r;data[i+1]=g;data[i+2]=b;data[i+3]=a;
   }
   return createPixelBuffer({width,height,data,sampleType:'uint8',bitDepth:8,colorSpace:'srgb',alphaMode:'straight'});
+}
+
+export function createTiff16SamplePixels() {
+  const width=512,height=256,data=new Uint16Array(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    const at=(y*width+x)*4;
+    data[at]=Math.round(x*65535/(width-1));
+    data[at+1]=Math.round(y*65535/(height-1));
+    data[at+2]=(x*257+y*73)&65535;
+    data[at+3]=65535;
+  }
+  return createPixelBuffer({width,height,data,sampleType:'uint16',bitDepth:16,colorSpace:'srgb',alphaMode:'straight'});
 }

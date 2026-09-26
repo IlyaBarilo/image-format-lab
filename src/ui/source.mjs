@@ -1,5 +1,8 @@
 
 
+import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels } from '../core/reference-samples.mjs';
+import { pngPreview } from '../core/png.mjs';
+
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createSource({app, els}, deps) {
   async function loadFile(file, options = {}) {
@@ -56,7 +59,20 @@ export function createSource({app, els}, deps) {
     }
   }
   
-  function createSampleFile() {
+  async function createSampleFile(id='canvas') {
+    const sample=SAMPLE_CATALOG.find(item=>item.id===id);
+    if(!sample)throw new Error('Неизвестный образец.');
+    if(REFERENCE_SAMPLES[id]){
+      const blob=await deps.encodeExactPng(createReferenceSamplePixels(id),8);
+      return new File([blob],sample.fileName,{type:'image/png'});
+    }
+    if(id==='tiff16'){
+      const pixels=createTiff16SamplePixels(),preview=pngPreview(pixels);
+      const codec=await deps.loadTiffCodec();
+      const blob=await codec.encode(new ImageData(preview.data,preview.width,preview.height),
+        {tiffDepth:'16',tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true},pixels);
+      return new File([blob],sample.fileName,{type:'image/tiff'});
+    }
     const canvas = document.createElement("canvas");
     canvas.width = 960;
     canvas.height = 640;

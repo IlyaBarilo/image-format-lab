@@ -276,6 +276,27 @@ async function snapshot(page) {
       assert.deepEqual((await snapshot(page)).names,[]);
     });
 
+    await check('sample menu describes each example and opens a precise TIFF16 file', async page => {
+      await page.locator('#sampleMenuToggle').focus();
+      await page.keyboard.press('ArrowDown');
+      assert.equal(await page.locator('#sampleMenuToggle').getAttribute('aria-expanded'),'true');
+      assert.equal(await page.locator('#sampleMenu .sample-menu-item').count(),5);
+      assert.equal(await page.locator('#sampleMenu .sample-menu-item').first().evaluate(element=>element===document.activeElement),true);
+      assert.match(await page.locator('#sampleMenu').textContent(),/младшими разрядами/);
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#sampleMenuToggle').getAttribute('aria-expanded'),'false');
+      await page.locator('#sampleMenuToggle').click();
+      await page.locator('#sampleMenu [data-sample-id="tiff16"]').click();
+      await page.waitForFunction(() => app.source?.name==='ifl-tiff16-v1.tif' &&
+        app.source.pixelBuffer?.bitDepth===16 && !app.sourceLoading, null, {timeout:60000});
+      assert.equal(await page.evaluate(() => app.source.pixelBuffer.data[4]%257!==0),true);
+      assert.equal((await snapshot(page)).names[0],'ifl-tiff16-v1.tif');
+      await page.locator('#sampleMenuToggle').click();
+      await page.locator('#sampleMenu [data-sample-id="gradient"]').click();
+      await page.waitForFunction(() => app.source?.name==='ifl-gradient-v1.png' && !app.sourceLoading, null, {timeout:60000});
+      assert.deepEqual((await snapshot(page)).names,['ifl-tiff16-v1.tif','ifl-gradient-v1.png']);
+    });
+
     await check('long names are safe text, many rows scroll and responsive panels remain usable', async page => {
       const longName='<img src=x onerror=alert(1)>_'+'длинное имя '.repeat(15)+'.png';
       await page.locator('#fileInput').setInputFiles(Array.from({length:30},(_,i)=>({...files[0],name:i===0?longName:`image-${i}.png`})));

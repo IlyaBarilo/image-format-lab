@@ -1,5 +1,5 @@
 import { DEFAULT_VARIANTS, EXPERIMENTS, PROFILE_KEY } from "./../core/config.mjs";
-import { REFERENCE_SAMPLES, createReferenceSamplePixels } from '../core/reference-samples.mjs';
+import { REFERENCE_SAMPLES } from '../core/reference-samples.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStudy({app, els}, deps) {
@@ -61,10 +61,8 @@ export function createStudy({app, els}, deps) {
       const listGeneration=app.listGeneration;
       button.disabled=true;
       try{
-        const pixels=createReferenceSamplePixels(id);
-        const blob=await deps.encodeExactPng(pixels,8);
+        const file=await deps.createSampleFile(id);
         if(listGeneration!==app.listGeneration)return;
-        const file=new File([blob],definition.fileName,{type:'image/png'});
         deps.addFiles([file]);
         $("experimentSelect").value=definition.experiment;question();
         applyExperiment(definition.experiment);

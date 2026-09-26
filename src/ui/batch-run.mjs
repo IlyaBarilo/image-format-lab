@@ -23,6 +23,8 @@ export function createBatchRun({app, els}, deps) {
     els.fileInput.disabled = running;
     document.querySelector('label[for="fileInput"]').setAttribute("aria-disabled", String(running));
     els.sampleImage.disabled = running || app.samplePending;
+    els.sampleMenuToggle.disabled = running || app.samplePending;
+    if(running){els.sampleMenu.hidden=true;els.sampleMenuToggle.setAttribute('aria-expanded','false');}
     els.clearFiles.disabled = running || !app.files.length;
     for (const row of app.fileRows.values()) row.querySelector(".file-remove").disabled = running;
     let configError = "";

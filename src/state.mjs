@@ -104,6 +104,8 @@ export function collectElements() {
   batchReport: document.getElementById("batchReport"),
   batchResults: document.getElementById("batchResults"),
   sampleImage: document.getElementById("sampleImage"),
+  sampleMenuToggle: document.getElementById("sampleMenuToggle"),
+  sampleMenu: document.getElementById("sampleMenu"),
   retryCodecs: document.getElementById("retryCodecs"),
   codecStatus: document.getElementById("codecStatus"),
   codecNotice: document.getElementById("codecNotice"),
