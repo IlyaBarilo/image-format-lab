@@ -23,7 +23,7 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':['difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','boundaryMap','errorProfile','ssim','deltaE','floatSource'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
@@ -35,9 +35,9 @@ export function createAnalysisOutput({app},deps){
     if(pair.dataset.layout!==key){const old=pair.value;pair.replaceChildren();for(let a=1;a<=app.layout;a++)for(let b=a+1;b<=app.layout;b++){const option=document.createElement('option');option.value=`${a},${b}`;option.textContent=`${a} + ${b}`;pair.append(option);}pair.value=[...pair.options].some(o=>o.value===old)?old:'1,2';pair.dataset.layout=key;}
     const settings=getAnalysisOutputSettings();
     for(const option of pair.options){const [a,b]=option.value.split(',');option.textContent=settings.display==='delta'?`${b} − ${a}`:`${a} + ${b}`;}
-    get('analysisDisplayField').hidden=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind);
+    get('analysisDisplayField').hidden=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE','floatSource'].includes(kind);
     get('analysisDisplayDeltaField').hidden=!DELTA_TYPES.includes(kind);
-    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
+    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','boundaryMap','errorProfile','ssim','deltaE','floatSource'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
     get('analysisPairField').hidden=!['overlay','delta'].includes(settings.display)||app.layout===2;
     get('analysisMetricField').hidden=kind!=='tradeoff';
     combined.hidden=settings.display==='separate';
@@ -50,7 +50,7 @@ export function createAnalysisOutput({app},deps){
     syncAnalysisOutput();const items=chosen(snapshot),shared=snapshot.settings.display!=='separate';
     if(snapshot.settings.display!=='delta')lastDelta=null;
     let available=items.some(i=>i.data),histView=null,histError='';
-    if(['histogram','signalHistogram'].includes(snapshot.settings.type)&&available){
+    if(['histogram','signalHistogram','floatSource'].includes(snapshot.settings.type)&&available){
       // A hidden canvas reports zero width. Show a ready pair before sizing its bins.
       if(shared&&items.length===2&&items.every(i=>i.data))canvas.hidden=false;
       try {const mixedSignal=snapshot.settings.type==='signalHistogram'&&new Set(items.filter(i=>i.data).map(i=>i.data.bitDepth||8)).size>1;histView=histogramView(items,snapshot.settings.channel,mixedSignal?256:Math.max(256,canvas.getBoundingClientRect().width-74),{allowUnknownColorSpace:true});}
@@ -151,10 +151,10 @@ export function createAnalysisOutput({app},deps){
     const header=wrap(ctx,`${snapshot.source.name} · ${snapshot.source.width}×${snapshot.source.height} · ${snapshot.createdAt}`,1152);
     const s=snapshot.settings,b=s.region,line=s.line;
     const mixedSignal=s.type==='signalHistogram'&&new Set(selected.filter(i=>i.data).map(i=>i.data.bitDepth||8)).size>1;
-    const reportView=['histogram','signalHistogram'].includes(s.type)?histogramView(selected,s.channel,mixedSignal?256:shared?1152-74:566-72,{allowUnknownColorSpace:true}):null;
+    const reportView=['histogram','signalHistogram','floatSource'].includes(s.type)?histogramView(selected,s.channel,mixedSignal?256:shared||s.type==='floatSource'?1152-74:566-72,{allowUnknownColorSpace:true}):null;
     const reportDelta=reportView&&s.display==='delta'?groupHistogramDelta(snapshot.delta||deltaModel(selected,s),1152-90):null;
     if(reportView&&!shared)selected=reportView.items;
-    const parameterText=s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
+    const parameterText=s.type==='floatSource'?`Точный TIFF float32; диапазон RGB: ${s.range[0]}–${s.range[1]} (${s.rangeMode==='unit'?'0–1':s.rangeMode==='auto'?'автоматически':'вручную'}); α: 0–1; каналы: ${s.channel}; исходные RGB без подложки; весь кадр.`:s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
       `${s.display==='delta'?`Разница ячеек ${s.pair[1]} − ${s.pair[0]}`:s.display==='overlay'?`Наложение ячеек ${s.pair.join(' + ')}`:'Ячейки рядом'}; подложка: ${s.matte==='white'?'белая':'чёрная'}; область: ${s.scope==='viewport'?'видимая часть каждой ячейки':b?`${b.x0/10}%, ${b.y0/10}%, ${(b.x1-b.x0)/10}% × ${(b.y1-b.y0)/10}%`:'весь кадр'}`+
       (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(s.type==='boundaryMap'?`; канал: ${s.boundaryChannel==='alpha'?'α':'RGB'}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.type==='profile'&&shared?`; шкала: ${new Set(selected.map(i=>i.data?.scaleMax||255)).size>1?'0–100% полного диапазона':`0–${selected[0].data?.scaleMax||255} кодовых уровней`}`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
@@ -163,7 +163,7 @@ export function createAnalysisOutput({app},deps){
     const charts=shared?[{available:selected.some(i=>i.data),title:[...legend.children].map(s=>s.textContent).join(' · '),details:selected.map(i=>`${i.label}${i.data?` · ${i.data.width}×${i.data.height}`:''}${i.message?': '+i.message:''}`).join('; ')+(note.textContent?'. '+note.textContent:'')}]:selected.map(item=>({item,available:Boolean(item.data),title:item.label,details:item.message||document.querySelectorAll('.analysis-card canvas')[item.cell-1].getAttribute('aria-label')}));
     if(reportView){
       const scale=reportDelta?.scale||reportView.scale,groupNote=scale.grouped?` Показано ${scale.bins} групп; соседние доли суммируются.`:'';
-      const describe=item=>{const d=item.data,b=d.bounds;return `${item.label}: ${d.width}×${d.height}, ${fmt(d.pixelCount)} пикселей${b?`, область ${b.x}, ${b.y}: ${b.width}×${b.height}`:''}. ${histogramSummary(d,s.channel)}`;};
+      const describe=item=>{const d=item.data,b=d.bounds;return `${item.label}: ${d.width}×${d.height}, ${fmt(d.pixelCount)} пикселей${b?`, область ${b.x}, ${b.y}: ${b.width}×${b.height}`:''}. ${histogramSummary(d,s.channel,{alwaysOutside:s.type==='floatSource'})}`;};
       const values=item=>ANALYSIS_CHANNELS[s.channel].map(c=>`${graphName(s.type,c)} ${fmt(item.data.channels[c][histogramBinAt(scale,s.level)]/item.data.pixelCount*100)}%`).join(' · ');
       if(shared){
         charts[0].title=s.display==='delta'?`Δ ${s.pair[1]} − ${s.pair[0]}`:selected.map((item,i)=>`${item.cell} ${i?'□ контур':'■ заливка'}`).join(' · ');
@@ -190,8 +190,8 @@ export function createAnalysisOutput({app},deps){
       if(shared)charts[0].details=selected.filter(item=>item.data).map(describe).join(' ');
       else for(const chart of charts)if(chart.item.data)chart.details=describe(chart.item);
     }
-    const columns=shared?1:2,chartWidth=(1152-(columns-1)*20)/columns,rows=[];
-    const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type,selected,['errorHistogram','errorProfile'].includes(s.type)?s.errorChannel:s.channel);
+    const columns=shared||s.type==='floatSource'?1:2,chartWidth=(1152-(columns-1)*20)/columns,rows=[];
+    const outputSize={width:chartWidth,height:280},maximum=shared?null:analysisMaximum(s.type==='floatSource'?'histogram':s.type,selected,['errorHistogram','errorProfile'].includes(s.type)?s.errorChannel:s.channel);
     for(let i=0;i<charts.length;i+=columns){const row=charts.slice(i,i+columns).map(c=>({...c,head:wrap(ctx,c.title,chartWidth),tail:wrap(ctx,c.details||'',chartWidth)}));rows.push({items:row,height:Math.max(...row.map(c=>c.head.length*22+300+c.tail.length*22+20))});}
     output.height=100+(header.length+settings.length+method.length)*22+rows.reduce((s,r)=>s+r.height,0);
     ctx=output.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,output.width,output.height);ctx.fillStyle='#17212b';ctx.textBaseline='top';ctx.font='bold 24px "Segoe UI",sans-serif';ctx.fillText(title,24,22);ctx.font='16px "Segoe UI",sans-serif';

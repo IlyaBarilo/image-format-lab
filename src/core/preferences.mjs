@@ -6,7 +6,8 @@ import { DEFAULT_DISPLAY, normalizeDisplay } from './display-sdr.mjs';
 
 export const PREFERENCES_KEY = 'image-format-viewer.preferences.v1';
 export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
-  type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','boundaryMap','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
+  type: ['analysisType', 'histogram', ['histogram','floatSource','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','boundaryMap','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
+  floatRange: ['analysisFloatRange', 'unit', ['unit','auto','manual']],
   channel: ['analysisChannel', 'rgb', ['rgb','r','g','b','alpha']],
   matte: ['analysisMatte', 'white', ['white','black']],
   cieView: ['analysisCieView', 'displayed', ['displayed','icc']],
@@ -27,7 +28,7 @@ export function defaultPreferences() {
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
        displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',cieXy:'overlay',profile:'overlay',errorProfile:'separate',ssim:'separate',deltaE:'separate'},
-      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE}}
+      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE},floatMin:0,floatMax:1}
   };
 }
 const record = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -57,6 +58,10 @@ export function normalizePreferences(value) {
   if(record(a)){
     for(const [key,[,fallback,allowed]] of Object.entries(ANALYSIS_PREFERENCE_FIELDS)){
       if((key==='level'||key==='position')?Number.isInteger(a[key])&&a[key]>=allowed[0]&&a[key]<=allowed[1]:typeof a[key]===typeof fallback&&allowed.includes(a[key]))result.analysis[key]=a[key];
+    }
+    if(typeof a.floatMin==='number'&&typeof a.floatMax==='number'&&Number.isFinite(a.floatMin)&&Number.isFinite(a.floatMax)&&
+      a.floatMin<a.floatMax&&Math.abs(a.floatMin)<=2**128&&Math.abs(a.floatMax)<=2**128&&Number.isFinite(a.floatMax-a.floatMin)){
+      result.analysis.floatMin=a.floatMin;result.analysis.floatMax=a.floatMax;
     }
     for(const type of Object.keys(result.analysis.displays)){
       const modes=['errorProfile','ssim','deltaE'].includes(type)?['separate']:['vectorscope','errorHistogram','cieXy'].includes(type)?['separate','overlay']:['separate','overlay','delta'];

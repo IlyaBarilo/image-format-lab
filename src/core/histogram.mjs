@@ -9,7 +9,8 @@ export function computeHistogram(input, matte = 'white', region = null, options 
   const bounds = analysisRegionBounds(width, height, region);
   if (matte !== 'white' && matte !== 'black') throw new Error('Неизвестная подложка анализа.');
   if (!options || typeof options !== 'object' || Array.isArray(options) ||
-      Object.keys(options).some(key => !['range', 'bins', 'floatPeak'].includes(key))) throw new Error('Некорректные параметры гистограммы.');
+      Object.keys(options).some(key => !['range', 'bins', 'floatPeak', 'rawRgb'].includes(key)) ||
+      (options.rawRgb !== undefined && options.rawRgb !== true)) throw new Error('Некорректные параметры гистограммы.');
   const floating = sampleType === 'float32';
   let min = 0, max = 2 ** bitDepth - 1, bins = max + 1, white = max;
   if (floating) {
@@ -32,7 +33,8 @@ export function computeHistogram(input, matte = 'white', region = null, options 
       const raw = data[offset + c];
       if (!Number.isFinite(raw) || (!floating && (raw < 0 || raw > max))) throw new Error('Отсчёт не соответствует разрядности гистограммы.');
       // Integer arithmetic retains the existing RGBA8 composition/rounding exactly.
-      const value = c === 3 ? alpha : floating
+      const value = c === 3 ? alpha : floating && options.rawRgb
+        ? raw : floating
         ? (alphaMode === 'straight' ? raw * alpha : raw) + background * (1 - alpha)
         : Math.round(((alphaMode === 'straight' ? raw * alpha : raw * alphaMax) + background * (alphaMax - alpha)) / alphaMax);
       const low = c === 3 ? 0 : min, high = c === 3 ? alphaMax : max;
@@ -43,7 +45,7 @@ export function computeHistogram(input, matte = 'white', region = null, options 
     }
   }
   const pixelCount = bounds.width * bounds.height;
-  return { width, height, bounds, pixelCount, matte, channels, sampleType, bitDepth, colorSpace, alphaMode,
+  return { width, height, bounds, pixelCount, matte, ...(options.rawRgb ? {rawRgb:true} : {}), channels, sampleType, bitDepth, colorSpace, alphaMode,
     scale: { kind: floating ? 'float' : 'integer', min, max, bins, alphaMax, white },
     underflow, overflow, means: sums.map(sum => sum / pixelCount),
     boundaryCounts: floating ? null : { low: channels.map(values => values[0]), high: channels.map(values => values[max]) } };

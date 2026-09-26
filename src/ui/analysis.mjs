@@ -8,6 +8,7 @@ import { profileBinAt } from '../core/line-profile.mjs';
 import { errorBinInterval, errorHistogramSummary } from '../core/error-histogram.mjs';
 import { renderCieXy } from './scope-plots.mjs';
 import { mapCieReferenceRegion } from '../core/color-sdr.mjs';
+import { floatHistogramRange } from '../core/float-histogram.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′', 'Cb', 'Cr'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0', '#facc15', '#22d3ee', '#f472b6'];
@@ -32,6 +33,7 @@ export function createAnalysis({ app }, deps) {
   const boundaryChannel = get('analysisBoundaryChannel');
   const profileChannel = get('analysisProfileChannel'), position = get('analysisPosition');
   const level = get('analysisLevel'), status = get('analysisStatus');
+  const floatRange = get('analysisFloatRange'), floatMin = get('analysisFloatMin'), floatMax = get('analysisFloatMax');
   const help = get('analysisHelp'), helpContent = get('analysisHelpContent'), details = get('analysisDetails');
   const cards = [...panel.querySelectorAll('.analysis-card')].map(element => ({
     element, info: element.querySelector('.analysis-info'), canvas: element.querySelector('canvas'),
@@ -43,7 +45,7 @@ export function createAnalysis({ app }, deps) {
   let lastRegionKey = '', lastGuideKey = '';
   let viewportRegions = [], viewportKey = '', viewportTimer = null;
   let resizePaused = false, resizeNeedsUpdate = false;
-  const followsViewport = () => deps.getAnalysisScope() === 'viewport' && type.value !== 'tradeoff';
+  const followsViewport = () => deps.getAnalysisScope() === 'viewport' && !['tradeoff','floatSource'].includes(type.value);
   const readViewports = () => cards.slice(0, app.layout).map((_, side) => deps.getAnalysisViewport(side));
 
   function syncControls() {
@@ -63,12 +65,16 @@ export function createAnalysis({ app }, deps) {
     }
     deps.syncAnalysisOutput();
     const tradeoff=type.value==='tradeoff',output=deps.getAnalysisOutputSettings();
-    get('analysisScope').hidden=tradeoff;
-    get('analysisMatteField').hidden=tradeoff;
+    const exactFloat=type.value==='floatSource';
+    get('analysisScope').hidden=tradeoff||exactFloat;
+    get('analysisMatteField').hidden=tradeoff||exactFloat;
+    get('analysisFloatRangeField').hidden=!exactFloat;
+    get('analysisFloatMinField').hidden=!exactFloat||floatRange.value!=='manual';
+    get('analysisFloatMaxField').hidden=!exactFloat||floatRange.value!=='manual';
     const difference = type.value === 'difference', boundary = type.value === 'boundaryMap', errorHistogram = type.value === 'errorHistogram', spatial = spatialChannels(type.value).length>0, signalHistogram=type.value==='signalHistogram';
     const profile = type.value === 'profile', errorProfile=type.value==='errorProfile', vector = type.value === 'vectorscope';
-    get('analysisChannelField').hidden = type.value !== 'histogram';
-    get('analysisLevelField').hidden = type.value !== 'histogram' && !signalHistogram && !errorHistogram;
+    get('analysisChannelField').hidden = type.value !== 'histogram' && !exactFloat;
+    get('analysisLevelField').hidden = type.value !== 'histogram' && !exactFloat && !signalHistogram && !errorHistogram;
     get('analysisLevelLabel').textContent = errorHistogram ? 'Ошибка' : 'Уровень';
     get('analysisProfileField').hidden = !profile;
     get('analysisPositionField').hidden = !profile && !errorProfile;
@@ -87,6 +93,7 @@ export function createAnalysis({ app }, deps) {
     get('analysisMethod').textContent = spatial
       ? 'Графики 1–4 следуют ячейкам сравнения. По горизонтали — положение слева направо (0–100% ширины выбранной области); в Parade оно повторяется для трёх каналов. По вертикали — кодовые уровни 0–255 для RGBA8 или 0–65535 для RGBA16. Считаются точные целые отсчёты каждой ячейки после композиции с выбранной подложкой в её разрядности. Y′ = round(0,2126 R + 0,7152 G + 0,0722 B), Cb/Cr вычисляются из этих же RGB с нейтральным смещением половины диапазона по BT.709. Это оценка сигнала, не линейная физическая яркость, HDR, IRE или плоскости кодека. Все пиксели учитываются; соседние столбцы объединяются максимум в 256 групп. Для RGBA16 значения распределяются в 1024 интервала по 64 кода после вычисления точного сигнала; минимумы, максимумы и средние остаются точными. Плотность — доля пикселей группы в интервале. Для наложения и разницы оба графика приводятся к общей нормированной сетке из 256 интервалов. Яркость следа пропорциональна корню четвёртой степени из плотности относительно общего максимума. Фон и масштаб просмотра на расчёт не влияют.'
       : 'Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни целых отсчётов или явные интервалы float32, по вертикали — доля пикселей канала в процентах. Считаются все пиксели выбранной области. Целые уровни сохраняются точно; RGB после подложки округляется в исходной разрядности. При узком графике соседние уровни суммируются в общие группы, подписанные в сведениях. Для разных целых разрядностей используется общая нормированная шкала 0–1. Вне диапазона float32 отсчёты учитываются отдельно; крайние интервалы ими не заполняются. JSON сохраняет исходные счётчики и шкалу; PNG группирует их под размер отчёта. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.';
+    if(exactFloat)get('analysisMethod').textContent='Точный исходник TIFF float32: все отсчёты R, G, B учитываются без подложки, включая RGB полностью прозрачных пикселей; α имеет отдельную шкалу 0–1. Диапазон RGB по умолчанию 0–1, автоматический охватывает минимумы и максимумы исходника, ручной задаётся в полях. Значения ниже и выше диапазона учитываются отдельными счётчиками и не добавляются в крайние интервалы. JSON сохраняет точные счётчики 256 интервалов и границы; PNG строится в размере отчёта. Цветовое пространство исходника неизвестно; этот график не является HDR-просмотром или сравнением с ячейками.';
     if(signalHistogram)get('analysisMethod').textContent='Гистограмма Y′CbCr вычисляется из точных целых RGB8/16 после композиции с выбранной подложкой в той же разрядности. Y′ = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y′)/1,8556 + половина диапазона; Cr = (R−Y′)/1,5748 + половина диапазона. Значения округляются до целого кода. Нейтральная цветность находится около половины диапазона. Это вычисленные сигналы BT.709, а не внутренние плоскости кодека, вещательные уровни или HDR. Точные частоты и средние сохраняются в JSON; при разной разрядности гистограммы сопоставляются на нормированной шкале. По вертикали — доля пикселей канала в процентах.';
     if(type.value==='ycbcrParade')get('analysisMethod').textContent+=' Y′CbCr Parade показывает вычисленные Y′, Cb и Cr в трёх панелях; нейтральная цветность находится около середины кодового диапазона.';
     if(type.value==='rgbWaveform')get('analysisMethod').textContent+=' Waveform RGB накладывает R, G и B на одну сетку; пересечения цветов складываются.';
@@ -152,8 +159,8 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent += ' Режим «Видимая часть» берёт фактический фрагмент каждой ячейки с учётом масштаба и перемещения. Пиксели на границе включаются целиком, фон вне изображения исключён. При разных размерах окон/результатов области могут различаться; их точные координаты записаны в данных графиков. В максимуме используются последние размеры окон просмотра. Линия A→B задаётся относительно видимой области каждой ячейки; её редактор показывает исходник в окне первой ячейки. Основные метрики и сохраняемые изображения остаются полными.';
     }
     const high=app.source?.pixelBuffer?.bitDepth>8||app.variants.slice(0,app.layout).some(v=>v.pixelBuffer?.bitDepth>8);
-    const precision=app.source?.nativePixelBuffer?.sampleType==='float32'
-      ? 'TIFF float32: графики и метрики сравнения рассчитаны по SDR-предпросмотру 8 бит с обрезкой 0–1. Точные исходные значения — в пиксельном инспекторе и паспорте файла.'
+    const precision=app.source?.nativePixelBuffer?.sampleType==='float32'&&type.value!=='floatSource'
+      ? 'TIFF float32: графики и метрики сравнения рассчитаны по SDR-предпросмотру 8 бит с обрезкой 0–1. Точные исходные значения — в гистограмме точного исходника, пиксельном инспекторе и паспорте файла.'
       : high?(type.value==='histogram'||signalHistogram||profile||errorHistogram||errorProfile||spatial||['ssim','cieXy','deltaE','vectorscope','difference','boundaryMap'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
@@ -161,12 +168,23 @@ export function createAnalysis({ app }, deps) {
   }
 
   function syncLayout() {
-    panel.querySelector('.analysis-plots').dataset.layout = String(app.layout);
-    cards.forEach((card, index) => { card.element.hidden = index >= app.layout; });
+    panel.querySelector('.analysis-plots').dataset.layout = type.value==='floatSource'?'1':String(app.layout);
+    cards.forEach((card, index) => { card.element.hidden = index >= (type.value==='floatSource'?1:app.layout);card.badge.textContent=type.value==='floatSource'?'Исходник':String(index+1); });
     deps.syncAnalysisLayout();
   }
 
   function selected(side) {
+    if(type.value==='floatSource'){
+      const label='Точный исходник · TIFF float32';
+      if(!app.source)return {label,message:'Добавьте TIFF float32 для точного анализа.'};
+      if(app.sourceLoading)return {label,message:'Исходник открывается…'};
+      if(app.source.nativePixelBuffer?.sampleType!=='float32')return {label,message:'Точный график доступен для поддерживаемого исходника TIFF float32.'};
+      let range;
+      try{range=floatHistogramRange(floatRange.value,app.source.floatStats,floatMin.value,floatMax.value);}
+      catch(error){return {label,message:error.message};}
+      return {label,imageData:app.source.imageData,pixelBuffer:app.source.nativePixelBuffer,
+        histogramOptions:{range,bins:256,floatPeak:1,rawRgb:true},region:null};
+    }
     const variant = app.variants[side], c = variant?.config;
     const quality = c && ['jpeg', 'webp', 'heic', 'avif', 'jxl', 'jp2', 'j2k'].includes(c.format) ? ` · качество ${c.quality}`
       : c && ['gif', 'gifenc', 'pngIndexed'].includes(c.format) ? ` · ${c.gifColors} цветов` : '';
@@ -294,8 +312,8 @@ export function createAnalysis({ app }, deps) {
     try {
       while (queued && !body.hidden && !resizePaused) {
         queued = false;
-        const token = generation, inputs = cards.slice(0, app.layout).map((_, side) => selected(side)), background = matte.value;
-        const kind = ['parade','rgbWaveform','ycbcrWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
+        const token = generation, inputs = cards.slice(0, type.value==='floatSource'?1:app.layout).map((_, side) => selected(side)), background = matte.value;
+        const kind = type.value==='floatSource'?'histogram':['parade','rgbWaveform','ycbcrWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
         const reference = ['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
         const computed = [];
         for (const input of inputs) {
@@ -325,9 +343,9 @@ export function createAnalysis({ app }, deps) {
 
   function getAnalysisSnapshot(){
     const output=deps.getAnalysisOutputSettings(),kind=type.value;
-    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
+    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:kind==='floatSource'?{type:kind,display:'separate',channel:channel.value,level:Number(level.value),scope:'full',rangeMode:floatRange.value,range:results[0]?.data?.scale?[results[0].data.scale.min,results[0].data.scale.max]:null,bins:256,rawRgb:true}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
     return {version:1,revision:generation,source:app.source?{name:app.source.name,width:app.source.width,height:app.source.height,bytes:app.source.size}:null,settings,method:get('analysisMethod').textContent,
-      items:cards.slice(0,app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
+      items:cards.slice(0,kind==='floatSource'?1:app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
   }
 
   function drawIndividualAnalysis() {
@@ -340,7 +358,7 @@ export function createAnalysis({ app }, deps) {
     if (type.value === 'deltaE') { drawDeltaE(); return; }
     if (type.value === 'cieXy') { drawCieXy(); return; }
     if (type.value === 'vectorscope' || type.value === 'profile') { drawExtraScopes(); return; }
-    if (type.value !== 'histogram' && type.value !== 'signalHistogram') { drawSpatial(); return; }
+    if (type.value !== 'histogram' && type.value !== 'signalHistogram' && type.value !== 'floatSource') { drawSpatial(); return; }
     const signal=type.value==='signalHistogram',selectedChannel=signal?'rgb':channel.value;
     const indices = CHANNELS[selectedChannel], bin = Number(level.value),names=signal?SIGNAL_NAMES:NAMES;
     const widths = cards.flatMap((card, side) => {
@@ -354,7 +372,7 @@ export function createAnalysis({ app }, deps) {
       for (const card of cards) { card.canvas.hidden = true; card.info.hidden = false; card.info.textContent = error.message; card.element.dataset.state = 'unavailable'; card.values.textContent = ''; }
       details.textContent = error.message; return;
     }
-    const maximum = analysisMaximum(type.value, view.items, selectedChannel);
+    const maximum = analysisMaximum(type.value==='floatSource'?'histogram':type.value, view.items, selectedChannel);
     get('analysisLevelValue').textContent = view.scale ? histogramTick(view.scale, bin / 255) : String(bin);
     matte.disabled = !signal && channel.value === 'alpha';
     const detailLines = [];
@@ -373,7 +391,7 @@ export function createAnalysis({ app }, deps) {
       card.info.textContent = '';
       card.info.hidden = true;
       const interval = histogramInterval(view.scale, bin);
-      const description = `${rasterDescription(h)} · ${signal?`Y′CbCr из RGB${h.bitDepth}`:channel.value === 'alpha' ? 'α без подложки' : 'RGB'} на ${h.matte === 'white' ? 'белом' : 'чёрном'} · ${histogramSummary(h, selectedChannel)}${view.scale.grouped ? ` Показано ${view.scale.bins} групп; доли суммируются.` : ''}`;
+      const description = `${rasterDescription(h)} · ${type.value==='floatSource'?'исходные RGB без подложки; α отдельно':`${signal?`Y′CbCr из RGB${h.bitDepth}`:channel.value === 'alpha' ? 'α без подложки' : 'RGB'} на ${h.matte === 'white' ? 'белом' : 'чёрном'}`} · ${histogramSummary(h, selectedChannel, {alwaysOutside:type.value==='floatSource'})}${view.scale.grouped ? ` Показано ${view.scale.bins} групп; доли суммируются.` : ''}`;
       card.badge.title = `${item.label}. ${description}`;
       card.canvas.hidden = false;
       card.canvas.dataset.yMax = String(maximum);
@@ -777,7 +795,7 @@ export function createAnalysis({ app }, deps) {
   // It does not resize live canvases or recalculate the viewport/codec results.
   function renderAnalysisChart(canvas, item, settings, maximum, outputSize) {
     const data = item.data;
-    if (settings.type === 'histogram' || settings.type === 'signalHistogram') {
+    if (settings.type === 'histogram' || settings.type === 'signalHistogram' || settings.type === 'floatSource') {
       const prepared = data.viewScale ? data : histogramView([item], settings.channel, Math.max(256, (outputSize || canvas.getBoundingClientRect()).width - 72), { allowUnknownColorSpace: true }).items[0].data;
        plot(canvas, prepared, CHANNELS[settings.channel], data.viewScale ? maximum : Math.max(maximum || 0, analysisMaximum(settings.type, [{data:prepared}], settings.channel)), settings.level, outputSize, settings.type==='signalHistogram');
     }
@@ -836,6 +854,8 @@ export function createAnalysis({ app }, deps) {
     });
     matte.addEventListener('change', updateAnalysis);
     type.addEventListener('change',()=>{deps.closeAnalysisRegion();updateAnalysis();});
+    floatRange.addEventListener('change',updateAnalysis);
+    for(const field of [floatMin,floatMax])field.addEventListener('input',updateAnalysis);
     cieView.addEventListener('change',updateAnalysis);
     variantSelect.addEventListener('change',()=>{type.value=variantSelect.value;deps.closeAnalysisRegion();updateAnalysis();});
     profileChannel.addEventListener('change',()=>{syncControls();drawAnalysis();});
