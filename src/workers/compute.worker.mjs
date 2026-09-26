@@ -21,8 +21,8 @@ self.onmessage = event => {
     else if (kind === 'errorHistogram') result = computeErrorHistogram(payload.pixelBuffer, payload.reference, payload.matte, payload.region);
     else if (kind === 'waveform') result = computeWaveform(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'signalHistogram') result = computeSignalHistogram(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
-    else if (kind === 'difference') result = computeDifference(payload.imageData, payload.reference, payload.matte, payload.region);
-    else if (kind === 'vectorscope') result = computeVectorscope(payload.imageData, payload.matte, payload.region);
+    else if (kind === 'difference') result = computeDifference(payload.pixelBuffer || payload.imageData, payload.reference, payload.matte, payload.region);
+    else if (kind === 'vectorscope') result = computeVectorscope(payload.pixelBuffer || payload.imageData, payload.matte, payload.region);
     else if (kind === 'profile') result = computeLineProfile(payload.pixelBuffer || payload.imageData, payload.matte, payload.region, payload.line);
     else if (kind === 'errorProfile') result = computeErrorProfile(payload.pixelBuffer, payload.reference, payload.matte, payload.region, payload.line);
     else if (kind === 'ssim') result = computeSSIM(payload.pixelBuffer, payload.reference, payload.matte, payload.region);

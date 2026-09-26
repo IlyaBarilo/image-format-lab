@@ -19,6 +19,7 @@ const GRAPH_VARIANTS = [
 const spatialName = index => index===3?'Y′':index===4?'Cb':index===5?'Cr':NAMES[index];
 const spatialColor = index => index>=3?COLORS[index+1]:COLORS[index];
 const number = value => value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+const preciseDifference = value => value !== 0 && Math.abs(value) < 0.001 ? value.toExponential(2) : value.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
 
 export function createAnalysis({ app }, deps) {
   const get = id => document.getElementById(id);
@@ -88,7 +89,7 @@ export function createAnalysis({ app }, deps) {
     if(type.value==='ycbcrWaveform')get('analysisMethod').textContent+=' Waveform Y′CbCr накладывает вычисленные Y′, Cb и Cr на одну сетку; пересечения цветов складываются.';
      if(difference) {
       help.title = 'Отличие каждой ячейки от исходного файла. Чёрный — совпадение, цвет — величина ошибки. Усиление общее. Нажмите для подробностей.';
-      get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой; α: абсолютная разность прозрачности без подложки. Это различия кодовых значений RGBA8, не Delta E и не оценка восприятия. Чёрный означает нулевую разность, цвет показывает величину от 0 до 255. Общее усиление умножает только отображаемую разность; красный — достижение или превышение верхнего порога шкалы. Средние/максимумы считаются по всем выбранным пикселям без усиления. Карта ограничена 512 пикселями по длинной стороне; каждая её точка хранит максимальную ошибку группы, чтобы не терять единичные отличия. Размеры результата и исходника должны совпадать: масштабирования или выравнивания по содержимому нет.';
+      get('analysisMethod').textContent = 'Каждая ячейка сравнивается с исходным файлом, включая первую. RGB: максимум абсолютных разностей R/G/B после округления композиции с общей подложкой в разрядности каждого растра; α: абсолютная разность прозрачности без подложки. Точные целые RGBA8/16 коды сравниваются после нормирования на полный диапазон; при неизвестной цветовой метке преобразование цвета не предполагается. Средние и максимумы выражены в эквивалентных уровнях 0–255 до группировки; это не Delta E и не оценка восприятия. Чёрный означает точное совпадение. Ненулевая ошибка меньше одного экранного уровня показывается первым цветным уровнем, чтобы не исчезнуть. Усиление меняет только цвет, а не измерения. Карта ограничена 512 пикселями по длинной стороне; точка хранит максимум своей группы. Нужны одинаковые размеры и совместимые известные цветовые пространства; масштабирования и выравнивания нет.';
      }
     if(errorHistogram){
       help.title='Попиксельная ошибка каждой ячейки относительно исходника. Нулевая группа означает точное совпадение. Нажмите для методики.';
@@ -96,7 +97,7 @@ export function createAnalysis({ app }, deps) {
     }
     if(vector){
       help.title='Центр — нейтральные цвета. Направление и удаление показывают цветность. Плотность и шкалы общие для всех ячеек. Нажмите для подробностей.';
-      get('analysisMethod').textContent='Вектороскоп учитывает все пиксели выбранной области RGB8 после композиции с общей подложкой. Y = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y)/(1,8556×255), Cr = (R−Y)/(1,5748×255), коэффициенты BT.709. Cb растёт вправо, Cr вверх, обе оси от −0,5 до 0,5. Нейтральные значения в центре. Ориентиры R/M/B/C/G/Y соответствуют RGB-цветам с каналами 0/255; окружности — радиусы 0,25 и 0,5, не проценты насыщенности HSV или границы допустимого видео. Плотность считается в сетке 257×257, нормируется на число пикселей области; яркость следа — корень четвёртой степени плотности относительно общего максимума всех ячеек. Это анализ декодированных кодовых значений, не HDR, Delta E, проверка ICC или вещательных уровней.';
+      get('analysisMethod').textContent='Вектороскоп учитывает точные целые RGBA8/16 пиксели выбранной области после композиции с общей подложкой в разрядности каждой ячейки. Y = 0,2126 R + 0,7152 G + 0,0722 B; Cb = (B−Y)/(1,8556×M), Cr = (R−Y)/(1,5748×M), где M — 255 или 65535, коэффициенты BT.709. Cb растёт вправо, Cr вверх, обе оси от −0,5 до 0,5. Нейтральные значения в центре. Ориентиры R/M/B/C/G/Y соответствуют нормированным RGB-цветам; окружности — радиусы 0,25 и 0,5, не проценты насыщенности HSV или границы допустимого видео. Координаты и средние вычисляются до группировки; плотность считается в сетке 257×257 и нормируется на число пикселей области. Это анализ декодированных кодовых значений, не HDR, Delta E, проверка ICC или вещательных уровней.';
     }
     if(profile){
       help.title='Профиль точных целых RGBA8/16 вдоль общей линии A→B. Положение и каналы общие. Линию можно выбрать на миниатюре. Нажмите для подробностей.';
@@ -143,7 +144,7 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent += ' Режим «Видимая часть» берёт фактический фрагмент каждой ячейки с учётом масштаба и перемещения. Пиксели на границе включаются целиком, фон вне изображения исключён. При разных размерах окон/результатов области могут различаться; их точные координаты записаны в данных графиков. В максимуме используются последние размеры окон просмотра. Линия A→B задаётся относительно видимой области каждой ячейки; её редактор показывает исходник в окне первой ячейки. Основные метрики и сохраняемые изображения остаются полными.';
     }
     const high=app.source?.pixelBuffer?.bitDepth>8||app.variants.slice(0,app.layout).some(v=>v.pixelBuffer?.bitDepth>8);
-    const precision=high?(type.value==='histogram'||signalHistogram||profile||errorHistogram||errorProfile||spatial||['ssim','cieXy','deltaE'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
+    const precision=high?(type.value==='histogram'||signalHistogram||profile||errorHistogram||errorProfile||spatial||['ssim','cieXy','deltaE','vectorscope','difference'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
     if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=['cieXy','deltaE'].includes(type.value)?' Цветовое описание исходника неизвестно: для этого цветового анализа предполагается sRGB.':' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
@@ -250,14 +251,14 @@ export function createAnalysis({ app }, deps) {
 
   async function compute(input, background, kind, reference, line) {
     const { imageData, pixelBuffer, histogramOptions, region } = input;
-    const owner = ['histogram','signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform'].includes(kind) ? pixelBuffer || imageData : imageData;
+    const owner = ['histogram','signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference'].includes(kind) ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
     let entry = cache.get(owner);
     const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
     if(cache === activeCache) cache.set(owner, entry);
@@ -285,7 +286,7 @@ export function createAnalysis({ app }, deps) {
         queued = false;
         const token = generation, inputs = cards.slice(0, app.layout).map((_, side) => selected(side)), background = matte.value;
         const kind = ['parade','rgbWaveform','ycbcrWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
-        const reference = ['errorHistogram','errorProfile','ssim','deltaE'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
+        const reference = ['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
         const computed = [];
         for (const input of inputs) {
           if (input.imageData) {
@@ -517,11 +518,11 @@ export function createAnalysis({ app }, deps) {
       const item=results[side],data=item?.data;
       if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'Нет результата.';card.info.hidden=false;card.canvas.hidden=true;card.values.textContent='';return;}
       card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;card.canvas.dataset.kind=type.value;
-      const description=`${rasterDescription(data)} · ${!vector&&profileChannel.value==='alpha'?'α без подложки':`RGB на ${data.matte==='white'?'белом':'чёрном'}`}${vector?'':` · ${data.bitDepth||8} бит/канал`}`;
+      const description=`${rasterDescription(data)} · ${!vector&&profileChannel.value==='alpha'?'α без подложки':`RGB на ${data.matte==='white'?'белом':'чёрном'}`} · ${data.bitDepth||8} бит/канал`;
       let detail;
       if(vector){
         card.canvas.dataset.yMax='0.5';card.canvas.dataset.densityMax=String(maximum);
-        detail=`Вектороскоп: Cb вправо, Cr вверх; оси −0,5…0,5. Средняя цветность: Cb ${number(data.meanCb)}, Cr ${number(data.meanCr)}.`;
+        detail=`Вектороскоп: Cb вправо, Cr вверх; оси −0,5…0,5. Средняя цветность: Cb ${preciseDifference(data.meanCb)}, Cr ${preciseDifference(data.meanCr)}.`;
         card.values.textContent='';card.values.removeAttribute('title');
         deps.plotVectorscope(card.canvas,data,maximum);
       }else{
@@ -555,8 +556,8 @@ export function createAnalysis({ app }, deps) {
       if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'Нет результата.';card.info.hidden=false;card.canvas.hidden=true;return;}
       card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
       card.canvas.dataset.kind='difference';card.canvas.dataset.gain=String(amplification);card.canvas.dataset.mean=String(data.means[index]);
-      const description=`${rasterDescription(data)}. ${index ? 'α без подложки' : `RGB на ${data.matte === 'white' ? 'белом' : 'чёрном'}`}`;
-      const summary=`Средняя разность ${number(data.means[index])}; максимум ${data.maxima[index]}; отличаются ${number(data.changed[index]/data.pixelCount*100)}% пикселей.`;
+      const description=`${rasterDescription(data)}. ${index ? 'α без подложки' : `RGB на ${data.matte === 'white' ? 'белом' : 'чёрном'}`} · ${data.bitDepth.source}/${data.bitDepth.result} бит/канал${data.colorComparison==='unknown-code-values'?' · цветовая метка неизвестна':''}`;
+      const summary=`Средняя разность ${preciseDifference(data.means[index])}; максимум ${preciseDifference(data.maxima[index])} из 255 эквивалентных уровней; отличаются ${preciseDifference(data.changed[index]/data.pixelCount*100)}% пикселей.`;
       const label=`${item.label}. Различия с исходником. ${description}. ${summary} Усиление ×${amplification}.`;
       card.canvas.setAttribute('aria-label',label);card.badge.title=label;lines.push(label);
       plotDifference(card.canvas,data,index,palette);

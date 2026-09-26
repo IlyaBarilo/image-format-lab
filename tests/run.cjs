@@ -11,6 +11,7 @@ tests.push('jxl-blocks');
 tests.push('analysis-guides');
 tests.push('crop-source');
 tests.push('signal-scopes');
+tests.push('precise-vector-difference');
 tests.push('waveform-worker');
 tests.push('error-profile');
 tests.push('ssim');
