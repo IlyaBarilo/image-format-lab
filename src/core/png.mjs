@@ -122,6 +122,10 @@ export function decodePng(bytes, pako, { withIcc = false } = {}) {
   for(const [name,data] of colorChunks){
     if(name==='sRGB')continue;
     if(name==='iCCP'&&withIcc){iccProfile=unpackIcc(data,pako);continue;}
+    if(withIcc&&colorChunks.has('iCCP')&&(name==='gAMA'||name==='cHRM')){
+      if(data.length!==(name==='gAMA'?4:32))fail('неверный блок '+name+'.');
+      continue; // iCCP takes precedence over approximate gamma/chromaticity metadata.
+    }
     if(name==='gAMA'&&srgb&&data.length===4&&view(data).getUint32(0)===45455)continue;
     if(name==='cHRM'&&srgb&&data.length===32&&standardChromaticities.every((n,i)=>view(data).getUint32(i*4)===n))continue;
     fail('точное чтение этого цветового описания ('+name+') пока не поддерживается. Нужен PNG с sRGB или без цветовых блоков; ICC/HDR-преобразование не выполняется.');

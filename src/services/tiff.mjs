@@ -1,6 +1,8 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import { createPixelBuffer } from '../core/pixel-buffer.mjs';
+import { prepareIccSdr } from '../core/icc-sdr.mjs';
+import { pngPreview } from '../core/png.mjs';
 import workerSource from 'viewer:tiff-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
 
@@ -74,14 +76,27 @@ export function createTiff() {
   async function decode(file, page=0) {
     if (!file.size || file.size > 256 * 1024 * 1024) throw new Error('TIFF: пустой файл или размер более 256 МиБ');
     const result = await operate('decode', () => file.arrayBuffer(), {page});
+    if(result.exactBuffer){
+      const native=createPixelBuffer({width:result.width,height:result.height,
+        data:new Uint16Array(result.exactBuffer),sampleType:'uint16',bitDepth:16});
+      const prepared=await prepareIccSdr(native,result.iccProfileBuffer?new Uint8Array(result.iccProfileBuffer):null);
+      const preview=result.buffer?new Uint8ClampedArray(result.buffer):pngPreview(prepared.pixelBuffer).data;
+      return {width:result.width,height:result.height,pages:result.pages,page,
+        imageData:new ImageData(preview,result.width,result.height),...prepared,
+        colorManagementNote:prepared.iccProfile?'ICC→sRGB':'',precisionNote:result.precisionNote||'',close:null};
+    }
     return { width: result.width, height: result.height, pages: result.pages, page,
       imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height),
-      pixelBuffer: result.exactBuffer ? createPixelBuffer({width:result.width,height:result.height,
-        data:new Uint16Array(result.exactBuffer),sampleType:'uint16',bitDepth:16}) : null,
+      pixelBuffer:null,
       precisionNote:result.precisionNote||'',close: null };
   }
   async function encode(imageData, options={}, pixelBuffer=null) {
+    const iccProfile=options.iccProfile??null;
     options=normalizeTiffOptions(options);
+    if(iccProfile){
+      if(options.tiffDepth!=='16')throw new Error('TIFF: ICC сохраняется только при точной 16-битной записи.');
+      options={...options,iccProfile};
+    }
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4)
@@ -93,7 +108,8 @@ export function createTiff() {
     const buffer = new Uint8ClampedArray(data).buffer;
     const exactBuffer = exact ? new pixelBuffer.data.constructor(pixelBuffer.data).buffer : null;
     const result = await operate('encode', () => buffer, { width, height, options, exactBuffer,
-      sampleType:exact?pixelBuffer.sampleType:null,bitDepth:exact?pixelBuffer.bitDepth:null });
+      sampleType:exact?pixelBuffer.sampleType:null,bitDepth:exact?pixelBuffer.bitDepth:null,
+      colorSpace:exact?pixelBuffer.colorSpace:null });
     return new Blob([result.buffer], { type: 'image/tiff' });
   }
   async function encodeJpeg(imageData, options={}) {

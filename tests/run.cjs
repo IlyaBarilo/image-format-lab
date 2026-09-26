@@ -14,6 +14,8 @@ tests.push('signal-scopes');
 tests.push('error-profile');
 tests.push('ssim');
 tests.push('png-indexed');
+tests.push('icc-extended');
+tests.push('tiff-icc-worker');
 tests.push('modern-options');
 tests.push('modern-native-options');
 tests.push('jpeg-jxl-reconstruction');

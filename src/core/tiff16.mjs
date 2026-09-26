@@ -18,12 +18,18 @@ function rejectsBigTiff16(bytes, view, little, page) {
     if(offset<16||offset+8>bytes.length)fail('страница BigTIFF не найдена.');
     const count=u64(offset);
     if(count>4096||offset+8+count*20+8>bytes.length)fail('повреждённый каталог BigTIFF.');
-    if(index===page)for(let i=0;i<count;i++){
-      const at=offset+8+i*20;
-      if(view.getUint16(at,little)!==258||view.getUint16(at+2,little)!==3)continue;
-      const n=u64(at+4),values=n*2,first=values<=8?at+12:u64(at+12);
-      if(n>8||first+values>bytes.length)fail('повреждённая разрядность BigTIFF.');
-      for(let j=0;j<n;j++)if(view.getUint16(first+j*2,little)===16)return true;
+    if(index===page){
+      let depth16=false,hasIcc=false;
+      for(let i=0;i<count;i++){
+        const at=offset+8+i*20,tag=view.getUint16(at,little);
+        if(tag===34675)hasIcc=true;
+        if(tag!==258||view.getUint16(at+2,little)!==3)continue;
+        const n=u64(at+4),values=n*2,first=values<=8?at+12:u64(at+12);
+        if(n>8||first+values>bytes.length)fail('повреждённая разрядность BigTIFF.');
+        for(let j=0;j<n;j++)if(view.getUint16(first+j*2,little)===16)depth16=true;
+      }
+      if(depth16&&hasIcc)fail('ICC-профиль BigTIFF16 пока не поддерживается точным путём.');
+      return depth16;
     }
     offset=u64(offset+8+count*20);
   }
@@ -49,10 +55,11 @@ export function decodeTiff16(buffer, page = 0, pako) {
     offset = u32(offset + 2 + entries * 12);
   }
   if (offset < 8 || offset + 2 > bytes.length) fail('страница не найдена.');
-  const entries = u16(offset), tags = new Map();
+  const entries = u16(offset), tags = new Map(), iccEntries=[];
   if (entries > 4096 || offset + 2 + entries * 12 + 4 > bytes.length) fail('повреждённый каталог.');
   for (let i = 0; i < entries; i++) {
     const at = offset + 2 + i * 12, tag = u16(at), type = u16(at + 2), n = u32(at + 4);
+    if(tag===34675){iccEntries.push({at,type,n});continue;}
     if (![3, 4].includes(type) || n > 4096) continue;
     const size = n * (type === 3 ? 2 : 4), first = size <= 4 ? at + 8 : u32(at + 8);
     if (first + size > bytes.length) fail('поле выходит за пределы файла.');
@@ -61,17 +68,28 @@ export function decodeTiff16(buffer, page = 0, pako) {
   const get = (tag, fallback) => tags.get(tag)?.[0] ?? fallback;
   const depths = tags.get(258) || [1];
   if (!depths.includes(16)) return null;
-  if (depths.some(depth => depth !== 16)) return fallback();
+  if(iccEntries.length>1)fail('повторный ICC-тег.');
+  let iccProfile=null;
+  if(iccEntries.length){
+    const {at,type,n}=iccEntries[0];
+    if(type!==7||n<132||n>1024*1024)fail('неподдерживаемый ICC-тег.');
+    const first=n<=4?at+8:u32(at+8);
+    if(first>bytes.length-n)fail('ICC-профиль выходит за пределы файла.');
+    iccProfile=bytes.slice(first,first+n);
+  }
+  const unsupported=()=>{if(iccProfile)fail('ICC-профиль требует точного поддерживаемого TIFF16.');return fallback();};
+  if (depths.some(depth => depth !== 16)) return unsupported();
   const width = get(256, 0), height = get(257, 0), photo = get(262, 0), spp = get(277, 1);
   const compression = get(259, 1), rowsPerStrip = Math.min(height, get(278, height));
   const predictor = get(317, 1), extras = tags.get(338) || [];
   if (!width || !height) fail('некорректные размеры.');
-  if(width*height>MAX_PIXELS)return fallback();
+  if(width*height>MAX_PIXELS)return unsupported();
+  if(iccProfile&&photo!==2)fail('поддерживается только RGB ICC для цветного TIFF16.');
   if (![0, 1, 2].includes(photo) || spp !== (photo === 2 ? 3 : 1) + extras.length || extras.length > 1 ||
-      (extras.length && extras[0] !== 2)) return fallback();
-  if ((tags.get(339)||[1]).some(format=>format!==1) || get(284, 1) !== 1 || get(274, 1) !== 1 || tags.has(324)) return fallback();
+      (extras.length && extras[0] !== 2)) return unsupported();
+  if ((tags.get(339)||[1]).some(format=>format!==1) || get(284, 1) !== 1 || get(274, 1) !== 1 || tags.has(324)) return unsupported();
   if (![1, 8, 32946, 32773].includes(compression) || ![1, 2].includes(predictor) || (predictor === 2 && ![8, 32946].includes(compression)))
-    return fallback();
+    return unsupported();
   if (!rowsPerStrip) fail('некорректная высота полосы.');
   const offsets = tags.get(273) || [], counts = tags.get(279) || [], strips = Math.ceil(height / rowsPerStrip);
   if (offsets.length < strips || counts.length < strips) fail('неполный список полос.');
@@ -134,13 +152,16 @@ export function decodeTiff16(buffer, page = 0, pako) {
     if(n>4096||cursor+2+n*12+4>bytes.length)fail('повреждённая цепочка страниц.');
     cursor=u32(cursor+2+n*12);
   }
-  return {...createPixelBuffer({ width, height, data, sampleType: 'uint16', bitDepth: 16 }),pages};
+  return {...createPixelBuffer({ width, height, data, sampleType: 'uint16', bitDepth: 16 }),pages,iccProfile};
 }
 
 export function encodeTiff16(pixels, options, pako) {
   const source = createPixelBuffer(pixels);
   if (!['uint8', 'uint16'].includes(source.sampleType) || source.alphaMode !== 'straight') fail('нужны целые независимые каналы.');
   if (source.width * source.height > MAX_PIXELS) fail('размер превышает 12 мегапикселей.');
+  const iccProfile=options.iccProfile??null;
+  if(iccProfile!==null&&(!(iccProfile instanceof Uint8Array)||iccProfile.length<132||iccProfile.length>1024*1024||source.colorSpace==='srgb'))
+    fail('неверный ICC-профиль или цветовое пространство для записи.');
   const compression = options.tiffCompression ?? 'deflate';
   if (!['none', 'deflate'].includes(compression)) fail('для 16 бит доступны сжатие Deflate и без сжатия.');
   const predictor = compression === 'deflate' && options.tiffPredictor !== false;
@@ -159,11 +180,14 @@ export function encodeTiff16(pixels, options, pako) {
   const tags = [
     [256, 4, 1, width], [257, 4, 1, height], [258, 3, 4, 0], [259, 3, 1, compression === 'deflate' ? 8 : 1],
     [262, 3, 1, 2], [273, 4, 1, 0], [277, 3, 1, 4], [278, 4, 1, height], [279, 4, 1, payload.length],
-    [284, 3, 1, 1], ...(predictor ? [[317, 3, 1, 2]] : []), [338, 3, 1, 2]
+    [284, 3, 1, 1], ...(predictor ? [[317, 3, 1, 2]] : []), [338, 3, 1, 2],
+    ...(iccProfile?[[34675,7,iccProfile.length,0]]:[])
   ];
-  const bitsAt = 8 + 2 + tags.length * 12 + 4, dataAt = bitsAt + 8;
+  const bitsAt = 8 + 2 + tags.length * 12 + 4, iccAt=bitsAt+8;
+  const dataAt=iccProfile?(iccAt+iccProfile.length+1)&~1:iccAt;
   if (dataAt + payload.length > MAX_FILE) fail('файл превышает 256 МиБ.');
   tags[2][3] = bitsAt; tags.find(tag => tag[0] === 273)[3] = dataAt;
+  if(iccProfile)tags.find(tag=>tag[0]===34675)[3]=iccAt;
   const result = new Uint8Array(dataAt + payload.length), view = new DataView(result.buffer);
   result.set([73, 73]); view.setUint16(2, 42, true); view.setUint32(4, 8, true); view.setUint16(8, tags.length, true);
   tags.forEach(([tag, type, count, value], i) => {
@@ -172,6 +196,7 @@ export function encodeTiff16(pixels, options, pako) {
     if (type === 3 && count === 1) view.setUint16(at + 8, value, true); else view.setUint32(at + 8, value, true);
   });
   for (let i = 0; i < 4; i++) view.setUint16(bitsAt + 2 * i, 16, true);
+  if(iccProfile)result.set(iccProfile,iccAt);
   result.set(payload, dataAt);
   return result.buffer;
 }

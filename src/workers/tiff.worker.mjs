@@ -21,7 +21,7 @@ self.onmessage=async({data:request})=>{
       const buffer=request.exactBuffer
         ? encodeTiff16({width:request.width,height:request.height,
           data:request.sampleType==='uint16'?new Uint16Array(request.exactBuffer):new Uint8Array(request.exactBuffer),
-          sampleType:request.sampleType,bitDepth:request.bitDepth},request.options,pako)
+          sampleType:request.sampleType,bitDepth:request.bitDepth,colorSpace:request.colorSpace},request.options,pako)
         : encodeTiffPixels(codec.tiff,{width:request.width,height:request.height,data:new Uint8ClampedArray(request.buffer)},request.options);
       self.postMessage({type:'encoded',id,buffer},[buffer]);return;
     }
@@ -34,9 +34,13 @@ self.onmessage=async({data:request})=>{
     else if(type==='decode'){
       const exact=decodeTiff16(request.buffer,request.page??0,pako);
       if(exact&&!exact.fallback){
-        const preview=pngPreview(exact);
+        const preview=exact.iccProfile?null:pngPreview(exact);
+        const transfers=[exact.data.buffer];
+        if(preview)transfers.push(preview.data.buffer);
+        if(exact.iccProfile)transfers.push(exact.iccProfile.buffer);
         self.postMessage({type:'decoded',id,width:exact.width,height:exact.height,pages:exact.pages,
-          buffer:preview.data.buffer,exactBuffer:exact.data.buffer},[preview.data.buffer,exact.data.buffer]);return;
+          buffer:preview?.data.buffer??null,exactBuffer:exact.data.buffer,
+          iccProfileBuffer:exact.iccProfile?.buffer??null},transfers);return;
       }
       try {result=decodeTiffPixels(codec.tiff,request.buffer,request.page??0);}
       catch(nativeError){

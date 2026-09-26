@@ -38,9 +38,9 @@ export function createEncode({}, deps) {
       const depth=resolvedPngDepth(config.pngDepth,pixels);
       const dims=deps.outputDimensionsForConfig(config,source);
       if(depth===16&&(dims.width!==source.width||dims.height!==source.height))throw new Error('PNG16 пока сохраняется только в исходном размере. Уберите уменьшение или явно выберите 8 бит на канал.');
-      if(depth===16||highDepth||(config.pngFilter&&config.pngFilter!=='default')){
+      if(depth===16||highDepth||source.iccProfile||(config.pngFilter&&config.pngFilter!=='default')){
         const prepared=deps.outputSourceForConfig(config,source);
-        const preserveIcc=depth===16&&prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
+        const preserveIcc=prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
         const input=preserveIcc?source.nativePixelBuffer:(prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData));
         return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth,
           preserveIcc?{...config,iccProfile:source.iccProfile}:config),exactPng:true,
@@ -54,7 +54,10 @@ export function createEncode({}, deps) {
         throw new Error('TIFF16 пока сохраняется только в исходном размере. Уберите изменение размеров или выберите 8 бит на канал.');
       if(depth===16){
         const codec=await deps.loadOptionalCodec('utif');
-        const blob=await codec.encode(source.imageData,{...config,tiffDepth:'16'},pixels);
+        const preserveIcc=Boolean(source.iccProfile&&source.nativePixelBuffer);
+        const blob=await codec.encode(source.imageData,
+          {...config,tiffDepth:'16',...(preserveIcc?{iccProfile:source.iccProfile}:{})},
+          preserveIcc?source.nativePixelBuffer:pixels);
         return deps.withEncodedMeta({blob,previewImageData:null,panoramaPreserved:false,
           precisionNote:pixels.bitDepth===16?'16 бит/канал · показ 8 бит':'16 бит/канал · из 8 бит; деталей не добавлено'},source);
       }
