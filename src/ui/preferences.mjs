@@ -7,7 +7,7 @@ export function createPreferences({app,els},deps){
   let enabled=false,restoring=false,timer=null,lastSaved='',warned=false,readFailed=false;
   function captureUserPreferences(){
     const fields=Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[id,fallback]])=>[key,typeof fallback==='number'?Number(get(id).value):get(id).value]));
-    return normalizePreferences({version:1,comparison:deps.captureComparison(),filesVisible:!els.workspace.classList.contains('files-hidden'),pixelGrid:app.pixelGrid,gridMode:app.gridMode,
+    return normalizePreferences({version:1,comparison:deps.captureComparison(),filesVisible:!els.workspace.classList.contains('files-hidden'),pixelGrid:app.pixelGrid,gridMode:app.gridMode,display:app.display,
       panels:deps.captureAnalysisLayoutPreferences(),analysis:{...fields,...deps.captureAnalysisOutputPreferences(),...deps.captureAnalysisRegionPreferences()}});
   }
   function applyInterface(value){
@@ -15,6 +15,9 @@ export function createPreferences({app,els},deps){
     els.toggleFiles.setAttribute('aria-expanded',String(value.filesVisible));
     app.pixelGrid=value.pixelGrid;
     app.gridMode=value.gridMode;
+    app.display={...value.display};
+    deps.clearDisplayCache();
+    deps.syncDisplayControls();
     els.pixelGrid.setAttribute('aria-pressed',String(app.pixelGrid));
     els.pixelGrid.classList.toggle('active',app.pixelGrid);
     deps.syncGridModeUI?.();

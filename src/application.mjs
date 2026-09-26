@@ -24,6 +24,7 @@ import { createControls } from './ui/controls.mjs';
 import { createComparison } from './ui/comparison.mjs';
 import { createSource } from './ui/source.mjs';
 import { createCanvas } from './ui/canvas.mjs';
+import { createDisplay } from './ui/display.mjs';
 import { createStudy } from './ui/study.mjs';
 import { createQualitySeries } from './ui/quality-series.mjs';
 import { createLicenses } from './ui/licenses.mjs';
@@ -66,6 +67,7 @@ export function createApplication() {
     "attachBatchPreviewEvents",
     "attachCanvasEvents",
     "attachWipeEvents",
+    "attachDisplayEvents",
     "attachEvents",
     "attachFileDropEvents",
     "attachStudyEvents",
@@ -102,7 +104,7 @@ export function createApplication() {
   Object.assign(actions, createPreferences(context, dependencies([
     "captureComparison", "applyComparison", "captureAnalysisLayoutPreferences", "applyAnalysisLayoutPreferences",
     "captureAnalysisOutputPreferences", "applyAnalysisOutputPreferences", "captureAnalysisRegionPreferences", "applyAnalysisRegionPreferences",
-    "isAnalysisResizing", "resetTheme", "showStatus", "updateBatchUI", "updateAnalysis", "drawAll", "syncGridModeUI"
+    "isAnalysisResizing", "resetTheme", "showStatus", "updateBatchUI", "updateAnalysis", "drawAll", "syncGridModeUI", "clearDisplayCache", "syncDisplayControls"
   ])));
   Object.assign(actions, createLicenses(context, dependencies(["downloadBlob"])));
   Object.assign(actions, createFileDrop(context, dependencies(["addFiles"])));
@@ -222,6 +224,7 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createSource(context, dependencies([
+    "clearDisplayCache",
     "updateAnalysis",
     "clearBatchPreview",
     "decodeSourceFile",
@@ -239,6 +242,7 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createCanvas(context, dependencies([
+    "displayImage",
     "attachCanvasEvents",
     "getAnalysisScope", "getAnalysisRegion", "getAnalysisLine",
     "updateFilePassport",
@@ -262,6 +266,7 @@ export function createApplication() {
     "syncCellHeadSizes",
     "updateLayout"
   ])));
+  Object.assign(actions, createDisplay(context, dependencies(["redrawPreviews"])));
   Object.assign(actions, createStudy(context, dependencies([
     "addFiles",
     "applyComparison",

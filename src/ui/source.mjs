@@ -43,6 +43,7 @@ export function createSource({app, els}, deps) {
   
   function disposeSource() {
     deps.clearBatchPreview();
+    deps.clearDisplayCache?.();
     app.sourceGeneration++;
     app.sourceLoading = false;
     app.source = null;

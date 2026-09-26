@@ -2,6 +2,7 @@
 import { DEFAULT_VARIANTS } from './config.mjs';
 import { validateComparison } from './settings.mjs';
 import { DEFAULT_ANALYSIS_LINE } from './line-profile.mjs';
+import { DEFAULT_DISPLAY, normalizeDisplay } from './display-sdr.mjs';
 
 export const PREFERENCES_KEY = 'image-format-viewer.preferences.v1';
 export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
@@ -20,6 +21,7 @@ export function defaultPreferences() {
     filesVisible:true,
     pixelGrid:false,
     gridMode:'pixels',
+    display:{...DEFAULT_DISPLAY},
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
        displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',profile:'overlay',errorProfile:'separate',ssim:'separate'},
@@ -40,6 +42,7 @@ export function normalizePreferences(value) {
   if(typeof value.filesVisible==='boolean')result.filesVisible=value.filesVisible;
   if(typeof value.pixelGrid==='boolean')result.pixelGrid=value.pixelGrid;
   if(value.gridMode==='jpeg-blocks'||value.gridMode==='codec-blocks')result.gridMode='codec-blocks';
+  result.display=normalizeDisplay(value.display);
   const p=value.panels;
   if(record(p)){
     if(['compact','balance','max'].includes(p.size))result.panels.size=p.size;

@@ -61,6 +61,22 @@
         </button>
       </div>
 
+      <div class="toolbar-group display-picker">
+        <button class="text-btn" id="displayMenuToggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="displayMenu" title="Настроить отображение без изменения пикселей и сохранённого файла">Отображение</button>
+        <div class="display-menu" id="displayMenu" role="dialog" aria-label="Настройки отображения" hidden>
+          <label for="displayMode">Режим просмотра</label>
+          <select class="select" id="displayMode"><option value="standard">Обычный</option><option value="sdr">SDR с настройками</option></select>
+          <label for="displayBlack">Чёрная точка <output id="displayBlackValue">0%</output></label>
+          <input id="displayBlack" type="range" min="0" max="95" step="1" value="0">
+          <label for="displayWhite">Белая точка <output id="displayWhiteValue">100%</output></label>
+          <input id="displayWhite" type="range" min="5" max="100" step="1" value="100">
+          <label for="displayExposure">Экспозиция <output id="displayExposureValue">0 EV</output></label>
+          <input id="displayExposure" type="range" min="-3" max="3" step="0.25" value="0">
+          <label class="display-check" for="displayDither"><input id="displayDither" type="checkbox" checked> Сглаживание переходов 16→8 бит</label>
+          <p id="displayOutputNote">Вывод Canvas — 8 бит/канал. Точные данные не меняются.</p>
+        </div>
+      </div>
+
       <div class="toolbar-group">
         <label class="toolbar-label" for="backgroundSelect">Фон</label>
         <select class="select" id="backgroundSelect" title="Подложка для проверки прозрачности">

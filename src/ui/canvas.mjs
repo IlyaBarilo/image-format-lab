@@ -79,7 +79,7 @@ export function createCanvas({app, els}, deps) {
   
     if (!app.source) return;
   
-    const image = variant.bitmap || (variant.index === 0 ? null : null);
+    const image = variant.bitmap ? (deps.displayImage?.(variant.pixelBuffer, variant.bitmap) || variant.bitmap) : null;
     const sourceW = image ? image.width : app.source.width;
     const sourceH = image ? image.height : app.source.height;
     const scale = deps.getDrawScale(canvas);
@@ -93,7 +93,7 @@ export function createCanvas({app, els}, deps) {
       ctx.drawImage(image, x, y, sourceW * scale, sourceH * scale);
     } else {
       ctx.globalAlpha = 0.42;
-      ctx.drawImage(app.source.canvas, x, y, sourceW * scale, sourceH * scale);
+      ctx.drawImage(deps.displayImage?.(app.source.pixelBuffer, app.source.canvas) || app.source.canvas, x, y, sourceW * scale, sourceH * scale);
       ctx.globalAlpha = 1;
       if (variant.error) {
         deps.drawOverlayMessage(ctx, canvas, "Ошибка кодирования");
@@ -248,9 +248,9 @@ export function createCanvas({app, els}, deps) {
     const divider=canvas.width*app.wipe.position;
     ctx.imageSmoothingEnabled=scale<1;ctx.imageSmoothingQuality='high';
     ctx.save();ctx.beginPath();ctx.rect(0,0,divider,canvas.height);ctx.clip();
-    ctx.drawImage(first.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    ctx.drawImage(deps.displayImage?.(first.pixelBuffer,first.bitmap)||first.bitmap,x,y,width*scale,height*scale);ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(divider,0,canvas.width-divider,canvas.height);ctx.clip();
-    ctx.drawImage(second.bitmap,x,y,width*scale,height*scale);ctx.restore();
+    ctx.drawImage(deps.displayImage?.(second.pixelBuffer,second.bitmap)||second.bitmap,x,y,width*scale,height*scale);ctx.restore();
     deps.drawImageFrame(ctx,x,y,width*scale,height*scale);
     if(app.pixelGrid){
       if(app.gridMode==='codec-blocks'){

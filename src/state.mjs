@@ -1,4 +1,5 @@
 import { DEFAULT_EXPORT_CONFIG } from './core/config.mjs';
+import { DEFAULT_DISPLAY } from './core/display-sdr.mjs';
 
 export function createState() {
   return {
@@ -24,6 +25,7 @@ export function createState() {
   wipe: { active: false, position: 0.5, previousLayout: null },
   pixelGrid: false,
   gridMode: 'pixels',
+  display: { ...DEFAULT_DISPLAY },
   background: "checker",
   variants: [],
   support: new Map(),
@@ -122,6 +124,17 @@ export function collectElements() {
   gridModeMenu: document.getElementById("gridModeMenu"),
   gridModePixels: document.getElementById("gridModePixels"),
   gridModeCodec: document.getElementById("gridModeCodec"),
+  displayMenuToggle: document.getElementById("displayMenuToggle"),
+  displayMenu: document.getElementById("displayMenu"),
+  displayMode: document.getElementById("displayMode"),
+  displayBlack: document.getElementById("displayBlack"),
+  displayWhite: document.getElementById("displayWhite"),
+  displayExposure: document.getElementById("displayExposure"),
+  displayDither: document.getElementById("displayDither"),
+  displayBlackValue: document.getElementById("displayBlackValue"),
+  displayWhiteValue: document.getElementById("displayWhiteValue"),
+  displayExposureValue: document.getElementById("displayExposureValue"),
+  displayOutputNote: document.getElementById("displayOutputNote"),
   wipeOverlay: document.getElementById("wipeOverlay"),
   wipeCanvas: document.getElementById("wipeCanvas"),
   wipeHandle: document.getElementById("wipeHandle"),

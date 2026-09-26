@@ -34,6 +34,7 @@ export function createBootstrap({app, els}, deps) {
   
     deps.attachEvents();
     deps.attachWipeEvents();
+    deps.attachDisplayEvents();
     deps.attachFileDropEvents();
     deps.attachBatchPreviewEvents();
     deps.attachStudyEvents();
