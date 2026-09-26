@@ -196,11 +196,13 @@ export function createEncode({}, deps) {
   
   function staleRequest() { return new Error("Запрос устарел; используются новые параметры."); }
   
-  function encodeFromSource(config, source, current = () => true) {
+  function encodeFromSource(config, source, current = () => true, timing = null) {
     const snapshot={...config};
     const task=encodeQueue.catch(()=>{}).then(async()=>{
+      if(timing)timing.encodeStart=performance.now();
+      try {
       if(!current())throw deps.staleRequest();
-      if(!snapshot.targetKB) return deps.encodeOne(snapshot,source);
+      if(!snapshot.targetKB) return await deps.encodeOne(snapshot,source);
       deps.validateExportConfig(snapshot);
       // Resize once; each probe starts with this same raster, never with a previous result.
       const prepared={...deps.outputSourceForConfig(snapshot,source)};
@@ -222,6 +224,7 @@ export function createEncode({}, deps) {
       if(!current())throw deps.staleRequest();
       if(!best)throw new Error(`Не удалось уложиться в ${snapshot.targetKB} КБ при качестве ${min}–${max}. Увеличьте бюджет или явно уменьшите размеры.`);
       return {...best,attempts};
+      } finally { if(timing)timing.encodeEnd=performance.now(); }
     });
     encodeQueue=task.then(()=>undefined,()=>undefined);
     return task;

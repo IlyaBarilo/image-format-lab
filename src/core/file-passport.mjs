@@ -3,7 +3,7 @@ import { createPixelBuffer } from './pixel-buffer.mjs';
 
 // Own structural readers: PNG specification and ITU-T T.81 / JFIF.
 // Compressed image samples and metadata payloads are never decoded here.
-export const PASSPORT_LIMITS = Object.freeze({ readBytes: 64 * 1024 * 1024, entries: 10000 });
+export const PASSPORT_LIMITS = Object.freeze({ readBytes: 64 * 1024 * 1024, entries: 10000, structureEntries: 1024 });
 const WINDOW = 65536;
 class Incomplete extends Error {}
 const fail = text => { throw new Error(text); };
@@ -13,6 +13,30 @@ const ascii = a => String.fromCharCode(...a);
 const starts = (a, text) => a.length >= text.length && [...text].every((c, i) => a[i] === c.charCodeAt(0));
 const tiffHeader = a => starts(a, 'II\x2a\0') || starts(a, 'MM\0\x2a');
 const abort = signal => { if (signal?.aborted) { const e = new Error('Чтение отменено.'); e.name = 'AbortError'; throw e; } };
+
+function structure(size) {
+  const result = { entries: [], coveredBytes: 0, omittedEntries: 0, totalBytes: size, complete: false };
+  result.add = (offset, bytes, label, detail = '') => {
+    if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(bytes) || bytes < 0 || offset !== result.coveredBytes || offset + bytes > size)
+      fail('Нарушен порядок участков файла.');
+    if (bytes) {
+      if (result.entries.length < PASSPORT_LIMITS.structureEntries) result.entries.push({ offset, bytes, label, detail });
+      else result.omittedEntries++;
+      result.coveredBytes += bytes;
+    }
+  };
+  return result;
+}
+
+function jpegMarkerName(marker) {
+  if (marker >= 224 && marker <= 239) return 'APP' + (marker - 224);
+  if (marker >= 208 && marker <= 215) return 'RST' + (marker - 208);
+  if (Object.hasOwn(JPEG_MODES, marker)) return 'SOF' + (marker - 192);
+  return ({ 1: 'TEM', 196: 'DHT', 200: 'JPG', 204: 'DAC', 216: 'SOI',
+    217: 'EOI', 218: 'SOS', 219: 'DQT', 220: 'DNL', 221: 'DRI',
+    222: 'DHP', 223: 'EXP', 254: 'COM' })[marker] || 'Другой маркер';
+}
+const markerLabel = marker => `FF${marker.toString(16).padStart(2, '0').toUpperCase()} · ${jpegMarkerName(marker)}`;
 
 function reader(blob, { signal, readBytes = PASSPORT_LIMITS.readBytes, entries = PASSPORT_LIMITS.entries }) {
   if (!Number.isSafeInteger(blob?.size) || blob.size < 0 || typeof blob.slice !== 'function') throw new TypeError('Ожидался файл или Blob.');
@@ -63,6 +87,9 @@ function checkCRC(chunk, expected) {
 async function readPNG(r, blob, info) {
   const head = await r.bytes(0, 33), header = pngHeader(head);
   checkCRC(head.subarray(12, 29), u32(head, 29));
+  const layout = info.structure;
+  layout.add(0, 8, 'Сигнатура PNG');
+  layout.add(8, 25, 'IHDR', '13 байт данных + 12 байт контейнера');
   Object.assign(info, { width: header.width, height: header.height, bitDepth: header.depth,
     colorType: header.type, interlace: header.interlace, paletteEntries: null,
     transparency: [4, 6].includes(header.type) ? 'alpha' : 'none', colorLabels: [] });
@@ -73,6 +100,7 @@ async function readPNG(r, blob, info) {
     const block = await r.bytes(at, 8), size = u32(block), type = ascii(block.subarray(4));
     const end = at + 12 + size;
     if (size > 0x7fffffff || end > blob.size || !/^[A-Za-z]{4}$/.test(type) || (block[6] & 32)) fail('Некорректный блок PNG.');
+    layout.add(at, end - at, type, `${size} байт данных + 12 байт контейнера`);
     if (['IHDR', 'PLTE', 'tRNS', 'sRGB', 'iCCP', 'eXIf', 'gAMA', 'cHRM', 'cICP'].includes(type) && seen.has(type)) fail('Повторный блок PNG: ' + type + '.');
     if (['PLTE', 'tRNS', 'sRGB', 'iCCP', 'gAMA', 'cHRM', 'cICP'].includes(type) && idat) fail('Неверный порядок блока PNG: ' + type + '.');
     const prefix = () => r.bytes(at + 8, Math.min(size, 256));
@@ -146,12 +174,15 @@ function jpegColor(info, jfif, adobe) {
 }
 
 async function readJPEG(r, blob, info) {
-  let at = 2, inScan = false, frame = false, ended = false, jfif = false, adobe = null, scanCount = 0, iccCount = null, escapes = 0;
+  let at = 2, inScan = false, scanStart = null, frame = false, ended = false, jfif = false, adobe = null, scanCount = 0, iccCount = null, escapes = 0;
+  const layout = info.structure;
+  layout.add(0, 2, markerLabel(216));
   const iccParts = new Set();
   info.components = [];
   while (at < blob.size) {
     const wasScan = inScan;
     if (inScan) at = await r.findFF(at);
+    const markerStart = at;
     if ((await r.bytes(at++, 1))[0] !== 255) fail('Неверная граница маркера JPEG.');
     let marker, fill = 0;
     do {
@@ -159,21 +190,32 @@ async function readJPEG(r, blob, info) {
       marker = (await r.bytes(at++, 1))[0];
     } while (marker === 255);
     if (wasScan && (marker === 0 || (marker >= 208 && marker <= 215))) {
+      if (marker !== 0) {
+        layout.add(scanStart, markerStart - scanStart, 'Данные скана', `Скан ${scanCount}`);
+        layout.add(markerStart, at - markerStart, markerLabel(marker));
+        scanStart = at;
+      }
       if (++escapes % 1024 === 0) await new Promise(resolve => setTimeout(resolve, 0));
       continue;
     }
+    if (wasScan) layout.add(scanStart, markerStart - scanStart, 'Данные скана', `Скан ${scanCount}`);
     await r.nextEntry();
     if (!marker || marker === 216 || (marker >= 208 && marker <= 215)) fail('Неожиданный маркер JPEG.');
-    if (marker === 1) continue;
+    if (marker === 1) { layout.add(markerStart, at - markerStart, markerLabel(marker)); if (wasScan) scanStart = at; continue; }
     inScan = false;
     if (marker === 217) {
+      layout.add(markerStart, at - markerStart, markerLabel(marker));
       if (!frame || !scanCount) fail('В JPEG нет кадра или скана.');
       ended = true;
-      if (at < blob.size) info.notes.push(`После EOI ещё ${blob.size - at} байт. Паспорт относится к первому JPEG, размер файла включает всё содержимое.`);
+      if (at < blob.size) {
+        layout.add(at, blob.size - at, 'Хвост после EOI');
+        info.notes.push(`После EOI ещё ${blob.size - at} байт. Паспорт относится к первому JPEG, размер файла включает всё содержимое.`);
+      }
       break;
     }
     const size = u16(await r.bytes(at, 2));
     if (size < 2 || at + size > blob.size) fail('Обрезан сегмент JPEG.');
+    layout.add(markerStart, at + size - markerStart, markerLabel(marker), `${size - 2} байт данных`);
     const length = size - 2, payload = at + 2;
     if (Object.hasOwn(JPEG_MODES, marker)) {
       if (frame) throw new Incomplete('Паспорт не разбирает несколько кадров JPEG.');
@@ -199,11 +241,11 @@ async function readJPEG(r, blob, info) {
         if (ids.has(id) || !info.components.some(c => c.id === id)) fail('Неизвестный компонент скана JPEG.');
         ids.add(id);
       }
-      scanCount++; inScan = true;
+      scanCount++; inScan = true; scanStart = at + size;
     } else if (marker === 220) {
       const p = await r.bytes(payload, length);
       if (!frame || length !== 2 || info.height !== null || !u16(p)) fail('Некорректная высота DNL в JPEG.');
-      info.height = u16(p); inScan = wasScan;
+      info.height = u16(p); inScan = wasScan; if (wasScan) scanStart = at + size;
     } else if (marker >= 224 && marker <= 239) {
       const p = await r.bytes(payload, Math.min(length, 64));
       if (marker === 224 && starts(p, 'JFIF\0')) {
@@ -247,15 +289,17 @@ export function workingRasterInfo(pixels) {
 export async function inspectFile(blob, options = {}) {
   const r = reader(blob, options);
   const info = { format: null, status: 'unsupported', width: null, height: null, bitDepth: null,
-    metadata: { icc: 'unknown', exif: 'unknown', xmp: 'unknown' }, notes: [], size: blob.size, bpp: null };
+    metadata: { icc: 'unknown', exif: 'unknown', xmp: 'unknown' }, notes: [], size: blob.size, bpp: null, structure: null };
   try {
     const start = await r.bytes(0, Math.min(8, blob.size));
     if (start.length === 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((v, i) => start[i] === v)) info.format = 'PNG';
     else if (start[0] === 255 && start[1] === 216) info.format = 'JPEG';
     else return info;
+    info.structure = structure(blob.size);
     if (info.format === 'PNG') await readPNG(r, blob, info);
     else await readJPEG(r, blob, info);
     info.status = 'ok';
+    info.structure.complete = info.structure.coveredBytes === blob.size;
     for (const key of Object.keys(info.metadata)) if (info.metadata[key] === 'unknown') info.metadata[key] = 'absent';
   } catch (error) {
     if (error.name === 'AbortError') throw error;

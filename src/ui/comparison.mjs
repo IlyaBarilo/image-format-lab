@@ -1,6 +1,7 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { webpBlockGrid } from '../core/webp-blocks.mjs';
 import { heifBlockGrid } from '../core/heif-blocks.mjs';
+import { processingStages } from '../core/processing-timing.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createComparison({app, els}, deps) {
@@ -47,22 +48,28 @@ export function createComparison({app, els}, deps) {
     let pendingBitmap = null;
     try {
       if (format !== "original") { const unavailable=deps.formatUnavailableReason(format); if(unavailable) throw new Error(unavailable); }
-      const encoded = await deps.encodeFromSource(config, source, current);
+      const encodeTiming={},encodeRequested=performance.now();
+      const encoded = await deps.encodeFromSource(config, source, current, encodeTiming);
+      const encodeReturned=performance.now();
       if (!current()) return;
       const blockGrid = format === 'webp' ? await webpBlockGrid(encoded.blob).catch(()=>null)
         : format === 'avif'||format === 'heic'
           ? await heifBlockGrid(encoded.blob,format,encoded.width,encoded.height) : null;
       if (!current()) return;
+      const decodeStarted=performance.now();
       const decoded = encoded.previewOnly
         ? await deps.imageDataToPreview(encoded.previewImageData, encoded.sourcePixelBuffer?.bitDepth>8?encoded.sourcePixelBuffer:undefined)
         : await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
+      const decodeFinished=performance.now();
       pendingBitmap = decoded.bitmap;
       if (!current()) return;
       if (decoded.imageData.width !== encoded.width || decoded.imageData.height !== encoded.height) {
         throw new Error("Размеры сохранённого файла не совпадают с ожидаемыми");
       }
       // Legacy RGBA8 ImageData may lack a colour label; its code-value comparison remains available.
+      const metricsStarted=performance.now();
       const {psnr, alpha:alphaError} = await deps.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
+      const metricsFinished=performance.now();
       if(!current()) return;
       const alphaInfo = deps.alphaLabel(format, decoded.imageData, decoded.pixelBuffer);
       variant.blob = encoded.blob;
@@ -76,10 +83,15 @@ export function createComparison({app, els}, deps) {
       variant.resultSource = source;
       variant.blockGrid = format === 'jxl' || format === 'jxlLossless' ? decoded.blockGrid || null : blockGrid;
       variant.dirty = false;
+      const finished=performance.now();
+      const stages=encoded.previewOnly?null:processingStages({started,
+        encodeStart:encodeTiming.encodeStart??encodeRequested,encodeEnd:encodeTiming.encodeEnd??encodeReturned,
+        decodeStart:decodeStarted,decodeEnd:decodeFinished,metricsStart:metricsStarted,metricsEnd:metricsFinished,finished});
+      const processingMs=encoded.previewOnly?0:Math.round(finished-started);
       variant.measurement = {bytes:encoded.blob.size,width:encoded.width,height:encoded.height,
         percentOfSource:source.size?encoded.blob.size/source.size*100:null,psnrRGB:psnr,alphaErrorPercent:alphaError,
         bitDepth:decoded.pixelBuffer.bitDepth,precisionNote:encoded.precisionNote || '',
-        processingMs:encoded.previewOnly?0:Math.round(performance.now()-started)};
+        processingMs,stages};
       variant.metrics = {
         format: deps.outputFormatLabel(format) + (encoded.precisionNote ? " • " + encoded.precisionNote : "") + " • " + alphaInfo
           + (source.panorama || source.panoramaError ? (encoded.panoramaPreserved ? " • GPano" : " • без GPano") : ""),
@@ -88,7 +100,7 @@ export function createComparison({app, els}, deps) {
         ratio: source.size ? Math.round(encoded.blob.size / source.size * 100) + "%" : "—",
         alpha: alphaError === null ? "—" : alphaError.toFixed(2) + "%",
         psnr: psnr === Infinity ? "∞ dB" : psnr === null ? "—" : psnr.toFixed(2) + " dB",
-        time: encoded.previewOnly ? "0 мс" : Math.max(1, Math.round(performance.now() - started)) + " мс"
+        time: encoded.previewOnly ? "0 мс" : Math.max(1, processingMs) + " мс"
       };
     } catch (error) {
       if (!current()) return;

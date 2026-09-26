@@ -458,7 +458,9 @@
     <div class="study-tools"><label for="filePassportTarget">Изображение</label><select id="filePassportTarget" class="select"></select></div>
     <p class="batch-note" id="filePassportStatus" role="status" aria-live="polite"></p>
     <h3>Файл</h3><dl class="passport-fields" id="filePassportFields"></dl>
+    <section id="filePassportStructureSection" hidden><h3>Структура файла</h3><p class="batch-note" id="filePassportStructureSummary"></p><div class="passport-structure-wrap"><table class="passport-structure"><thead><tr><th>Смещение</th><th>Размер</th><th>Участок</th><th>Сведения</th></tr></thead><tbody id="filePassportStructure"></tbody></table></div></section>
     <section id="filePassportPaletteSection" hidden><h3>Палитра результата</h3><p class="batch-note">Число пикселей относится к индексам закодированного результата. Неиспользуемые записи сохранены в файле.</p><div id="filePassportPalette" class="passport-palette"></div></section>
+    <section id="filePassportTimingSection" hidden><h3>Время обработки</h3><dl class="passport-fields" id="filePassportTiming"></dl><p class="batch-note">До кодирования включены ожидание очереди и проверка доступности. Подготовка и кодирование включают загрузку кодека и изменение размера. «Прочее» включает дополнительные шаги; числа округлены до 0,01 мс. Общее время на основной панели округлено до целых миллисекунд.</p></section>
     <h3>Рабочие пиксели</h3><dl class="passport-fields" id="filePassportRaster"></dl>
     <p class="batch-note">bpp = полный размер файла в битах / число пикселей; это не оценка качества. Объём RGBA относится к одному рабочему буферу, а не ко всей памяти приложения. Декодер может изменить ориентацию, цветовое представление и разрядность.</p>
     <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла.</p>

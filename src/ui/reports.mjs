@@ -45,7 +45,7 @@ export function createReports({app, els}, deps) {
   function saveComparisonReport(type) {
     const report = deps.comparisonReport();
     if (type === "json") { deps.downloadBlob(new Blob([JSON.stringify(report,null,2)], {type:"application/json"}), "comparison-report.json"); return; }
-    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","format_mode","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_depth","bmp_colors","bmp_compression","palette_defined_entries","palette_stored_entries","palette_used_entries","palette_transparent_used","png_filter","png_deflate_level","png_index_depth"];
+    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","format_mode","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_depth","bmp_colors","bmp_compression","palette_defined_entries","palette_stored_entries","palette_used_entries","palette_transparent_used","png_filter","png_deflate_level","png_index_depth","before_encode_ms","encoding_ms","result_read_ms","metrics_ms","other_ms","measured_total_ms"];
     const rows = report.variants.map(v => {
       const c=v.config,m=v.metrics||{},palette=c.format==='png'&&c.formatMode==='palette',bmp8=c.format==='bmp'&&c.bmpDepth===8;
       const paletted=palette||bmp8||c.format==='gif';
@@ -59,7 +59,9 @@ export function createReports({app, els}, deps) {
         c.format==='bmp'?c.bmpDepth:'',bmp8?(c.bmpColors??256):'',bmp8?(c.bmpCompression||'none'):'',
         v.palette?.definedEntries??'',v.palette?.storedEntries??'',v.palette?.usedEntries??'',v.palette?.transparentUsed??'',
         c.format==='png'&&c.formatMode!=='optimized'?(c.pngFilter||'default'):'',
-        c.format==='png'&&c.formatMode!=='optimized'?(c.pngLevel??6):'',palette?(v.palette?.indexDepth??''):''];
+        c.format==='png'&&c.formatMode!=='optimized'?(c.pngLevel??6):'',palette?(v.palette?.indexDepth??''):'',
+        m.stages?.beforeEncodeMs??'',m.stages?.encodeMs??'',m.stages?.decodeMs??'',m.stages?.metricsMs??'',
+        m.stages?.otherMs??'',m.stages?.totalMs??''];
     });
     deps.downloadBlob(new Blob(["\ufeff",[headers,...rows].map(row=>row.map(deps.csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}),"comparison-report.csv");
   }

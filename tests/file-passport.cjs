@@ -6,6 +6,19 @@ const { chunk, png, segment, jpeg, exif } = require('./support/passport-fixtures
   const { inspectFile, fileBitsPerPixel, workingRasterInfo } = core;
   const parse = (bytes, options) => inspectFile(new Blob([bytes], { type: 'image/wrong' }), options);
   const srgb = chunk('sRGB', [0]);
+  const coverage = (info, size) => {
+    assert.equal(info.structure.totalBytes, size);
+    assert.equal(info.structure.coveredBytes, size);
+    assert.equal(info.structure.complete, true);
+    if (!info.structure.omittedEntries) {
+      let offset = 0;
+      for (const entry of info.structure.entries) {
+        assert.equal(entry.offset, offset);
+        offset += entry.bytes;
+      }
+      assert.equal(offset, size);
+    }
+  };
   for (const [type, depth] of [[0,1],[0,16],[2,8],[2,16],[3,2],[4,16],[6,8],[6,16]]) {
     const before = type === 3 ? [chunk('PLTE', [255,0,0,0,255,0]), chunk('tRNS', [0,128])] : [srgb];
     const bytes = png({ type, depth, before }), info = await parse(bytes);
@@ -18,6 +31,12 @@ const { chunk, png, segment, jpeg, exif } = require('./support/passport-fixtures
   const iccp = chunk('iCCP', [112,0,0,1,2,3]); // Presence only; no inflater is invoked.
   const xmp = chunk('iTXt', Buffer.from('XML:com.adobe.xmp\0\0\0\0\0<x/>'));
   const metadata = await parse(png({ interlace: 1, before: [iccp], after: [xmp, chunk('eXIf', exif)] }));
+  const unknownChunk=chunk('vpAg',[1,2,3]);
+  const structuredPng=png({before:[unknownChunk],after:[chunk('tEXt',[65,0,66])]});
+  const pngLayout=await parse(structuredPng);
+  coverage(pngLayout,structuredPng.length);
+  assert.deepEqual(pngLayout.structure.entries.map(entry=>entry.label),['Сигнатура PNG','IHDR','vpAg','IDAT','tEXt','IEND']);
+  assert.equal(pngLayout.structure.entries[2].bytes,unknownChunk.length);
   assert.equal(metadata.status, 'ok'); assert.equal(metadata.interlace, 1);
   assert.deepEqual(metadata.metadata, { icc: 'present', exif: 'present', xmp: 'present' });
   assert.equal((await parse(png({ type: 0, before: [chunk('tRNS', [0,0])] }))).transparency, 'tRNS');
@@ -35,6 +54,15 @@ const { chunk, png, segment, jpeg, exif } = require('./support/passport-fixtures
     assert.equal(info.colorModel, 'YCbCr'); assert.equal(info.progressive, false); assert.deepEqual([info.width, info.height, info.bitDepth], [16,8,8]);
   }
   const progressive = await parse(jpeg({ mode: 194, scans: 3 })); assert.equal(progressive.status, 'ok'); assert.equal(progressive.progressive, true);
+  const structuredJpeg=jpeg({mode:194,scans:3});
+  const jpegLayout=await parse(structuredJpeg);
+  coverage(jpegLayout,structuredJpeg.length);
+  assert.equal(jpegLayout.structure.entries.filter(entry=>entry.label.includes('SOS')).length,3);
+  assert.equal(jpegLayout.structure.entries.filter(entry=>entry.label==='Данные скана').length,6);
+  assert.equal(jpegLayout.structure.entries.filter(entry=>entry.label.includes('RST0')).length,3);
+  const withTail=Buffer.concat([structuredJpeg,Buffer.from([1,2,3])]);
+  const tailLayout=await parse(withTail);coverage(tailLayout,withTail.length);
+  assert.equal(tailLayout.structure.entries.at(-1).label,'Хвост после EOI');
   const unknown = await parse(jpeg({ jfif: false })); assert.equal(unknown.colorModel, 'Не определено'); assert.equal(unknown.sampling, null);
   assert.equal((await parse(jpeg({ jfif: false, adobe: 1 }))).sampling, '4:2:0');
   assert.equal((await parse(jpeg({ jfif: false, adobe: 0, ids: [82,71,66], sampling: [17,17,17] }))).colorModel, 'RGB');
@@ -74,6 +102,12 @@ const { chunk, png, segment, jpeg, exif } = require('./support/passport-fixtures
     return out.buffer.slice(out.byteOffset,out.byteOffset+out.byteLength);
   } }) };
   const sparseInfo=await inspectFile(sparse); assert.equal(sparseInfo.status,'ok'); assert.ok(sparseInfo.readBytes<=2*65536); assert.ok(largestRead<=65536);
+  coverage(sparseInfo,total);
+  assert.equal(sparseInfo.structure.entries.find(entry=>entry.label==='IDAT').bytes,big+12);
+  const crowded=png({before:Array.from({length:1030},()=>chunk('vpAg'))});
+  const crowdedInfo=await parse(crowded);coverage(crowdedInfo,crowded.length);
+  assert.equal(crowdedInfo.structure.entries.length,1024);
+  assert.ok(crowdedInfo.structure.omittedEntries>0);
   console.log('PASS bpp vs working memory, budgets, cancellation and skipping a large PNG payload without allocation');
 
   if (process.env.IMAGE_TEST_PYTHON) {
@@ -117,7 +151,8 @@ print(json.dumps(out))
   const file=new Blob([png({width:2,height:1,depth:16})],{type:'image/png'}), blob=new Blob([jpeg()]);
   const app={source:{file,pixelBuffer:pixels,name:'source.png'},sourceGeneration:1,layout:2,variants:[]};
   app.variants=[0,1].map(index=>({index,config:{format:index?'jpeg':'original'},resultConfig:{format:index?'jpeg':'original'},generation:0,
-    blob:index?blob:file,pixelBuffer:pixels,url:'blob:result',resultSource:app.source,controls:{},foot:new Element()}));
+    blob:index?blob:file,pixelBuffer:pixels,url:'blob:result',resultSource:app.source,controls:{},foot:new Element(),
+    measurement:index?{stages:{beforeEncodeMs:2,encodeMs:5,decodeMs:3,metricsMs:4,otherMs:1,totalMs:15}}:null}));
   let reads=[];
   const {createFilePassport}=await import('../src/ui/file-passport.mjs');
   const {createControls}=await import('../src/ui/controls.mjs');
@@ -132,9 +167,17 @@ print(json.dumps(out))
   const tick=async()=>{await new Promise(resolve=>setImmediate(resolve));};
   reads[0].resolve(await parse(jpeg()));await tick();assert.doesNotMatch(get('filePassportFields').textContent,/Тип кодирования/);
   reads[1].resolve(await inspectFile(file));await tick(); assert.match(get('filePassportFields').textContent,/16 бит/);assert.match(get('filePassportRaster').textContent,/16 байт/);
+  assert.equal(get('filePassportStructureSection').hidden,false);
+  assert.match(get('filePassportStructureSummary').textContent,/Учтено/);
+  assert.equal(get('filePassportStructure').children.length,4);
+  assert.equal(get('filePassportTimingSection').hidden,true);
   const readCount=reads.length;ui.updateFilePassport();assert.equal(reads.length,readCount);
   get('filePassportDialog').close();app.variants[0].controls.fileInfo.emit('click');assert.equal(reads.length,readCount,'completed Blob is cached');
   get('filePassportTarget').value='1';get('filePassportTarget').emit('change');
+  reads.at(-1).resolve(await parse(jpeg()));await tick();
+  assert.equal(get('filePassportTimingSection').hidden,false);
+  assert.match(get('filePassportTiming').textContent,/Подготовка и кодирование5 мс/);
+  assert.match(get('filePassportStructureSummary').textContent,/Учтено/);
   controls.markDirty(app.variants[1],{schedule:false});assert.equal(reads.at(-1).o.signal.aborted,true);assert.match(get('filePassportStatus').textContent,/Дождитесь/);assert.equal(get('filePassportFields').textContent,'');
   app.variants[1].error='fail';controls.updateMetrics(app.variants[1]);assert.match(get('filePassportStatus').textContent,/Ошибка обработки/);
   reads.at(-1).resolve(await parse(jpeg()));await tick();assert.equal(get('filePassportFields').textContent,'');

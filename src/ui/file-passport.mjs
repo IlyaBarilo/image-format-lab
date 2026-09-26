@@ -3,6 +3,8 @@ export function createFilePassport({ app }, deps) {
   const dialog = get('filePassportDialog'), select = get('filePassportTarget');
   const fileFields = get('filePassportFields'), rasterFields = get('filePassportRaster'), status = get('filePassportStatus');
   const paletteSection=get('filePassportPaletteSection'),paletteGrid=get('filePassportPalette');
+  const structureSection=get('filePassportStructureSection'),structureSummary=get('filePassportStructureSummary'),structureRows=get('filePassportStructure');
+  const timingSection=get('filePassportTimingSection'),timingFields=get('filePassportTiming');
   const cache = new WeakMap();
   let target = 'source', attached = false, request = 0, controller = null, current = null, optionsKey = '';
   const same = (a, b) => a && b && a.source === b.source && a.sourceGeneration === b.sourceGeneration && a.blob === b.blob && a.pixels === b.pixels && a.generation === b.generation && a.target === b.target && a.message === b.message;
@@ -16,7 +18,7 @@ export function createFilePassport({ app }, deps) {
     const variant = app.variants[Number(target)];
     if (!variant || !deps.isVariantReady(variant)) return { ...common, generation: variant?.generation,
       message: variant?.error ? 'Ошибка обработки. Паспорт результата недоступен.' : 'Дождитесь пересчёта результата.' };
-    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer, paletteInfo:variant.paletteInfo, generation: variant.generation,
+    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer, paletteInfo:variant.paletteInfo, measurement:variant.measurement, generation: variant.generation,
       label: variant.resultConfig.format === 'original' ? source.name : `Ячейка ${variant.index + 1} · ${deps.outputFormatLabel(variant.resultConfig.format)}` };
   }
   function fields(element, pairs) {
@@ -44,6 +46,37 @@ export function createFilePassport({ app }, deps) {
       item.append(swatch,label,count);fragment.append(item);
     }
     paletteGrid.append(fragment);
+  }
+  function showStructure(layout){
+    structureSection.hidden=!layout?.entries?.length;
+    structureRows.replaceChildren();
+    structureSummary.textContent='';
+    if(structureSection.hidden)return;
+    const shown=layout.entries.length;
+    structureSummary.textContent=`Учтено ${number(layout.coveredBytes)} из ${number(layout.totalBytes)} байт; показано ${number(shown)} участков`
+      +(layout.omittedEntries?`, ещё ${number(layout.omittedEntries)} скрыто лимитом списка`:'')
+      +(layout.complete?'.':' · разбор неполный.');
+    const rows=layout.entries.map(entry=>{
+      const row=document.createElement('tr');
+      for(const value of [`${number(entry.offset)} (0x${entry.offset.toString(16).toUpperCase()})`,number(entry.bytes),entry.label,entry.detail]){
+        const cell=document.createElement('td');cell.textContent=value;row.append(cell);
+      }
+      return row;
+    });
+    structureRows.replaceChildren(...rows);
+  }
+  function showTiming(measurement){
+    const stages=measurement?.stages;
+    timingSection.hidden=!stages;
+    if(!stages){fields(timingFields,[]);return;}
+    fields(timingFields,[
+      ['До кодирования',`${number(stages.beforeEncodeMs)} мс`],
+      ['Подготовка и кодирование',`${number(stages.encodeMs)} мс`],
+      ['Чтение результата',`${number(stages.decodeMs)} мс`],
+      ['Расчёт метрик',`${number(stages.metricsMs)} мс`],
+      ['Прочее',`${number(stages.otherMs)} мс`],
+      ['Измерено всего',`${number(stages.totalMs)} мс`]
+    ]);
   }
   function syncOptions() {
     if (target !== 'source' && Number(target) >= app.layout) target = 'source';
@@ -97,6 +130,8 @@ export function createFilePassport({ app }, deps) {
         ['Прозрачный индекс', palette.transparentUsed ? 'Использован' : 'Не использован']);
     }
     showPalette(snapshot.paletteInfo);
+    showStructure(info.structure);
+    showTiming(snapshot.measurement);
     if (info.format === 'JPEG' && info.mode) {
       rows.push(['Тип кодирования', info.mode], ['Прогрессивный', info.progressive ? 'Да' : 'Нет'],
         ['Компоненты (по маркерам)', info.colorModel || 'Не определено'],
@@ -119,7 +154,7 @@ export function createFilePassport({ app }, deps) {
     current = snapshot; const id = ++request;
     controller?.abort(); controller = null;
     fields(fileFields, []); fields(rasterFields, []);
-    showPalette(null);
+    showPalette(null); showStructure(null); showTiming(null);
     if (!snapshot.blob) { status.textContent = snapshot.message || 'Файл недоступен.'; return; }
     fields(fileFields, base(snapshot)); raster(snapshot); status.textContent = 'Читаю свойства файла…';
     const cached = cache.get(snapshot.blob);
@@ -140,7 +175,7 @@ export function createFilePassport({ app }, deps) {
     if (!attached) {
       attached = true;
       select.addEventListener('change', () => { target = select.value; updateFilePassport(); });
-      dialog.addEventListener('close', () => { controller?.abort(); controller = null; current = null; ++request; fields(fileFields, []); fields(rasterFields, []); showPalette(null); status.textContent = ''; });
+      dialog.addEventListener('close', () => { controller?.abort(); controller = null; current = null; ++request; fields(fileFields, []); fields(rasterFields, []); showPalette(null); showStructure(null); showTiming(null); status.textContent = ''; });
     }
     current = null; dialog.showModal(); updateFilePassport();
   }
