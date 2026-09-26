@@ -93,9 +93,10 @@ export function createScopePlots() {
   }
   function plotLineProfile(canvas,data,indices,position,outputSize) {
     const {ctx,width,height}=prepare(canvas,outputSize),left=36,right=width-16,top=28,bottom=height-25;
-    const x=bin=>data.bins===1?(left+right)/2:left+bin/(data.bins-1)*(right-left),y=value=>bottom-value/255*(bottom-top);
+    const scaleMax=data.scaleMax||255;
+    const x=bin=>data.bins===1?(left+right)/2:left+bin/(data.bins-1)*(right-left),y=value=>bottom-value/scaleMax*(bottom-top);
     ctx.strokeStyle='#334155';ctx.lineWidth=1;
-    for(const value of [0,128,255]){ctx.beginPath();ctx.moveTo(left,y(value));ctx.lineTo(right,y(value));ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(String(value),left-5,y(value));}
+    for(const value of [0,Math.round((scaleMax+1)/2),scaleMax]){ctx.beginPath();ctx.moveTo(left,y(value));ctx.lineTo(right,y(value));ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(String(value),left-5,y(value));}
     ctx.textAlign='left';ctx.fillText('A · 0%',left,height-10);ctx.textAlign='center';ctx.fillText('50%',(left+right)/2,height-10);ctx.textAlign='right';ctx.fillText('B · 100%',right,height-10);
     for(const index of indices){const channel=data.channels[index];ctx.strokeStyle=COLORS[index];ctx.globalAlpha=0.5;ctx.lineWidth=1;ctx.beginPath();
       for(let bin=0;bin<data.bins;bin++)if(channel.min[bin]!==channel.max[bin]){ctx.moveTo(x(bin),y(channel.min[bin]));ctx.lineTo(x(bin),y(channel.max[bin]));}ctx.stroke();ctx.globalAlpha=1;

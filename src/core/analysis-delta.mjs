@@ -28,8 +28,10 @@ export function analysisDelta(items, settings) {
   if (!DELTA_TYPES.includes(type) || items.length !== 2 || items.some(item => !item.data)) {
     throw new Error('Для разницы нужны два готовых графика поддерживаемого вида.');
   }
-  const histogram = ['histogram','signalHistogram'].includes(type) ? histogramView(items, type==='signalHistogram'?'rgb':settings.channel, 65536, { allowUnknownColorSpace: true }) : null;
+  const mixedSignal = type === 'signalHistogram' && new Set(items.map(item => item.data.bitDepth || 8)).size > 1;
+  const histogram = ['histogram','signalHistogram'].includes(type) ? histogramView(items, type==='signalHistogram'?'rgb':settings.channel, mixedSignal ? 256 : 65536, { allowUnknownColorSpace: true }) : null;
   const [a, b] = (histogram?.items || items).map(item => item.data), density = spatialChannels(type).length>0;
+  const profileNormalized = type === 'profile' && (a.scaleMax || 255) !== (b.scaleMax || 255);
   const indices = density ? spatialChannels(type) : type==='signalHistogram'?[0,1,2]:ANALYSIS_CHANNELS[type === 'profile' ? settings.profileChannel : settings.channel];
   if (!indices) throw new Error('Неизвестный канал разницы графиков.');
   const bins = histogram ? histogram.scale.bins : type === 'profile' ? Math.max(a.bins, b.bins) : Math.max(a.columns, b.columns);
@@ -50,14 +52,15 @@ export function analysisDelta(items, settings) {
       const t = bins === 1 ? 0 : i / (bins - 1);
       values[i] = clean(histogram
         ? (b.channels[index][i] / b.pixelCount - a.channels[index][i] / a.pixelCount) * 100
+        : profileNormalized ? (deltaAt(b.channels[index].mean, t) / (b.scaleMax || 255) - deltaAt(a.channels[index].mean, t) / (a.scaleMax || 255)) * 100
         : deltaAt(b.channels[index].mean, t) - deltaAt(a.channels[index].mean, t));
     }
   }
   let maximum = 0;
   for (const { values } of channels) for (const value of values) maximum = Math.max(maximum, Math.abs(value));
   return { type, operation: 'second-minus-first', pair: items.map(item => item.cell),
-    unit: type === 'profile' ? 'code-values' : 'percentage-points',
-    alignment: histogram ? (histogram.scale.normalized ? 'normalized-nearest-level' : 'same-level') : density ? 'relative-column-area' : 'relative-position-linear-means',
+    unit: type === 'profile' && !profileNormalized ? 'code-values' : 'percentage-points',
+    alignment: histogram ? (mixedSignal ? 'normalized-256-groups' : histogram.scale.normalized ? 'normalized-nearest-level' : 'same-level') : density ? 'relative-column-area' : 'relative-position-linear-means',
     bins, ...(histogram ? { scale: histogram.scale, outside: indices.map(index => ({ index,
       below: ((b.underflow?.[index] || 0) / b.pixelCount - (a.underflow?.[index] || 0) / a.pixelCount) * 100,
       above: ((b.overflow?.[index] || 0) / b.pixelCount - (a.overflow?.[index] || 0) / a.pixelCount) * 100 })) } : {}),

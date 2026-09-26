@@ -167,6 +167,25 @@ async function main() {
   const deepDelta=await exportReport(deep,{includeJSON:true});
   assert.equal(deepDelta.json.delta.rows,256);
   assert.ok(deepDelta.report.images[0].ops.some(op=>op[0]==='image'),'mixed-depth signed density is rendered');
+  const {computeSignalHistogram}=await import('../src/core/signal-scopes.mjs');
+  const signal=await makeSnapshot('histogram','separate');
+  signal.settings.type='signalHistogram';signal.settings.channel='rgb';signal.settings.level=128;
+  signal.items[0].data=computeSignalHistogram({width:1,height:1,data:Uint16Array.from([32769,32769,32769,65535]),sampleType:'uint16',bitDepth:16,colorSpace:'srgb'});
+  signal.items[1].data=computeSignalHistogram({width:1,height:1,data:Uint8ClampedArray.from([128,128,128,255])});
+  const signalReport=await exportReport(signal,{includeJSON:true});
+  assert.equal(signalReport.json.items[0].data.channels[0].length,65536);
+  assert.equal(signalReport.json.items[0].data.channelMax[0],32769);
+  signal.settings.display='overlay';assert.equal((await exportReport(signal)).report.images.length,1);
+  signal.settings.display='delta';assert.equal((await exportReport(signal,{includeJSON:true})).json.delta.scale.normalized,true);
+  const {computeLineProfile}=await import('../src/core/line-profile.mjs');
+  const preciseProfile=await makeSnapshot('profile','separate');
+  preciseProfile.items[0].data=computeLineProfile({width:1,height:1,data:Uint16Array.from([32769,32769,32769,65535]),sampleType:'uint16',bitDepth:16,colorSpace:'srgb'});
+  preciseProfile.items[1].data=computeLineProfile({width:1,height:1,data:Uint8ClampedArray.from([128,128,128,255])});
+  const profileReport=await exportReport(preciseProfile,{includeJSON:true});
+  assert.equal(profileReport.json.items[0].data.scaleMax,65535);
+  assert.ok(profileReport.report.images[0].ops.some(op=>op[0]==='fillText'&&op[1]==='65535'));
+  preciseProfile.settings.display='overlay';assert.equal((await exportReport(preciseProfile)).report.images[0].dataset.yMax,'100');
+  preciseProfile.settings.display='delta';assert.equal((await exportReport(preciseProfile,{includeJSON:true})).json.delta.unit,'percentage-points');
   console.log('PASS report-sized redraw for all charts/modes, 2/4 cells, DPR, viewport data, common scale, unavailable cells and unchanged live dimensions');
 }
 module.exports = {makeSnapshot, exportReport};

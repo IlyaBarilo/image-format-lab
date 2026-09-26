@@ -27,12 +27,12 @@ function density(ctx,columns,rows,getValue,maximum,color,left,top,width,height,d
   for(let i=0;i<pooled.length;i++)if(pooled[i]){pixels.data.set(color,i*4);pixels.data[i*4+3]=Math.round(255*Math.pow(pooled[i]/maximum,.25));}
   lc.putImageData(pixels,0,0);ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalCompositeOperation='lighter';ctx.drawImage(layer,left,top,width,height);ctx.restore();
 }
-function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false,signal=false},filled){
+function curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error=false,signal=false,profileNormalized=false},filled){
   const colors=signal?SIGNAL_COLORS:COLORS,fills=signal?SIGNAL_FILLS:FILL_COLORS;
   const series=indices.map(c=>{
     const values=hist?data.channels[c]:data.channels[c].mean;
     return {c,values,x:i=>left+(values.length===1?.5:i/(values.length-1))*(right-left),
-      y:value=>bottom-value/limit*(bottom-top),value:i=>hist?values[i]/data.pixelCount*100:values[i]};
+      y:value=>bottom-(profileNormalized?value/(data.scaleMax||255)*100:value)/limit*(bottom-top),value:i=>hist?values[i]/data.pixelCount*100:values[i]};
   });
   const trace=s=>{ctx.beginPath();s.values.forEach((_,i)=>{if(i)ctx.lineTo(s.x(i),s.y(s.value(i)));else ctx.moveTo(s.x(i),s.y(s.value(i)));});};
   ctx.save();ctx.setLineDash([]);ctx.lineJoin='round';
@@ -99,7 +99,7 @@ export function createAnalysisCombined(){
         ctx.beginPath();ctx.moveTo(left,y(v));ctx.lineTo(right,y(v));ctx.stroke();ctx.fillStyle='#cbd5e1';ctx.textAlign='right';
         ctx.fillText((v>0?'+':'')+deltaFmt(v),left-6,y(v),left-10);
       }
-      ctx.textAlign='left';ctx.fillText(profile?'Δ уровней':'Δ п.п.',left,13);
+      ctx.textAlign='left';ctx.fillText(profile&&model.unit==='code-values'?'Δ уровней':'Δ п.п.',left,13);
       if(model.maximum){
         ctx.save();
         const trace=values=>{ctx.beginPath();values.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));};
@@ -125,14 +125,17 @@ export function createAnalysisCombined(){
       renderCieXy(canvas,[...references.values(),...items.map(item=>item.data)],outputSize);return;
     }
      const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',signal=kind==='signalHistogram',hist=kind==='histogram'||signal||error;
-     const view=kind==='histogram'||signal?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
+     const mixedSignal=signal&&new Set(items.map(item=>item.data.bitDepth||8)).size>1;
+     const view=kind==='histogram'||signal?histogramView(items,settings.channel,mixedSignal?256:Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}
     const channel=profile?settings.profileChannel:error?settings.errorChannel:settings.channel,indices=error?[channel==='alpha'?1:0]:ANALYSIS_CHANNELS[channel];
     const maximum=analysisMaximum(kind,items,channel,spatialChannels(kind).length?256:0),left=56,right=width-18,top=30,bottom=height-28;
-    canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:spatialChannels(kind).length?100:255);canvas.dataset.densityMax=String(maximum);
+    const profileNormalized=profile&&new Set(items.map(item=>item.data.scaleMax||255)).size>1;
+    const profileLimit=profileNormalized?100:(items[0]?.data.scaleMax||255);
+    canvas.dataset.kind=kind;canvas.dataset.mode='overlay';canvas.dataset.yMax=String(hist?maximum:kind==='vectorscope'?.5:spatialChannels(kind).length?100:profile?profileLimit:255);canvas.dataset.densityMax=String(maximum);
     if(hist||profile){
-      const limit=hist?maximum:255;grid(ctx,left,right,top,bottom,limit,hist);
-       items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error,signal},layer===0));
+      const limit=hist?maximum:profileLimit;grid(ctx,left,right,top,bottom,limit,hist||profileNormalized);
+       items.forEach(({data},layer)=>curves(ctx,data,indices,{hist,limit,left,right,top,bottom,error,signal,profileNormalized},layer===0));
       ctx.setLineDash([]);ctx.fillStyle='#cbd5e1';
       for(const ratio of [0,.5,1]){ctx.textAlign=ratio===0?'left':ratio===1?'right':'center';ctx.fillText(profile||error?`${ratio*100}%`:histogramTick(view.scale,ratio),left+ratio*(right-left),height-12);}
       const pointer=profile?settings.position/1000:settings.level/255;ctx.strokeStyle='#e2e8f0';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(left+pointer*(right-left),top);ctx.lineTo(left+pointer*(right-left),bottom);ctx.stroke();ctx.setLineDash([]);

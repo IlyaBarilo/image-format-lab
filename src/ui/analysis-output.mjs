@@ -53,7 +53,7 @@ export function createAnalysisOutput({app},deps){
     if(['histogram','signalHistogram'].includes(snapshot.settings.type)&&available){
       // A hidden canvas reports zero width. Show a ready pair before sizing its bins.
       if(shared&&items.length===2&&items.every(i=>i.data))canvas.hidden=false;
-      try {histView=histogramView(items,snapshot.settings.channel,Math.max(256,canvas.getBoundingClientRect().width-74),{allowUnknownColorSpace:true});}
+      try {const mixedSignal=snapshot.settings.type==='signalHistogram'&&new Set(items.filter(i=>i.data).map(i=>i.data.bitDepth||8)).size>1;histView=histogramView(items,snapshot.settings.channel,mixedSignal?256:Math.max(256,canvas.getBoundingClientRect().width-74),{allowUnknownColorSpace:true});}
       catch(error){histError=error.message;available=false;}
     }
     if(shared){
@@ -74,6 +74,7 @@ export function createAnalysisOutput({app},deps){
               marker.textContent=`${graphName(snapshot.settings.type,index)} ${deltaFmt(value)} ${model.unit==='code-values'?'ур.':'п.п.'}`;legend.append(marker);
             }
             if(model.maximum===0&&!model.outside?.some(c=>c.below||c.above))note.textContent=model.scale?.grouped?'Группы графиков совпадают; внутри группы различия могут компенсироваться.':'Графики совпадают: разница равна нулю.';
+            if(snapshot.settings.type==='profile'&&model.unit==='percentage-points')note.textContent+=(note.textContent?' ':'')+'Разная разрядность: значения нормированы по полному диапазону; разница в п.п.';
             if(model.outside?.some(c=>c.below||c.above))note.textContent='За пределами диапазона: '+model.outside.map(c=>`${graphName(snapshot.settings.type,c.index)} ниже ${deltaFmt(c.below)}, выше ${deltaFmt(c.above)} п.п.`).join('; ')+'.';
             if(model.scale){get('analysisLevelValue').textContent=histogramTick(model.scale,snapshot.settings.level/255);if(model.scale.grouped||model.scale.normalized||model.scale.kind==='float')note.textContent+=(note.textContent?' ':'')+histogramInterval(model.scale,snapshot.settings.level)+(model.scale.grouped?`; ${model.bins} групп на графике.`:'.');}
           }else{
@@ -96,11 +97,12 @@ export function createAnalysisOutput({app},deps){
             if(items.some(i=>i.data.underflow?.some(n=>n)||i.data.overflow?.some(n=>n)))note.textContent+=' '+items.map(i=>`${i.cell}: ${histogramSummary(i.data,snapshot.settings.channel)}`).join(' ');
           }
           if(snapshot.settings.type==='errorHistogram'){get('analysisLevelValue').textContent=snapshot.settings.level===0?'0%':`${fmt(snapshot.settings.level/255*100)}%`;note.textContent=errorBinInterval(snapshot.settings.level)+'; группа 0 — только точное совпадение.';}
+          if(snapshot.settings.type==='profile'&&new Set(items.map(i=>i.data.scaleMax||255)).size>1)note.textContent='Разная разрядность: общая шкала 0–100% полного диапазона; точные коды каждой ячейки доступны в JSON.';
           if(snapshot.settings.type==='cieXy')note.textContent=items.map(item=>{
             const data=item.data,reference=data.iccReference;
             return `${item.cell}: ${data.exact?'все пиксели':'выборка '+fmt(data.sampleCount)+' из '+fmt(data.pixelCount)}, чёрных ${fmt(data.blackCount)}${data.colorAssumption==='srgb-assumed'?'; sRGB предположен':''}${reference?`; исходник ICC вне sRGB ${fmt(reference.outOfSrgbPercent)}% (${fmt(reference.outOfSrgbCount)} из ${fmt(reference.sampleCount)}), область ${reference.bounds.x}, ${reference.bounds.y}: ${reference.bounds.width}×${reference.bounds.height} px`:''}`;
           }).join('. ')+'. Белый треугольник — sRGB, фиолетовый — первичные цвета ICC, точка — D65.';
-          const descriptions=items.map(i=>`${i.label}: ${i.data.width}×${i.data.height}, область ${i.data.bounds.x}, ${i.data.bounds.y}: ${i.data.bounds.width}×${i.data.bounds.height}${i.data.sampleCount?`, ${i.data.sampleCount} отсчётов`:''}${spatialChannels(snapshot.settings.type).length?`; ${i.data.bitDepth||8} бит/канал, ${i.data.levelBins||256} интервалов уровней`:''}${histView?'. '+histogramSummary(i.data,snapshot.settings.channel):''}${snapshot.settings.type==='errorHistogram'?`. ${errorHistogramSummary(i.data)}; ${i.data.bitDepth.source}/${i.data.bitDepth.result} бит/канал${i.data.colorComparison==='unknown-code-values'?'; цветовая метка неизвестна, сравниваются кодовые значения':''}`:''}`);
+          const descriptions=items.map(i=>`${i.label}: ${i.data.width}×${i.data.height}, область ${i.data.bounds.x}, ${i.data.bounds.y}: ${i.data.bounds.width}×${i.data.bounds.height}${i.data.sampleCount?`, ${i.data.sampleCount} отсчётов`:''}${spatialChannels(snapshot.settings.type).length?`; ${i.data.bitDepth||8} бит/канал, ${i.data.levelBins||256} интервалов уровней`:''}${snapshot.settings.type==='profile'?`; ${i.data.bitDepth||8} бит/канал, уровни 0–${i.data.scaleMax||255}`:''}${histView?'. '+histogramSummary(i.data,snapshot.settings.channel):''}${snapshot.settings.type==='errorHistogram'?`. ${errorHistogramSummary(i.data)}; ${i.data.bitDepth.source}/${i.data.bitDepth.result} бит/канал${i.data.colorComparison==='unknown-code-values'?'; цветовая метка неизвестна, сравниваются кодовые значения':''}`:''}`);
           if(spatialChannels(snapshot.settings.type).length)note.textContent+=(note.textContent?' ':'')+'Общая нормированная шкала 256 интервалов; точные счётчики ячеек доступны в JSON.';
           get('analysisDetails').textContent=descriptions.join('\n');
           const sizes=new Set(items.map(i=>`${i.data.width}×${i.data.height}`));get('analysisStatus').textContent=sizes.size>1?(snapshot.settings.scope==='viewport'?'Размеры различаются; анализируется видимая часть каждой ячейки без выравнивания содержимого.':'Размеры различаются; используются одинаковые относительные область и линия без выравнивания содержимого.'):'';
@@ -148,12 +150,13 @@ export function createAnalysisOutput({app},deps){
     const title=`Анализ · ${variantTitles[snapshot.settings.type]||get('analysisType').selectedOptions[0].textContent}`;
     const header=wrap(ctx,`${snapshot.source.name} · ${snapshot.source.width}×${snapshot.source.height} · ${snapshot.createdAt}`,1152);
     const s=snapshot.settings,b=s.region,line=s.line;
-    const reportView=['histogram','signalHistogram'].includes(s.type)?histogramView(selected,s.channel,shared?1152-74:566-72,{allowUnknownColorSpace:true}):null;
+    const mixedSignal=s.type==='signalHistogram'&&new Set(selected.filter(i=>i.data).map(i=>i.data.bitDepth||8)).size>1;
+    const reportView=['histogram','signalHistogram'].includes(s.type)?histogramView(selected,s.channel,mixedSignal?256:shared?1152-74:566-72,{allowUnknownColorSpace:true}):null;
     const reportDelta=reportView&&s.display==='delta'?groupHistogramDelta(snapshot.delta||deltaModel(selected,s),1152-90):null;
     if(reportView&&!shared)selected=reportView.items;
     const parameterText=s.type==='tradeoff'?`Метрика: ${get('analysisMetric').selectedOptions[0].textContent}; весь кадр.`:
       `${s.display==='delta'?`Разница ячеек ${s.pair[1]} − ${s.pair[0]}`:s.display==='overlay'?`Наложение ячеек ${s.pair.join(' + ')}`:'Ячейки рядом'}; подложка: ${s.matte==='white'?'белая':'чёрная'}; область: ${s.scope==='viewport'?'видимая часть каждой ячейки':b?`${b.x0/10}%, ${b.y0/10}%, ${(b.x1-b.x0)/10}% × ${(b.y1-b.y0)/10}%`:'весь кадр'}`+
-      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
+      (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.type==='profile'&&shared?`; шкала: ${new Set(selected.map(i=>i.data?.scaleMax||255)).size>1?'0–100% полного диапазона':`0–${selected[0].data?.scaleMax||255} кодовых уровней`}`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
     const method=wrap(ctx,snapshot.method,1152);

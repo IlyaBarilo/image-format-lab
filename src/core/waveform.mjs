@@ -2,7 +2,7 @@
 // Derived from integer RGB code values, not linear light or codec YCbCr planes.
 import { analysisRegionBounds } from './analysis-region.mjs';
 import { createPixelBuffer } from './pixel-buffer.mjs';
-import { signalLevels } from './signal-scopes.mjs';
+import { signalLevelsAtDepth } from './signal-scopes.mjs';
 export function computeWaveform(input, matte = 'white', region = null) {
   const pixels = createPixelBuffer(input);
   const { width, height, data, sampleType, bitDepth, colorSpace, alphaMode } = pixels;
@@ -33,13 +33,7 @@ export function computeWaveform(input, matte = 'white', region = null) {
         if (values[c] > scaleMax) throw new Error('Некорректное предварительно умноженное значение Waveform.');
       }
       const [r, g, b] = values;
-      if (bitDepth === 8) signalLevels(r, g, b, levels);
-      else {
-        const yValue = (2126 * r + 7152 * g + 722 * b) / 10000;
-        levels[0] = Math.round(yValue);
-        levels[1] = Math.max(0, Math.min(scaleMax, Math.round((b - yValue) / 1.8556 + (scaleMax + 1) / 2)));
-        levels[2] = Math.max(0, Math.min(scaleMax, Math.round((r - yValue) / 1.5748 + (scaleMax + 1) / 2)));
-      }
+      signalLevelsAtDepth(r, g, b, scaleMax, levels);
       values[3] = levels[0]; values[4] = levels[1]; values[5] = levels[2];
       for (let c = 0; c < 6; c++) {
         const value = values[c];

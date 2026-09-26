@@ -68,7 +68,7 @@ watch отслеживает их изменения. Туда же включе
 | `services/` | Декодирование, кодирование, подбор размера, кодеки и вычисления в Worker |
 | `ui/` | Сравнение, общий список, пакет, предпросмотр, масштаб, эксперименты и отчёты |
 | `workers/compute.worker.mjs` | Обработчик заданий GIF/BMP, метрик и всех видов анализа |
-| `core/histogram.mjs`, `core/signal-scopes.mjs`, `core/waveform.mjs`, `ui/analysis.mjs` | Собственный подсчёт RGB/alpha и вычисленных сигналов BT.709; Waveform/Parade используют точные целые RGBA8/16 до ограниченной группировки, сигнальная гистограмма — RGB8; панель анализа, кэш, общие шкалы и отмена публикации устаревших результатов |
+| `core/histogram.mjs`, `core/signal-scopes.mjs`, `core/waveform.mjs`, `ui/analysis.mjs` | Собственный подсчёт RGB/alpha и вычисленных сигналов BT.709; Waveform/Parade и сигнальная гистограмма используют точные целые RGBA8/16 до группировки для показа; панель анализа, кэш, общие шкалы и отмена публикации устаревших результатов |
 | `core/analysis-region.mjs`, `core/analysis-guides.mjs`, `core/crop-source.mjs`, `core/difference.mjs`, `ui/analysis-region.mjs` | Общая геометрия области, точные границы подсказки, создание нового PNG-исходника из точных пикселей, абсолютные разности и ограниченная карта; редактор связан с панелью через application |
 | `core/error-histogram.mjs`, `core/error-profile.mjs` | Точная гистограмма и профиль попиксельных ошибок RGBA8/16 относительно исходника, отдельные MAE/RMSE RGB/alpha; расчёт выполняется в Worker |
 | `core/ssim.mjs`, `ui/scope-plots.mjs` | Собственный одномасштабный SSIM по вычисленному Y′ из точных RGBA8/16 пикселей; расчёт в Worker по запросу, числовое представление и экспорт через панель анализа |
@@ -79,7 +79,7 @@ watch отслеживает их изменения. Туда же включе
 | `core/analysis-viewport.mjs` | Границы видимых пикселей по преобразованию просмотра; `ui/canvas.mjs` передаёт размеры окон, `ui/analysis.mjs` обновляет анализ с задержкой 120 мс и отбрасыванием старых результатов |
 | `core/pixel-inspector.mjs`, `ui/pixel-inspector.mjs` | Чтение четырёх нативных отсчётов, совместимость и знаковая разница; координаты просмотра, раскрываемая таблица и маркеры без чтения Canvas |
 | `core/file-passport.mjs`, `ui/file-passport.mjs` | Собственный структурный разбор JPEG/PNG по запросу, bpp, отдельное описание рабочего растра; окно исходника/результатов с отменой и кешем Blob |
-| `core/vectorscope.mjs`, `core/line-profile.mjs`, `ui/scope-plots.mjs` | Собственные Cb/Cr-счётчики, дискретный профиль RGB/alpha/Y′ с минимумами/максимумами и Canvas-отрисовка; область и линия редактируются в `ui/analysis-region.mjs`, связи задаёт application |
+| `core/vectorscope.mjs`, `core/line-profile.mjs`, `ui/scope-plots.mjs` | Собственные Cb/Cr-счётчики, точный целочисленный профиль RGBA8/16 для RGB/alpha/Y′ с минимумами/максимумами и Canvas-отрисовка; область и линия редактируются в `ui/analysis-region.mjs`, связи задаёт application |
 | `core/analysis-output.mjs`, `ui/analysis-combined.mjs`, `ui/analysis-output.mjs` | Нормировка наложения, валидация точек размера/метрики, сериализация массивов/Infinity, общий Canvas и PNG/JSON текущего анализа; снимок состояния и проверка его актуальности связаны через application |
 | `workers/heic.worker.mjs` | Запуск собственной WASM-сборки HEIC и выдача RGBA8 |
 | `workers/tiff.worker.mjs`, `core/tiff16.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF8, точные целочисленные TIFF16 на pako; UTIF / libjpeg-turbo для совместимости |
