@@ -348,6 +348,8 @@
           <span class="batch-note">RLE8 не меняет цвета после построения палитры; на сложных изображениях файл может стать больше.</span>
         </label>
         <label class="batch-field" id="batchPngField" for="batchPngDepth" hidden>Разрядность PNG<select class="select" id="batchPngDepth"><option value="auto">Авто</option><option value="8">8 бит/канал</option><option value="16">16 бит/канал</option></select><span class="batch-hint">Авто сохраняет разрядность исходных пикселей. PNG16 — только исходный размер, до 8 Мп. Перевод 8 → 16 не восстанавливает детали.</span></label>
+        <label class="batch-field" id="batchPngFilterField" for="batchPngFilter" hidden>Фильтр PNG<select class="select" id="batchPngFilter"><option value="default">Как обычно</option><option value="adaptive">Адаптивный</option><option value="none">None</option><option value="sub">Sub</option><option value="up">Up</option><option value="average">Average</option><option value="paeth">Paeth</option></select><span class="batch-hint">Фильтр влияет на сжатие, но не на цвета. «Как обычно» сохраняет прежнее кодирование PNG.</span></label>
+        <label class="batch-field" id="batchPngLevelField" for="batchPngLevel" hidden>Уровень Deflate <output id="batchPngLevelValue" for="batchPngLevel">6</output><input id="batchPngLevel" type="range" min="1" max="9" value="6"></label>
         <div class="batch-field" id="batchTiffField" hidden><span>Сжатие TIFF</span><button class="text-btn" id="batchTiffSettings" type="button" aria-haspopup="dialog" aria-controls="tiffSettingsDialog">Настройки…</button></div>
         <label class="batch-field" id="batchJpegSubsamplingField" for="batchJpegSubsampling" hidden>Цветность JPEG<select class="select" id="batchJpegSubsampling"><option value="420">4:2:0 · меньше файл</option><option value="422">4:2:2</option><option value="444">4:4:4 · без субдискретизации цветности</option></select></label>
         <label class="switch" id="batchJpegProgressiveField" hidden><input id="batchJpegProgressive" type="checkbox">Прогрессивный JPEG</label>
@@ -455,6 +457,7 @@
     <div class="study-tools"><label for="filePassportTarget">Изображение</label><select id="filePassportTarget" class="select"></select></div>
     <p class="batch-note" id="filePassportStatus" role="status" aria-live="polite"></p>
     <h3>Файл</h3><dl class="passport-fields" id="filePassportFields"></dl>
+    <section id="filePassportPaletteSection" hidden><h3>Палитра результата</h3><p class="batch-note">Число пикселей относится к индексам закодированного результата. Неиспользуемые записи сохранены в файле.</p><div id="filePassportPalette" class="passport-palette"></div></section>
     <h3>Рабочие пиксели</h3><dl class="passport-fields" id="filePassportRaster"></dl>
     <p class="batch-note">bpp = полный размер файла в битах / число пикселей; это не оценка качества. Объём RGBA относится к одному рабочему буферу, а не ко всей памяти приложения. Декодер может изменить ориентацию, цветовое представление и разрядность.</p>
     <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла.</p>
@@ -462,10 +465,10 @@
   <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
     <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
     <div class="batch-dialog-body">
-      <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option></select></label>
+      <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option><option value="packbits">PackBits</option></select></label>
       <label class="batch-field" id="tiffLevelField" for="tiffLevel">Уровень Deflate <output id="tiffLevelValue" for="tiffLevel">6</output><input id="tiffLevel" type="range" min="1" max="9" value="6"></label>
       <label class="switch" id="tiffPredictorField"><input id="tiffPredictor" type="checkbox" checked>Предиктор по соседним пикселям</label>
-      <p class="batch-hint" id="tiffSettingsHint">Все режимы сохраняют RGBA8 без потерь. Уровень и предиктор влияют на размер и время обработки. Изменения учитываются автоматически; в пакете — в его текущих настройках.</p>
+      <p class="batch-hint" id="tiffSettingsHint">Все режимы сохраняют RGBA8 без потерь. Уровень и предиктор применяются только к Deflate/LZW; PackBits использует серии одинаковых байтов. Изменения учитываются автоматически.</p>
     </div>
   </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">

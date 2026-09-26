@@ -37,16 +37,16 @@ export function createEncode({}, deps) {
       const depth=resolvedPngDepth(config.pngDepth,pixels);
       const dims=deps.outputDimensionsForConfig(config,source);
       if(depth===16&&(dims.width!==source.width||dims.height!==source.height))throw new Error('PNG16 пока сохраняется только в исходном размере. Уберите уменьшение или явно выберите 8 бит на канал.');
-      if(depth===16||highDepth){
+      if(depth===16||highDepth||(config.pngFilter&&config.pngFilter!=='default')){
         const prepared=deps.outputSourceForConfig(config,source);
         const input=prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
-        return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth),exactPng:true,
-          precisionNote:depth===16?'16 бит/канал · показ 8 бит':`8 бит/канал · из ${pixels.bitDepth} бит`,panoramaPreserved:false},prepared);
+        return deps.withEncodedMeta({blob:await deps.encodeExactPng(input,depth,config),exactPng:true,
+          precisionNote:depth===16?'16 бит/канал · показ 8 бит':highDepth?`8 бит/канал · из ${pixels.bitDepth} бит`:'8 бит/канал',panoramaPreserved:false},prepared);
       }
     }
     const outputSource = deps.outputSourceForConfig(config, source);
     if (format === 'pngIndexed') return deps.withEncodedMeta(
-      await deps.encodePalettePng(outputSource,config.gifColors,config.gifDither),outputSource);
+      await deps.encodePalettePng(outputSource,config.gifColors,config.gifDither,config),outputSource);
     if (["bmp8", "bmp24", "bmp32", "gif"].includes(format)) {
       const encoded = await deps.computeImage(format, config, outputSource);
       return deps.withEncodedMeta(encoded, outputSource);

@@ -5,7 +5,7 @@ export function createFormatSettings() {
   const get = id => document.getElementById(id);
   function sync() {
     get('tiffLevelField').hidden = get('tiffCompression').value !== 'deflate';
-    get('tiffPredictorField').hidden = get('tiffCompression').value === 'none';
+    get('tiffPredictorField').hidden = !['deflate','lzw'].includes(get('tiffCompression').value);
     get('tiffLevelValue').textContent = get('tiffLevel').value;
   }
   function openTiffSettings(config, onChange) {

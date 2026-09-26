@@ -46,7 +46,7 @@ export function encodeGif(maxColors, useDither, source, makePreview = true) {
   return {
     blob: new Blob([new Uint8Array(bytes)], { type: "image/gif" }),
     previewImageData: preview,
-    paletteInfo: {...paletteInfo, storedEntries:paletteSize}
+    paletteInfo: {...paletteInfo, storedEntries:paletteSize,entries:paletteEntries(palette,indexed,transparentIndex)}
   };
 }
 
@@ -68,7 +68,14 @@ export function indexedPalette(maxColors, useDither, source) {
     : indexWithoutDither(input, width, height, quant, hasAlpha, transparentIndex);
   return {palette, indexed, transparentIndex,
     paletteInfo:{requestedColors:maxColors,definedEntries:palette.length,
-      usedEntries:new Set(indexed).size,transparentUsed:hasAlpha && indexed.includes(0)}};
+      usedEntries:new Set(indexed).size,transparentUsed:hasAlpha && indexed.includes(0),
+      entries:paletteEntries(palette,indexed,transparentIndex)}};
+}
+export function paletteEntries(palette,indexed,transparentIndex=-1){
+  const counts=new Uint32Array(palette.length);
+  for(const index of indexed)counts[index]++;
+  return palette.map((color,index)=>({index,r:color.r,g:color.g,b:color.b,
+    alpha:index===transparentIndex?0:255,pixels:counts[index]}));
 }
 
 export function quantizeUniform(data, maxColors, hasAlpha, preferFullPalette = false) {

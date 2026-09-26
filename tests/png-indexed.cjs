@@ -29,8 +29,12 @@ function chunks(bytes){
   const original=data.slice();
   for(const colors of [2,4,16,256])for(const dither of [false,true]){
     const expected=indexedPalette(colors,dither,source);
+    assert.equal(expected.paletteInfo.entries.reduce((sum,entry)=>sum+entry.pixels,0),width*height);
+    assert.equal(expected.paletteInfo.entries.filter(entry=>entry.pixels>0).length,expected.paletteInfo.usedEntries);
     const png=encodeIndexedPng(source,colors,dither,pako);
     const gif=encodeGif(colors,dither,source,false);
+    assert.equal(gif.paletteInfo.entries.length,gif.paletteInfo.storedEntries);
+    assert.equal(gif.paletteInfo.entries.reduce((sum,entry)=>sum+entry.pixels,0),width*height);
     const bytes=Buffer.from(await png.blob.arrayBuffer()),parts=chunks(bytes);
     const depth=colors<=2?1:colors<=4?2:colors<=16?4:8;
     assert.equal(bytes.toString('hex',0,8),'89504e470d0a1a0a');
@@ -61,6 +65,12 @@ function chunks(bytes){
   const opaque={width:3,height:1,hasAlpha:false,imageData:{data:Uint8ClampedArray.of(
     255,0,0,255,0,255,0,255,0,0,255,255)}};
   const noAlpha=encodeIndexedPng(opaque,4,false,pako);
+  for(const pngFilter of ['adaptive','none','sub','up','average','paeth']){
+    const filtered=encodeIndexedPng(source,16,false,pako,{pngFilter,pngLevel:9});
+    const parsed=UPNG.decode(await filtered.blob.arrayBuffer());
+    assert.equal(parsed.width,width);assert.equal(parsed.height,height);
+    assert.deepEqual([...new Uint8Array(UPNG.toRGBA8(parsed)[0])],[...new Uint8Array(UPNG.toRGBA8(UPNG.decode(await encodeIndexedPng(source,16,false,pako).blob.arrayBuffer()))[0])]);
+  }
   assert.ok(!chunks(Buffer.from(await noAlpha.blob.arrayBuffer())).some(part=>part.name==='tRNS'));
   assert.throws(()=>encodeIndexedPng(source,1,false,pako),/2 до 256/);
   assert.throws(()=>encodeIndexedPng(source,257,false,pako),/2 до 256/);

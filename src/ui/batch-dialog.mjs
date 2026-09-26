@@ -25,6 +25,8 @@ export function createBatchDialog({els, app}, deps) {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
     document.getElementById('batchPngDepth').value=config.pngDepth || 'auto';
+    document.getElementById('batchPngFilter').value=config.pngFilter || 'default';
+    document.getElementById('batchPngLevel').value=String(config.pngLevel??6);
     document.getElementById("batchBmpDepth").value = config.format === 'bmp8' ? '8' : config.format === "bmp32" ? "32" : "24";
     document.getElementById('batchBmpColors').value = String(config.bmpColors ?? 256);
     document.getElementById('batchBmpCompression').value = config.bmpCompression || 'none';
@@ -63,6 +65,8 @@ export function createBatchDialog({els, app}, deps) {
     const bmpColors = Number(document.getElementById('batchBmpColors').value);
     return {
       pngDepth:document.getElementById('batchPngDepth').value,
+      pngFilter:document.getElementById('batchPngFilter').value,
+      pngLevel:Number(document.getElementById('batchPngLevel').value),
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
       jpegSubsampling:document.getElementById('batchJpegSubsampling').value,
       jpegProgressive:document.getElementById('batchJpegProgressive').checked,
@@ -105,6 +109,9 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
     document.getElementById('batchPngField').hidden=config.format!=='png';
+    document.getElementById('batchPngFilterField').hidden=!['png','pngIndexed'].includes(config.format);
+    document.getElementById('batchPngLevelField').hidden=!['png','pngIndexed'].includes(config.format)||config.pngFilter==='default';
+    document.getElementById('batchPngLevelValue').textContent=String(config.pngLevel);
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;

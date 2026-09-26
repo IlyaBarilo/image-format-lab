@@ -1,6 +1,6 @@
 import { hexToRgb } from "./utils.mjs";
 import { MATTES } from "./config.mjs";
-import { quantizeUniform, indexWithoutDither, indexedToImageData } from './gif.mjs';
+import { quantizeUniform, indexWithoutDither, indexedToImageData, paletteEntries } from './gif.mjs';
 
 export function encodeBmp8(maxColors, compression, matteKey, source, makePreview = true) {
   if (!Number.isInteger(maxColors) || maxColors < 2 || maxColors > 256 || !['none', 'rle8'].includes(compression))
@@ -48,7 +48,9 @@ export function encodeBmp8(maxColors, compression, matteKey, source, makePreview
   }
   bytes.set(pixels, offset);
   return {blob: new Blob([bytes], {type:'image/bmp'}),
-    previewImageData: makePreview ? indexedToImageData(indexed, palette, width, height, -1) : null};
+    previewImageData: makePreview ? indexedToImageData(indexed, palette, width, height, -1) : null,
+    paletteInfo:{requestedColors:maxColors,definedEntries:palette.length,storedEntries:palette.length,
+      usedEntries:new Set(indexed).size,transparentUsed:false,entries:paletteEntries(palette,indexed)}};
 }
 
 function encodeRle8(indexed, width, height) {

@@ -1,6 +1,6 @@
 import { normalizeTiffOptions } from './raster-codecs.mjs';
 import { normalizeJpegOptions } from './jpeg-encode.mjs';
-import { pngDepth } from './png.mjs';
+import { pngDepth, normalizePngOptions } from './png.mjs';
 import { BACKGROUNDS, DEFAULT_EXPORT_CONFIG, FORMAT_DEFS, MATTES } from "./config.mjs";
 
 export function normalizeBatchSettings(value) {
@@ -13,6 +13,8 @@ export function normalizeBatchSettings(value) {
   if (Number.isInteger(value.bmpColors) && value.bmpColors >= 2 && value.bmpColors <= 256) config.bmpColors = value.bmpColors;
   if (['none','rle8'].includes(value.bmpCompression)) config.bmpCompression = value.bmpCompression;
   if (["auto","8","16"].includes(value.pngDepth)) config.pngDepth=value.pngDepth;
+  if (['default','adaptive','none','sub','up','average','paeth'].includes(value.pngFilter)) config.pngFilter=value.pngFilter;
+  if (Number.isInteger(value.pngLevel) && value.pngLevel>=1 && value.pngLevel<=9) config.pngLevel=value.pngLevel;
   if (typeof value.matte === "string" && Object.hasOwn(MATTES, value.matte)) config.matte = value.matte;
   if (["panorama", "none"].includes(value.metadataPolicy)) config.metadataPolicy = value.metadataPolicy;
   if (["files", "zip"].includes(value.delivery)) config.delivery = value.delivery;
@@ -42,7 +44,7 @@ export function validateComparison(value) {
     const bmpCompression = Object.hasOwn(v,'bmpCompression') ? v.bmpCompression : 'none';
     if (!Number.isInteger(bmpColors) || bmpColors < 2 || bmpColors > 256 || !['none','rle8'].includes(bmpCompression))
       throw new Error('Некорректные параметры BMP.');
-    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
+    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === 'png' || v.format === 'pngIndexed' || ['pngFilter','pngLevel'].some(key => Object.hasOwn(v,key)) ? normalizePngOptions(v) : {}), ...(v.format === "tiff" || ["tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
   });
   // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
   return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};

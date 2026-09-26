@@ -81,6 +81,8 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
   const longRle=Buffer.from(await encodeBmp8(2,'rle8','white',longRun,false).blob.arrayBuffer());
   assert.deepEqual([...longRle.subarray(longRle.readUInt32LE(10))],[255,0,5,0,0,1],'RLE8 splits runs longer than 255 pixels');
   const alphaBmp={width:2,height:1,imageData:{data:Uint8ClampedArray.of(80,20,5,0,0,0,0,255)}};
+  const paletteResult=encodeBmp8(2,'none','white',alphaBmp,false);
+  assert.equal(paletteResult.paletteInfo.entries.reduce((sum,entry)=>sum+entry.pixels,0),2);
   for(const [matte,expected] of [['white',[255,255,255,255,0,0,0,255]],['black',[0,0,0,255,0,0,0,255]]]){
     const result=encodeBmp8(2,'rle8',matte,alphaBmp,false);
     assert.deepEqual([...new Uint8Array(decodeBmpPixels(bmpCodec,await result.blob.arrayBuffer()).buffer)],expected,'BMP8 composites transparency before quantizing');
@@ -115,6 +117,14 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
     assert.deepEqual(image.data,unchanged,'Encoding must not mutate source pixels');
   }
   assert.ok(new Set(sizes).size>3,'Compression settings affect actual output');
+  for(const testImage of [image,{width:17,height:37,data:Uint8ClampedArray.from({length:17*37*4},(_,i)=>i%13<7?42:i*19%256)}]){
+    const packed=encodeTiffPixels(tiffCodec,testImage,{tiffCompression:'packbits'});
+    const bytes=new DataView(packed),tags=bytes.getUint16(8,true);
+    let compressionTag;
+    for(let i=0;i<tags;i++)if(bytes.getUint16(10+i*12,true)===259)compressionTag=bytes.getUint16(18+i*12,true);
+    assert.equal(compressionTag,32773);
+    assert.deepEqual(new Uint8ClampedArray(decodeTiffPixels(tiffCodec,packed).buffer),testImage.data,'PackBits strips preserve RGBA');
+  }
   for(const bad of [{tiffCompression:'jpeg'},{tiffLevel:0},{tiffLevel:1.5},{tiffPredictor:1}])assert.throws(()=>normalizeTiffOptions(bad));
   const rgb=[255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255];
   for(const big of [false,true])for(const little of [false,true])for(const planar of [false,true])for(const bits of [8,16]){
@@ -130,7 +140,7 @@ function tiff({big=false,little=true,planar=false,bits=8,orientation=1,width=2,h
   const rectangle=decodeTiffPixels(tiffCodec,tiff({height:3,orientation:6}));assert.equal(rectangle.width,3);assert.equal(rectangle.height,2);
   for(const bad of [new ArrayBuffer(8),tiff().slice(0,24)])assert.throws(()=>decodeTiffPixels(tiffCodec,bad));
   assert.throws(()=>decodeTiffPixels(tiffCodec,tiff(),1));assert.equal(decodeTiffPixels(tiffCodec,tiff()).width,2);
-  console.log('PASS TIFF 18 encoding settings, exact RGBA, classic/BigTIFF, endian, planar, 16-bit scaling, eight orientations, corruption and recovery');
+  console.log('PASS TIFF Deflate/LZW/PackBits settings, exact RGBA, classic/BigTIFF, endian, planar, 16-bit scaling, orientations and corruption');
 
   const {decodeLegacyTiff}=await import('../src/core/tiff-legacy.mjs');
   const {createJpegDecoder}=await import('../src/core/jpeg.mjs');

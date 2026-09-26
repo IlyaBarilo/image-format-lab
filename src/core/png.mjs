@@ -39,6 +39,32 @@ function paeth(a,b,c) {
   const p=a+b-c,da=Math.abs(p-a),db=Math.abs(p-b),dc=Math.abs(p-c);
   return da<=db&&da<=dc?a:db<=dc?b:c;
 }
+export function normalizePngOptions(value={}) {
+  const pngFilter=value.pngFilter??'default', pngLevel=value.pngLevel??6;
+  if(!['default','adaptive','none','sub','up','average','paeth'].includes(pngFilter)||!Number.isInteger(pngLevel)||pngLevel<1||pngLevel>9)
+    fail('неверные настройки фильтра или уровня Deflate.');
+  return {pngFilter,pngLevel};
+}
+function filterRow(output,offset,row,previous,bpp,choice) {
+  const methods=choice==='adaptive'?[0,1,2,3,4]:[{none:0,sub:1,up:2,average:3,paeth:4}[choice]];
+  let best=methods[0],bestScore=Infinity;
+  for(const method of methods){
+    let score=0;
+    for(let i=0;i<row.length;i++){
+      const left=i>=bpp?row[i-bpp]:0,above=previous[i],upperLeft=i>=bpp?previous[i-bpp]:0;
+      const predictor=method===0?0:method===1?left:method===2?above:method===3?Math.floor((left+above)/2):paeth(left,above,upperLeft);
+      const filtered=(row[i]-predictor)&255;
+      score+=Math.abs(filtered<128?filtered:filtered-256);
+    }
+    if(score<bestScore){bestScore=score;best=method;}
+  }
+  output[offset]=best;
+  for(let i=0;i<row.length;i++){
+    const left=i>=bpp?row[i-bpp]:0,above=previous[i],upperLeft=i>=bpp?previous[i-bpp]:0;
+    const predictor=best===0?0:best===1?left:best===2?above:best===3?Math.floor((left+above)/2):paeth(left,above,upperLeft);
+    output[offset+1+i]=(row[i]-predictor)&255;
+  }
+}
 export function decodePng(bytes, pako) {
   if (!(bytes instanceof Uint8Array)||bytes.length>PNG_MAX_FILE_BYTES) fail('файл больше 128 МиБ или имеет неверный тип.');
   const h=pngHeader(bytes);
@@ -118,27 +144,30 @@ function chunk(name,data){
   for(let i=0;i<4;i++)out[4+i]=name.charCodeAt(i);
   out.set(data,8);v.setUint32(out.length-4,crc(out.subarray(4,out.length-4)));return out;
 }
-export function encodeIndexedPng(source,maxColors,useDither,pako){
+export function encodeIndexedPng(source,maxColors,useDither,pako,options={}){
   checkPngSize(source.width,source.height);
   if(typeof pako?.deflate!=='function')fail('кодировщик Deflate недоступен.');
+  const {pngFilter,pngLevel}=normalizePngOptions(options);
   const {palette,indexed,transparentIndex,paletteInfo}=indexedPalette(maxColors,useDither,source);
   const depth=palette.length<=2?1:palette.length<=4?2:palette.length<=16?4:8;
   const rowSize=Math.ceil(source.width*depth/8);
   const raw=new Uint8Array((rowSize+1)*source.height);
+  let previous=new Uint8Array(rowSize);
   for(let y=0;y<source.height;y++){
-    const row=(rowSize+1)*y;
-    // Filter 0: packed indices must remain unchanged before Deflate.
+    const row=new Uint8Array(rowSize);
     for(let x=0;x<source.width;x++){
-      const index=indexed[y*source.width+x],at=row+1+(x*depth>>3);
-      raw[at]|=index<<(8-depth-(x*depth&7));
+      const index=indexed[y*source.width+x],at=x*depth>>3;
+      row[at]|=index<<(8-depth-(x*depth&7));
     }
+    filterRow(raw,(rowSize+1)*y,row,previous,1,pngFilter==='default'?'none':pngFilter);
+    previous=row;
   }
   const header=new Uint8Array(13),v=view(header);
   v.setUint32(0,source.width);v.setUint32(4,source.height);
   header[8]=depth;header[9]=3;
   const plte=new Uint8Array(palette.length*3);
   palette.forEach((color,i)=>plte.set([color.r,color.g,color.b],i*3));
-  const compressed=pako.deflate(raw);
+  const compressed=pako.deflate(raw,{level:pngLevel});
   const pieces=[new Uint8Array(signature),chunk('IHDR',header),chunk('PLTE',plte)];
   if(transparentIndex>=0)pieces.push(chunk('tRNS',Uint8Array.of(0)));
   for(let at=0;at<compressed.length;at+=1048576)
@@ -152,23 +181,24 @@ export function pngDepth(value='auto'){
   return value;
 }
 export function resolvedPngDepth(value,pixels){return pngDepth(value)==='auto'?(pixels.bitDepth>8?16:8):Number(value);}
-export function encodePng(input,depth,pako){
+export function encodePng(input,depth,pako,options={}){
   const pixels=createPixelBuffer(input);checkPngSize(pixels.width,pixels.height);
+  const {pngFilter,pngLevel}=normalizePngOptions(options);
   if(![8,16].includes(depth)||!['uint8','uint16'].includes(pixels.sampleType)||pixels.alphaMode!=='straight')fail('для записи нужны целые независимые каналы RGB и alpha.');
   if(!['srgb','unknown'].includes(pixels.colorSpace))fail('запись этого цветового пространства пока не поддерживается.');
   const peak=2**pixels.bitDepth-1,outPeak=2**depth-1,bpp=4*depth/8,rowSize=pixels.width*bpp;
-  const raw=new Uint8Array((rowSize+1)*pixels.height),row=new Uint8Array(rowSize);
+  const raw=new Uint8Array((rowSize+1)*pixels.height),row=new Uint8Array(rowSize),previous=new Uint8Array(rowSize);
   for(let y=0;y<pixels.height;y++){
     for(let i=0;i<pixels.width*4;i++){
       const value=pixels.data[(y*pixels.width*4)+i];if(value>peak)fail('отсчёт вне диапазона.');
       const n=Math.round(value/peak*outPeak);
       if(depth===16){row[i*2]=n>>>8;row[i*2+1]=n&255;}else row[i]=n;
     }
-    const at=y*(rowSize+1);raw[at]=1;
-    for(let i=0;i<rowSize;i++)raw[at+1+i]=(row[i]-(i>=bpp?row[i-bpp]:0))&255;
+    filterRow(raw,y*(rowSize+1),row,previous,bpp,pngFilter==='default'?'sub':pngFilter);
+    previous.set(row);
   }
   const header=new Uint8Array(13);view(header).setUint32(0,pixels.width);view(header).setUint32(4,pixels.height);header[8]=depth;header[9]=6;
-  const compressed=pako.deflate(raw),pieces=[new Uint8Array(signature),chunk('IHDR',header)];
+  const compressed=pako.deflate(raw,{level:pngLevel}),pieces=[new Uint8Array(signature),chunk('IHDR',header)];
   if(pixels.colorSpace==='srgb')pieces.push(chunk('sRGB',new Uint8Array([0])));
   for(let at=0;at<compressed.length;at+=1048576)pieces.push(chunk('IDAT',compressed.subarray(at,at+1048576)));
   pieces.push(chunk('IEND',new Uint8Array()));

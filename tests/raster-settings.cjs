@@ -31,6 +31,7 @@ class Element {
   const dialog=get('tiffSettingsDialog');assert.equal(dialog.open,true);assert.equal(get('tiffLevelField').hidden,true);
   get('tiffCompression').value='none';dialog.emit('input');assert.equal(get('tiffPredictorField').hidden,true);assert.equal(result.tiffCompression,'none');
   get('tiffCompression').value='deflate';get('tiffLevel').value='3';dialog.emit('input');assert.equal(result.tiffLevel,3);assert.equal(get('tiffLevelField').hidden,false);
+  get('tiffCompression').value='packbits';dialog.emit('input');assert.equal(result.tiffCompression,'packbits');assert.equal(get('tiffLevelField').hidden,true);assert.equal(get('tiffPredictorField').hidden,true);
   dialog.close();const closed=result;dialog.emit('input');assert.equal(result,closed,'Closing releases callback');
   const {createControls}=await import('../src/ui/controls.mjs');let dirty=0;
   const deps={...settings,markDirty(){dirty++;},clamp:(value,min,max)=>Math.min(max,Math.max(min,value))};
@@ -48,6 +49,7 @@ class Element {
   assert.equal(dialog.open,false,'Comparison options do not open a dialog');
   c.tiffCompression.value='none';c.tiffCompression.emit('change');
   assert.equal(c.tiffLevelWrap.hidden,true);assert.equal(c.tiffPredictorWrap.hidden,true);
+  c.tiffCompression.value='packbits';c.tiffCompression.emit('change');assert.equal(c.tiffPredictorWrap.hidden,true);
   variant.config.format='png';controls.syncControlsVisibility(variant);assert.equal(c.tiffCompressionWrap.hidden,true);
   variant.config.format='tiff';c.tiffCompression.value='deflate';c.tiffCompression.emit('change');
   assert.equal(c.tiffLevel.value,'7');assert.equal(c.tiffPredictor.checked,true,'Hidden settings survive format/compression changes');
@@ -152,14 +154,20 @@ class Element {
   assert.equal(normalizeBatchSettings({pngDepth:'32'}).pngDepth,'auto');
   assert.equal(normalizeBatchSettings({pngDepth:16}).pngDepth,'auto');
   assert.equal(normalizeBatchSettings({pngDepth:'16'}).pngDepth,'16');
+  assert.equal(normalizeBatchSettings({pngFilter:'adaptive',pngLevel:9}).pngLevel,9);
+  assert.equal(validateComparison({...pngComparison,variants:pngComparison.variants.map(v=>({...v,pngFilter:'paeth',pngLevel:1}))}).variants[2].pngFilter,'paeth');
   const png={index:2,head:new Element(),config:{...pngComparison.variants[2]}};
   controls.buildCellControls(png);assert.equal(png.controls.pngDepth.value,'16');assert.equal(png.controls.pngDepthWrap.hidden,false);
+  png.controls.pngFilter.value='adaptive';png.controls.pngFilter.emit('change');assert.equal(png.config.pngFilter,'adaptive');assert.equal(png.controls.pngLevelWrap.hidden,false);
+  png.controls.pngLevel.value='9';png.controls.pngLevel.emit('input');assert.equal(png.config.pngLevel,9);
   const beforePng=dirty;png.controls.pngDepth.value='8';png.controls.pngDepth.emit('change');assert.equal(png.config.pngDepth,'8');assert.equal(dirty,beforePng+1);
   png.controls.select.value='pngUpng';png.controls.select.emit('change');assert.equal(png.controls.pngDepthWrap.hidden,true);
   png.controls.select.value='png';png.controls.select.emit('change');assert.equal(png.controls.pngDepth.value,'8');
   controls.buildCellControls(png);assert.equal(png.controls.pngDepth.value,'8');
   app.exportConfig={...DEFAULT_EXPORT_CONFIG,format:'png',pngDepth:'16'};batchDeps.openBatchDialog();
   assert.equal(get('batchPngField').hidden,false);assert.equal(get('batchPngDepth').value,'16');
+  get('batchPngFilter').value='paeth';get('batchPngLevel').value='9';batchDeps.updateBatchDialog();
+  assert.equal(get('batchPngLevelField').hidden,false);assert.equal(batchDeps.readBatchDialogConfig().pngFilter,'paeth');
   const beforePngPreview=previews;get('batchPngDepth').value='8';batchDeps.updateBatchDialog();assert.equal(previews,beforePngPreview+1);
   assert.equal(batchDeps.readBatchDialogConfig().pngDepth,'8');assert.equal(app.exportConfig.pngDepth,'16');
   els.batchDialog.close();batchDeps.openBatchDialog();assert.equal(get('batchPngDepth').value,'16','Cancel restores saved PNG depth');
@@ -171,6 +179,7 @@ class Element {
   assert.equal(indexedPng.controls.gifWrap.style.display,'');
   assert.equal(indexedPng.controls.ditherLabel.style.display,'');
   assert.equal(indexedPng.controls.pngDepthWrap.hidden,true);
+  assert.equal(indexedPng.controls.pngFilterWrap.hidden,false);
   const beforeIndexed=dirty;
   indexedPng.controls.gifColors.value='32';indexedPng.controls.gifColors.emit('change');
   indexedPng.controls.gifDither.checked=true;indexedPng.controls.gifDither.emit('change');
@@ -222,7 +231,7 @@ class Element {
   assert.throws(()=>batchSettings.validateExportConfig({...app.exportConfig,jpegSubsampling:'411'}),/JPEG/);
   assert.match(batchSettings.exportConfigDescription(app.exportConfig),/4:2:2/);
   els.batchDialog.close();
-  console.log('PASS PNG depth persistence/profiles, independent cells, automatic changes and batch draft/cancel/save');
+  console.log('PASS PNG depth/filter/Deflate persistence, independent cells, automatic changes and batch draft/cancel/save');
   console.log('PASS JPEG subsampling/progressive persistence, independent cells and batch draft/cancel/save');
   console.log('PASS single BMP choice, saved 8/24/32 profiles/preferences, automatic palette/compression changes, matte visibility, independent cells and batch draft/cancel/save');
   console.log('PASS TIFF profiles, normalization, automatic comparison, conditional controls, batch draft/cancel/save and preview invalidation');

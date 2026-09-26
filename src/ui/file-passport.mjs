@@ -2,6 +2,7 @@ export function createFilePassport({ app }, deps) {
   const get = id => document.getElementById(id);
   const dialog = get('filePassportDialog'), select = get('filePassportTarget');
   const fileFields = get('filePassportFields'), rasterFields = get('filePassportRaster'), status = get('filePassportStatus');
+  const paletteSection=get('filePassportPaletteSection'),paletteGrid=get('filePassportPalette');
   const cache = new WeakMap();
   let target = 'source', attached = false, request = 0, controller = null, current = null, optionsKey = '';
   const same = (a, b) => a && b && a.source === b.source && a.sourceGeneration === b.sourceGeneration && a.blob === b.blob && a.pixels === b.pixels && a.generation === b.generation && a.target === b.target && a.message === b.message;
@@ -25,6 +26,24 @@ export function createFilePassport({ app }, deps) {
       dt.textContent = label; dd.textContent = value; nodes.push(dt, dd);
     }
     element.replaceChildren(...nodes);
+  }
+  function showPalette(palette){
+    const entries=palette?.entries;
+    paletteSection.hidden=!Array.isArray(entries)||!entries.length;
+    paletteGrid.replaceChildren();
+    if(paletteSection.hidden)return;
+    const fragment=document.createDocumentFragment();
+    for(const entry of entries){
+      const item=document.createElement('div');item.className='passport-palette-entry';
+      const swatch=document.createElement('span');swatch.className='passport-palette-swatch';
+      swatch.style.backgroundColor=entry.alpha===0?'transparent':`rgb(${entry.r}, ${entry.g}, ${entry.b})`;
+      if(entry.alpha!==0)swatch.style.backgroundImage='none';
+      const hex=[entry.r,entry.g,entry.b].map(n=>n.toString(16).padStart(2,'0').toUpperCase()).join('');
+      const label=document.createElement('span');label.textContent=`${entry.index}: #${hex}${entry.alpha===0?' · прозрачно':''}`;
+      const count=document.createElement('span');count.textContent=`${number(entry.pixels)} px`;
+      item.append(swatch,label,count);fragment.append(item);
+    }
+    paletteGrid.append(fragment);
   }
   function syncOptions() {
     if (target !== 'source' && Number(target) >= app.layout) target = 'source';
@@ -77,6 +96,7 @@ export function createFilePassport({ app }, deps) {
         ['Заданный предел цветов', String(palette.requestedColors)],
         ['Прозрачный индекс', palette.transparentUsed ? 'Использован' : 'Не использован']);
     }
+    showPalette(snapshot.paletteInfo);
     if (info.format === 'JPEG' && info.mode) {
       rows.push(['Тип кодирования', info.mode], ['Прогрессивный', info.progressive ? 'Да' : 'Нет'],
         ['Компоненты (по маркерам)', info.colorModel || 'Не определено'],
@@ -99,6 +119,7 @@ export function createFilePassport({ app }, deps) {
     current = snapshot; const id = ++request;
     controller?.abort(); controller = null;
     fields(fileFields, []); fields(rasterFields, []);
+    showPalette(null);
     if (!snapshot.blob) { status.textContent = snapshot.message || 'Файл недоступен.'; return; }
     fields(fileFields, base(snapshot)); raster(snapshot); status.textContent = 'Читаю свойства файла…';
     const cached = cache.get(snapshot.blob);
@@ -119,7 +140,7 @@ export function createFilePassport({ app }, deps) {
     if (!attached) {
       attached = true;
       select.addEventListener('change', () => { target = select.value; updateFilePassport(); });
-      dialog.addEventListener('close', () => { controller?.abort(); controller = null; current = null; ++request; fields(fileFields, []); fields(rasterFields, []); status.textContent = ''; });
+      dialog.addEventListener('close', () => { controller?.abort(); controller = null; current = null; ++request; fields(fileFields, []); fields(rasterFields, []); showPalette(null); status.textContent = ''; });
     }
     current = null; dialog.showModal(); updateFilePassport();
   }

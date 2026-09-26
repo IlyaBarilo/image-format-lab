@@ -1,6 +1,6 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
-import { pngDepth } from '../core/png.mjs';
+import { pngDepth, normalizePngOptions } from '../core/png.mjs';
 import { BATCH_STORAGE_KEY, FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -46,6 +46,7 @@ export function createBatchSettings({app}, deps) {
     if (config.format === "tiff") normalizeTiffOptions(config);
     if (config.format === 'jpeg') normalizeJpegOptions(config);
     if (config.format === 'png') pngDepth(config.pngDepth);
+    if (['png','pngIndexed'].includes(config.format)) normalizePngOptions(config);
     if (config.delivery !== undefined && !["files", "zip"].includes(config.delivery)) throw new Error("Выберите способ получения результата.");
     if (config.targetKB) {
       if (!def.lossy || !Number.isInteger(Number(config.targetKB)) || Number(config.targetKB)<1 || Number(config.targetKB)>1000000) throw new Error("Бюджет должен быть целым числом от 1 до 1000000 КБ для формата с качеством.");
@@ -70,10 +71,13 @@ export function createBatchSettings({app}, deps) {
     const size = config.resizeWidth || config.resizeHeight
       ? `не более ${config.resizeWidth || "∞"}×${config.resizeHeight || "∞"} px` : "исходные размеры";
     const jpeg= config.format === 'jpeg' ? normalizeJpegOptions(config) : null;
+    const png=['png','pngIndexed'].includes(config.format)?normalizePngOptions(config):null;
+    const pngCompression=png&&png.pngFilter!=='default'?`, фильтр ${png.pngFilter}, Deflate ${png.pngLevel}`:'';
+    const tiff=config.format==='tiff'?normalizeTiffOptions(config):null;
     const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
-      : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}`
-      : config.format === "tiff" ? `, ${normalizeTiffOptions(config).tiffCompression === "none" ? "без сжатия" : normalizeTiffOptions(config).tiffCompression.toUpperCase() + (normalizeTiffOptions(config).tiffCompression === "deflate" ? " " + normalizeTiffOptions(config).tiffLevel : "") + (normalizeTiffOptions(config).tiffPredictor ? ", предиктор" : ", без предиктора")}`
-      : ["gif", "gifenc", "pngIndexed"].includes(config.format) ? `, до ${config.gifColors} цветов${config.format === 'gifenc' ? '' : config.gifDither ? ', с дизерингом' : ', без дизеринга'}`
+      : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}${pngCompression}`
+      : tiff ? `, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
+      : ["gif", "gifenc", "pngIndexed"].includes(config.format) ? `, до ${config.gifColors} цветов${config.format === 'gifenc' ? '' : config.gifDither ? ', с дизерингом' : ', без дизеринга'}${config.format==='pngIndexed'?pngCompression:''}`
       : config.format === 'bmp8' ? `, до ${config.bmpColors} цветов, ${config.bmpCompression === 'rle8' ? 'RLE8' : 'без сжатия'}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };
     const matte = def.alpha === "none" ? `; заливка ${matteNames[config.matte]}` : "";

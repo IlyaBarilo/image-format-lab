@@ -15,8 +15,8 @@ export function createPng({},deps){
     const imageData=new ImageData(preview.data,preview.width,preview.height);
     return {width:pixelBuffer.width,height:pixelBuffer.height,pixelBuffer,imageData};
   }
-  async function encodeExactPng(pixels,depth){return encodePng(pixels,depth,await pngCodec());}
-  async function encodePalettePng(source,colors,dither){return encodeIndexedPng(source,colors,dither,await pngCodec());}
+  async function encodeExactPng(pixels,depth,options){return encodePng(pixels,depth,await pngCodec(),options);}
+  async function encodePalettePng(source,colors,dither,options){return encodeIndexedPng(source,colors,dither,await pngCodec(),options);}
   function registerExactPngFile(file){exactSourceFiles.add(file);}
   return {decodePngFile,encodeExactPng,encodePalettePng,registerExactPngFile};
 }

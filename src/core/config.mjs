@@ -120,11 +120,11 @@ export const DEFAULT_VARIANTS = [
   { format: "jpeg", quality: 85, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white", jpegSubsampling: "420", jpegProgressive: false },
   { format: "png", quality: 100, gifColors: 256, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" },
   { format: "webp", quality: 85, gifColors: 128, gifDither: true, bmpColors: 256, bmpCompression: "none", matte: "white" }
-];
+].map(variant => ({ pngFilter: "default", pngLevel: 6, ...variant }));
 
 export const BATCH_STORAGE_KEY = "image-format-viewer.batch-settings.v1";
 
-export const DEFAULT_EXPORT_CONFIG = { pngDepth: "auto", tiffCompression: "deflate", tiffLevel: 6, tiffPredictor: true, ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
+export const DEFAULT_EXPORT_CONFIG = { pngDepth: "auto", pngFilter: "default", pngLevel: 6, tiffCompression: "deflate", tiffLevel: 6, tiffPredictor: true, ...DEFAULT_VARIANTS[1], resizeWidth: "", resizeHeight: "", metadataPolicy: "panorama", delivery: "files", targetKB: "", minQuality: 40 };
 
 export const BACKGROUNDS = {
   red: "#ef4444",

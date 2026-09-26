@@ -64,6 +64,11 @@ function fixture({width=13,height=11,depth=16,type=6,interlace=0,trns,extra=[],m
   const pixels=createPixelBuffer({width:256,height:256,data,sampleType:'uint16'}),copy=data.slice();
   const encoded=await encodePng(pixels,16,pako).arrayBuffer(),decoded=decodePng(new Uint8Array(encoded),pako);
   assert.deepEqual(decoded.data,data);assert.deepEqual(data,copy);
+  for(const pngFilter of ['adaptive','none','sub','up','average','paeth'])for(const pngLevel of [1,9]){
+    const custom=await encodePng(pixels,16,pako,{pngFilter,pngLevel}).arrayBuffer();
+    assert.deepEqual(decodePng(new Uint8Array(custom),pako).data,data,`${pngFilter}/${pngLevel}`);
+    assert.equal(scope.window.UPNG.decode(custom).depth,16);
+  }
   // A second decoder examines its original 16-bit bytes, never toRGBA8.
   const independent=scope.window.UPNG.decode(encoded);
   assert.equal(independent.depth,16);assert.equal(independent.ctype,6);
@@ -113,6 +118,11 @@ function fixture({width=13,height=11,depth=16,type=6,interlace=0,trns,extra=[],m
     assert.equal(preview.pixelBuffer.bitDepth,depth==='8'?8:16);assert.equal(output.sourcePixelBuffer,source.pixelBuffer);
     assert.deepEqual(preview.pixelBuffer.data,depth==='8'?reduced.data:data);preview.bitmap.close();
   }
+  const lowSource={...source,pixelBuffer:reduced,imageData:new ImageDataModel(pngPreview(reduced).data,reduced.width,reduced.height)};
+  const filteredOutput=await deps.encodeFromSource({format:'png',pngDepth:'8',pngFilter:'adaptive',pngLevel:9},lowSource);
+  assert.equal(filteredOutput.exactPng,true,'Explicit PNG8 filters use the bundled encoder');
+  const filteredPreview=await deps.decodeVariantForPreview(filteredOutput.blob,filteredOutput.exactPng);
+  assert.deepEqual(filteredPreview.pixelBuffer.data,reduced.data);filteredPreview.bitmap.close();
   const original=await deps.encodeFromSource({format:'original'},source);
   assert.equal(original.blob,file);assert.equal(original.sourcePixelBuffer,source.pixelBuffer);
   assert.deepEqual((await deps.imageDataToPreview(original.previewImageData,original.sourcePixelBuffer)).pixelBuffer.data,data);

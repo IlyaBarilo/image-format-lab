@@ -111,6 +111,23 @@ export function createControls({els, app}, deps) {
     pngDepth.value=variant.config.pngDepth || 'auto';
     pngDepthWrap.append(document.createTextNode('Разрядность'),pngDepth);head.append(pngDepthWrap);
     pngDepth.addEventListener('change',()=>{variant.config.pngDepth=pngDepth.value;deps.markDirty(variant);});
+    const pngFilterWrap=document.createElement('label');
+    pngFilterWrap.className='png-filter-wrap';
+    pngFilterWrap.title='Фильтр PNG меняет подготовку строк перед Deflate, но не пиксели. «Как обычно» сохраняет прежний путь кодирования.';
+    const pngFilter=document.createElement('select');pngFilter.className='select png-filter';
+    for(const [value,label] of [['default','Как обычно'],['adaptive','Адаптивный'],['none','None'],['sub','Sub'],['up','Up'],['average','Average'],['paeth','Paeth']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;pngFilter.append(option);
+    }
+    pngFilter.value=variant.config.pngFilter||'default';
+    pngFilterWrap.append(document.createTextNode('Фильтр'),pngFilter);
+    const pngLevelWrap=document.createElement('label');pngLevelWrap.className='quality-wrap png-level-wrap';
+    pngLevelWrap.title='Уровень Deflate 1–9: влияет на размер и время обработки без потерь пикселей.';
+    const pngLevel=document.createElement('input');pngLevel.className='png-level';pngLevel.type='range';pngLevel.min='1';pngLevel.max='9';pngLevel.value=String(variant.config.pngLevel??6);
+    const pngLevelValue=document.createElement('span');pngLevelValue.className='quality-value';pngLevelValue.textContent=pngLevel.value;
+    pngLevelWrap.append(document.createTextNode('Уровень'),pngLevel,pngLevelValue);
+    head.append(pngFilterWrap,pngLevelWrap);
+    pngFilter.addEventListener('change',()=>{variant.config.pngFilter=pngFilter.value;deps.syncControlsVisibility(variant);deps.markDirty(variant);});
+    pngLevel.addEventListener('input',()=>{variant.config.pngLevel=Number(pngLevel.value);pngLevelValue.textContent=pngLevel.value;deps.markDirty(variant);});
   
     const qualityWrap = document.createElement("label");
     qualityWrap.className = "quality-wrap";
@@ -204,7 +221,7 @@ export function createControls({els, app}, deps) {
     tiffCompressionWrap.title = "Сжатие TIFF без потерь";
     const tiffCompression = document.createElement("select");
     tiffCompression.className = "select tiff-compression";
-    for (const [value, label] of [["none", "Без сжатия"], ["deflate", "Deflate"], ["lzw", "LZW"]]) {
+    for (const [value, label] of [["none", "Без сжатия"], ["deflate", "Deflate"], ["lzw", "LZW"], ["packbits", "PackBits"]]) {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = label;
@@ -232,7 +249,7 @@ export function createControls({els, app}, deps) {
 
     const tiffPredictorWrap = document.createElement("label");
     tiffPredictorWrap.className = "switch tiff-predictor-wrap";
-    tiffPredictorWrap.hidden = variant.config.format !== "tiff" || tiffOptions.tiffCompression === "none";
+    tiffPredictorWrap.hidden = variant.config.format !== "tiff" || !["deflate","lzw"].includes(tiffOptions.tiffCompression);
     tiffPredictorWrap.title = "Предиктор по соседним пикселям для Deflate и LZW: может уменьшить файл без изменения пикселей.";
     const tiffPredictor = document.createElement("input");
     tiffPredictor.className = "tiff-predictor";
@@ -249,6 +266,11 @@ export function createControls({els, app}, deps) {
     variant.controls = {
       pngDepthWrap,
       pngDepth,
+      pngFilterWrap,
+      pngFilter,
+      pngLevelWrap,
+      pngLevel,
+      pngLevelValue,
       bmpDepthWrap,
       bmpDepth,
       bmpColorsWrap,
@@ -391,6 +413,14 @@ export function createControls({els, app}, deps) {
       variant.controls.bmpCompression.value = variant.config.bmpCompression || 'none';
     }
     if(variant.controls.pngDepthWrap){variant.controls.pngDepthWrap.hidden=format!=='png';variant.controls.pngDepth.value=variant.config.pngDepth || 'auto';}
+    if(variant.controls.pngFilterWrap){
+      const png=format==='png'||format==='pngIndexed';
+      variant.controls.pngFilterWrap.hidden=!png;
+      variant.controls.pngFilter.value=variant.config.pngFilter||'default';
+      variant.controls.pngLevelWrap.hidden=!png||variant.controls.pngFilter.value==='default';
+      variant.controls.pngLevel.value=String(variant.config.pngLevel??6);
+      variant.controls.pngLevelValue.textContent=variant.controls.pngLevel.value;
+    }
     if(variant.controls.jpegSubsamplingWrap){
       const options=normalizeJpegOptions(variant.config);
       variant.controls.jpegSubsamplingWrap.hidden=format!=='jpeg';
@@ -403,7 +433,7 @@ export function createControls({els, app}, deps) {
       const options = normalizeTiffOptions(variant.config);
       variant.controls.tiffCompressionWrap.hidden = format !== "tiff";
       variant.controls.tiffLevelWrap.hidden = format !== "tiff" || options.tiffCompression !== "deflate";
-      variant.controls.tiffPredictorWrap.hidden = format !== "tiff" || options.tiffCompression === "none";
+      variant.controls.tiffPredictorWrap.hidden = format !== "tiff" || !["deflate","lzw"].includes(options.tiffCompression);
       variant.controls.tiffCompression.value = options.tiffCompression;
       variant.controls.tiffLevel.value = String(options.tiffLevel);
       variant.controls.tiffLevelValue.textContent = String(options.tiffLevel);
