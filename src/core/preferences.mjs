@@ -6,7 +6,7 @@ import { DEFAULT_DISPLAY, normalizeDisplay } from './display-sdr.mjs';
 
 export const PREFERENCES_KEY = 'image-format-viewer.preferences.v1';
 export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
-  type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','vectorscope','profile','errorProfile','ssim','tradeoff']],
+  type: ['analysisType', 'histogram', ['histogram','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
   channel: ['analysisChannel', 'rgb', ['rgb','r','g','b','alpha']],
   matte: ['analysisMatte', 'white', ['white','black']],
   level: ['analysisLevel', 128, [0,255]],
@@ -24,7 +24,7 @@ export function defaultPreferences() {
     display:{...DEFAULT_DISPLAY},
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
-       displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',profile:'overlay',errorProfile:'separate',ssim:'separate'},
+       displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',cieXy:'overlay',profile:'overlay',errorProfile:'separate',ssim:'separate',deltaE:'separate'},
       pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE}}
   };
 }
@@ -57,7 +57,7 @@ export function normalizePreferences(value) {
       if((key==='level'||key==='position')?Number.isInteger(a[key])&&a[key]>=allowed[0]&&a[key]<=allowed[1]:typeof a[key]===typeof fallback&&allowed.includes(a[key]))result.analysis[key]=a[key];
     }
     for(const type of Object.keys(result.analysis.displays)){
-      const modes=['errorProfile','ssim'].includes(type)?['separate']:['vectorscope','errorHistogram'].includes(type)?['separate','overlay']:['separate','overlay','delta'];
+      const modes=['errorProfile','ssim','deltaE'].includes(type)?['separate']:['vectorscope','errorHistogram','cieXy'].includes(type)?['separate','overlay']:['separate','overlay','delta'];
       if(record(a.displays)&&modes.includes(a.displays[type]))result.analysis.displays[type]=a.displays[type];
     }
     if(Array.isArray(a.pair)&&a.pair.length===2&&a.pair.every(n=>Number.isInteger(n)&&n>=1&&n<=result.comparison.layout)&&a.pair[0]<a.pair[1])result.analysis.pair=[...a.pair];

@@ -5,6 +5,7 @@ import { analysisMaximum, spatialChannels, SIGNAL_NAMES } from '../core/analysis
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { profileBinAt } from '../core/line-profile.mjs';
 import { errorBinInterval, errorHistogramSummary } from '../core/error-histogram.mjs';
+import { renderCieXy } from './scope-plots.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′', 'Cb', 'Cr'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0', '#facc15', '#22d3ee', '#f472b6'];
@@ -70,7 +71,7 @@ export function createAnalysis({ app }, deps) {
     get('analysisGainField').hidden = !difference;
     get('analysisDifferenceLegend').hidden = !difference;
     get('analysisDifferenceLimit').textContent = `≥ ${number(255/Number(gain.value))}`;
-    matte.disabled = profile ? profileChannel.value === 'alpha' : vector || signalHistogram || type.value === 'ssim' ? false : difference || errorHistogram || errorProfile ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
+    matte.disabled = profile ? profileChannel.value === 'alpha' : vector || signalHistogram || ['ssim','cieXy','deltaE'].includes(type.value) ? false : difference || errorHistogram || errorProfile ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
     panel.dataset.type = type.value;
     help.title = spatial
       ? 'По горизонтали — положение в кадре, по вертикали — уровень 0–255. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
@@ -106,8 +107,16 @@ export function createAnalysis({ app }, deps) {
       help.title='Одномасштабный SSIM каждой ячейки относительно исходника. Число структурного сходства от −1 до 1, не процент качества; нажмите для методики.';
       get('analysisMethod').textContent='SSIM сравнивает результат с исходником в тех же координатах выбранной области без изменения размера. Для каждого пикселя считается локальный SSIM по гауссову окну 11×11 с σ=1,5, затем берётся среднее. У края окно отражается внутри выбранной области; уменьшения масштаба нет. Используется вычисленный Y′ = 0,2126 R + 0,7152 G + 0,0722 B из точных нормированных RGBA8/16 кодовых значений после округлённой композиции с выбранной белой или чёрной подложкой. Константы K1=0,01 и K2=0,03; результат безразмерный, −1…1, где 1 означает совпадение по этому методу. Это не процент качества, не линейная физическая яркость, не MS-SSIM и не оценка прозрачности отдельно. Нужны одинаковые размеры и совместимые известные цветовые пространства; при неизвестной метке сравниваются кодовые значения без цветового преобразования. Другие реализации могут использовать иной масштаб, границы окна или цветовой метод.';
     }
+    if(type.value==='cieXy'){
+      help.title='Цвета каждой ячейки на диаграмме CIE xy. Белый треугольник — охват sRGB, точка D65 — белый. Нажмите для методики.';
+      get('analysisMethod').textContent='CIE xy показывает цветность пикселей выбранной области после смешивания прозрачности с белой или чёрной подложкой. Расчёт: целые RGBA8/16 → SDR sRGB → линейный RGB → XYZ D65 → x=X/(X+Y+Z), y=Y/(X+Y+Z). Чёрные пиксели не имеют определённой цветности и подсчитываются отдельно. Плотность — число отсчётов в ячейке сетки 257×257; контур sRGB и D65 служат ориентирами. Для области свыше 500 000 пикселей берётся равномерная выборка до 500 000, её размер показан отдельно. Если у растра нет цветовой метки, предполагается sRGB. Это распределение показанных SDR-цветов после возможного ограничения гамута, не исходный охват ICC, HDR или измерение вывода монитора.';
+    }
+    if(type.value==='deltaE'){
+      help.title='Средняя цветовая разница ΔE00 каждой ячейки относительно исходника. Меньше — ближе по этому методу; нажмите для методики.';
+      get('analysisMethod').textContent='ΔE00 (CIEDE2000, веса 1:1:1) сравнивает пиксели результата и исходника в одинаковых координатах выбранной области. Нужны одинаковые размеры; масштабирование и совмещение содержимого не выполняются. После композиции с выбранной подложкой целые значения RGBA8/16 приводятся к SDR sRGB, затем через XYZ D65 с адаптацией к D50 — в Lab; средняя ΔE00 считается по попиксельным значениям. Для области свыше 500 000 пикселей используется равномерная выборка до 500 000; среднее и максимум тогда относятся только к выборке. При неизвестной цветовой метке предполагается sRGB. Это цветовая разница показанного SDR-представления, не процент качества, не оценка alpha отдельно, не исходный ICC-гамут и не HDR.';
+    }
     get('analysisMethod').textContent += ' Пункт «Заданная область» в списке области анализа открывает редактор общего прямоугольника в долях кадра для всех графиков. Повторный выбор этого пункта открывает сохранённую область для правки. Пограничные пиксели включаются целиком. Горизонталь Waveform/Parade 0–100% относится к выбранной области. При смене файла ручная область сбрасывается; обычные сохраняемые изображения и основные метрики не кадрируются. Кнопка «Создать исходник» добавляет отдельный PNG из применённой области для нового опыта.';
-     if(output.display==='overlay')get('analysisMethod').textContent+=' Наложение сравнивает выбранную пару ячеек. Для гистограмм и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют выбранным каналам; числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform яркости, Parade и вектороскопа первый след голубой, второй оранжевый; для совместного RGB Waveform каналы сохраняют свои цвета, первый след приглушён, второй ярче. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.';
+      if(output.display==='overlay')get('analysisMethod').textContent+=type.value==='cieXy'?' Наложение сравнивает выбранную пару ячеек: первая плотность голубая, вторая оранжевая. Нормировка общая; совпавшие координаты смешиваются по яркости. Изменение пары/вида не запускает кодирование или Worker.':' Наложение сравнивает выбранную пару ячеек. Для гистограмм и профиля первый график — приглушённая пастельная заливка до нуля с тонкой границей, второй — насыщенный сплошной контур поверх неё с тёмной окантовкой. Цвета соответствуют выбранным каналам; числа ячеек и роли подписаны в легенде. У профиля сохранены отрезки минимума/максимума групп; один отсчёт показан заполненной точкой и кольцом. Для Waveform яркости, Parade и вектороскопа первый след голубой, второй оранжевый; для совместного RGB Waveform каналы сохраняют свои цвета, первый след приглушён, второй ярче. Нормировка общая для выбранной пары. Изменение пары/вида не запускает кодирование или Worker.';
     if(output.display==='delta'){
       help.title='Разница графиков: вторая выбранная ячейка минус первая. Ноль означает совпадение графиков. Нажмите для методики и единиц.';
       get('analysisMethod').textContent='«Разница» вычитает график первой выбранной ячейки из второй; порядок подписан, например Δ 2 − 1. Используются уже рассчитанные графики текущих результатов и выбранной области. Плюс означает увеличение во второй ячейке, минус — уменьшение. RGB учитывает подложку анализа, α измеряется отдельно. ' + (spatial
@@ -130,10 +139,10 @@ export function createAnalysis({ app }, deps) {
       get('analysisMethod').textContent += ' Режим «Видимая часть» берёт фактический фрагмент каждой ячейки с учётом масштаба и перемещения. Пиксели на границе включаются целиком, фон вне изображения исключён. При разных размерах окон/результатов области могут различаться; их точные координаты записаны в данных графиков. В максимуме используются последние размеры окон просмотра. Линия A→B задаётся относительно видимой области каждой ячейки; её редактор показывает исходник в окне первой ячейки. Основные метрики и сохраняемые изображения остаются полными.';
     }
     const high=app.source?.pixelBuffer?.bitDepth>8||app.variants.slice(0,app.layout).some(v=>v.pixelBuffer?.bitDepth>8);
-    const precision=high?(type.value==='histogram'||errorHistogram||errorProfile||type.value==='ssim'||tradeoff?'Расчёт по точным пикселям каждой ячейки; показ изображения — 8 бит/канал.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
+    const precision=high?(type.value==='histogram'||errorHistogram||errorProfile||['ssim','cieXy','deltaE'].includes(type.value)||tradeoff?'Расчёт по точным пикселям каждой ячейки; экранный путь указан в настройках отображения.':'Этот график рассчитан по 8-битному предпросмотру; младшие биты исходника здесь не учитываются.'):'';
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
-    if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
+    if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=['cieXy','deltaE'].includes(type.value)?' Цветовое описание исходника неизвестно: для этого цветового анализа предполагается sRGB.':' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
   }
 
   function syncLayout() {
@@ -154,8 +163,8 @@ export function createAnalysis({ app }, deps) {
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
     if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
-    if(['difference','errorHistogram','errorProfile','ssim'].includes(type.value) && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
-      return {label,message:`${type.value==='difference'?'Карта':type.value==='errorProfile'?'Профиль ошибки':type.value==='ssim'?'SSIM':'Гистограмма ошибок'} требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
+    if(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(type.value) && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
+      return {label,message:`${type.value==='difference'?'Карта':type.value==='errorProfile'?'Профиль ошибки':type.value==='ssim'?'SSIM':type.value==='deltaE'?'ΔE00':'Гистограмма ошибок'} требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;
     if (followsViewport() && !viewport?.region) return { label, message: viewport?.message || 'Определяю видимую часть…' };
     return { label, imageData: variant.imageData, pixelBuffer: variant.pixelBuffer, histogramOptions: variant.histogramOptions ? { ...variant.histogramOptions, ...(variant.histogramOptions.range ? { range: [...variant.histogramOptions.range] } : {}) } : undefined, region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
@@ -202,7 +211,7 @@ export function createAnalysis({ app }, deps) {
     cards.forEach((card, side) => {
       if (card.element.hidden) return;
       const input = selected(side);
-      card.info.textContent = input.message || (['profile','errorProfile'].includes(type.value)?'Считаю пиксели линии…':type.value==='ssim'?'Считаю SSIM…':followsViewport()?'Считаю видимую часть…':'Считаю все пиксели…');
+      card.info.textContent = input.message || (['profile','errorProfile'].includes(type.value)?'Считаю пиксели линии…':type.value==='ssim'?'Считаю SSIM…':type.value==='deltaE'?'Считаю ΔE00…':followsViewport()?'Считаю видимую часть…':'Считаю все пиксели…');
       card.info.hidden = false;
       card.element.dataset.state = input.imageData ? 'pending' : 'unavailable';
     });
@@ -235,14 +244,14 @@ export function createAnalysis({ app }, deps) {
 
   async function compute(input, background, kind, reference, line) {
     const { imageData, pixelBuffer, histogramOptions, region } = input;
-    const owner = ['histogram','errorHistogram','errorProfile','ssim'].includes(kind) ? pixelBuffer || imageData : imageData;
+    const owner = ['histogram','errorHistogram','errorProfile','ssim','cieXy','deltaE'].includes(kind) ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
     let entry = cache.get(owner);
     const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['errorHistogram','errorProfile','ssim'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['errorHistogram','errorProfile','ssim','cieXy','deltaE'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
     if(cache === activeCache) cache.set(owner, entry);
@@ -257,7 +266,7 @@ export function createAnalysis({ app }, deps) {
         queued = false;
         const token = generation, inputs = cards.slice(0, app.layout).map((_, side) => selected(side)), background = matte.value;
         const kind = ['parade','rgbWaveform','ycbcrWaveform','ycbcrParade'].includes(type.value) ? 'waveform' : type.value;
-        const reference = ['errorHistogram','errorProfile','ssim'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
+        const reference = ['errorHistogram','errorProfile','ssim','deltaE'].includes(kind)?app.source?.pixelBuffer:app.source?.imageData, line=deps.getAnalysisLine();
         const computed = [];
         for (const input of inputs) {
           if (input.imageData) {
@@ -294,6 +303,8 @@ export function createAnalysis({ app }, deps) {
     if (type.value === 'errorHistogram') { drawErrorHistogram(); return; }
     if (type.value === 'errorProfile') { drawErrorProfile(); return; }
     if (type.value === 'ssim') { drawSSIM(); return; }
+    if (type.value === 'deltaE') { drawDeltaE(); return; }
+    if (type.value === 'cieXy') { drawCieXy(); return; }
     if (type.value === 'vectorscope' || type.value === 'profile') { drawExtraScopes(); return; }
     if (type.value !== 'histogram' && type.value !== 'signalHistogram') { drawSpatial(); return; }
     const signal=type.value==='signalHistogram',selectedChannel=signal?'rgb':channel.value;
@@ -351,7 +362,7 @@ export function createAnalysis({ app }, deps) {
   function updateSizeNote() {
     const sizes = [...new Set(results.filter(item => item.data).map(({ data: h }) => `${h.width}×${h.height}`))];
     status.textContent = sizes.length > 1
-      ? `Размеры различаются: ${sizes.join(', ')}. ${['histogram','signalHistogram','vectorscope'].includes(type.value) ? 'Сравниваются распределения выбранной области кадра.' : type.value === 'profile' ? 'Линия задана относительно области; координаты пикселей и число отсчётов различаются.' : 'Горизонталь нормирована по ширине выбранной области каждого кадра.'}` : '';
+      ? `Размеры различаются: ${sizes.join(', ')}. ${['histogram','signalHistogram','vectorscope','cieXy'].includes(type.value) ? 'Сравниваются распределения выбранной области кадра.' : type.value === 'profile' ? 'Линия задана относительно области; координаты пикселей и число отсчётов различаются.' : 'Горизонталь нормирована по ширине выбранной области каждого кадра.'}` : '';
   }
 
   function drawErrorHistogram() {
@@ -433,6 +444,42 @@ export function createAnalysis({ app }, deps) {
       lines.push(`${item.label}: ${description}`);
     });
     details.textContent=lines.join('\n');updateSizeNote();
+  }
+
+  function drawCieXy() {
+    const lines=[];
+    cards.forEach((card,side)=>{
+      if(card.element.hidden)return;
+      const item=results[side],data=item?.data;
+      if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'Нет результата.';card.info.hidden=false;card.canvas.hidden=true;card.values.textContent='';return;}
+      card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
+      const sampled=data.exact?`${number(data.sampleCount)} пикселей`:`выборка ${number(data.sampleCount)} из ${number(data.pixelCount)} пикселей`;
+      const description=`${rasterDescription(data)} · ${sampled} · чёрных без координат ${number(data.blackCount)} · ${data.colorAssumption==='srgb-assumed'?'sRGB предположен':'SDR sRGB'} на ${data.matte==='white'?'белой':'чёрной'} подложке`;
+      card.values.textContent=data.exact?'Все пиксели':`Выборка ${number(data.sampleCount)}`;
+      card.values.title=`${sampled}; ${number(data.occupiedBins)} занятых групп цветности.`;
+      card.badge.title=`${item.label}. ${description}`;
+      card.canvas.setAttribute('aria-label',`${item.label}. CIE xy. ${description}. Белый контур показывает sRGB, жёлтая точка — D65.`);
+      renderCieXy(card.canvas,[data]);lines.push(`${item.label}: ${description}. Занято ${number(data.occupiedBins)} групп.`);
+    });
+    details.textContent=lines.join('\n');updateSizeNote();
+  }
+
+  function drawDeltaE() {
+    const lines=[];
+    cards.forEach((card,side)=>{
+      if(card.element.hidden)return;
+      const item=results[side],data=item?.data;
+      if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'Нет результата.';card.info.hidden=false;card.canvas.hidden=true;card.values.textContent='';return;}
+      card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
+      const sampled=data.exact?`${number(data.sampleCount)} пикселей`:`выборка ${number(data.sampleCount)} из ${number(data.pixelCount)} пикселей`;
+      const description=`${rasterDescription(data)} · ${sampled} · RGBA ${data.bitDepth.source}/${data.bitDepth.result} бит · ${data.colorAssumption==='srgb-assumed'?'sRGB предположен':'SDR sRGB'} на ${data.matte==='white'?'белой':'чёрной'} подложке`;
+      card.values.textContent=`Средняя ΔE00 ${number(data.mean)} · максимум ${number(data.maximum)}`;
+      card.values.title=`${sampled}. Меньше — ближе по CIEDE2000; максимум ${data.exact?'по области':'только по выборке'}.`;
+      card.badge.title=`${item.label}. ${description}`;
+      card.canvas.setAttribute('aria-label',`${item.label}. ${description}. Средняя ΔE00 ${number(data.mean)}, максимум ${number(data.maximum)}.`);
+      deps.plotDeltaE(card.canvas,data);lines.push(`${item.label}: ${description}. Средняя ΔE00 ${number(data.mean)}, максимум ${number(data.maximum)}.`);
+    });
+    details.textContent=lines.join('\n');status.textContent='';
   }
 
   function drawExtraScopes() {
@@ -670,6 +717,8 @@ export function createAnalysis({ app }, deps) {
     else if (settings.type === 'profile') deps.plotLineProfile(canvas, data, CHANNELS[settings.profileChannel], settings.position, outputSize);
     else if (settings.type === 'errorProfile') deps.plotErrorProfile(canvas, data, settings.errorChannel==='alpha'?1:0, settings.position, maximum, outputSize);
     else if (settings.type === 'ssim') deps.plotSSIM(canvas, data, outputSize);
+    else if (settings.type === 'deltaE') deps.plotDeltaE(canvas, data, outputSize);
+    else if (settings.type === 'cieXy') renderCieXy(canvas, [data], outputSize);
     else if (settings.type === 'difference') plotDifference(canvas, data, settings.differenceChannel === 'alpha' ? 1 : 0, Array.from({length:256},(_,value)=>differenceColor(value,settings.gain)), outputSize);
     else if (settings.type === 'errorHistogram') plotErrorHistogram(canvas,data,settings.errorChannel,maximum,settings.level,outputSize);
     else throw new Error('Неизвестный вид графика отчёта.');

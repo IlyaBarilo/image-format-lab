@@ -23,6 +23,7 @@ async function makeSnapshot(type, display, count = 2) {
   const {computeLineProfile} = await import('../src/core/line-profile.mjs');
    const {computeDifference} = await import('../src/core/difference.mjs');
    const {computeErrorHistogram} = await import('../src/core/error-histogram.mjs');
+  const {computeCieXy, computeDeltaE00} = await import('../src/core/color-sdr.mjs');
   const width = 64, height = 32, region = {unit:'pixels', x:8, y:4, width:48, height:24};
   const image = {width, height, data: Uint8ClampedArray.from({length:width * height * 4}, (_, i) => i % 4 === 3 ? 255 : (Math.floor(i / 4) + i % 4 * 51) % 256)};
   const altered = {...image, data:image.data.map((v, i) => i % 4 === 3 ? v : Math.round(v / 32) * 32)};
@@ -31,7 +32,7 @@ async function makeSnapshot(type, display, count = 2) {
     const input = i % 2 ? altered : image;
     return {cell:i + 1, label:`${i + 1} · ${i % 2 ? 'Квантование цвета' : 'Исходный: PNG'}`, status:'ready', message:'',
       measurement:{width, height, bytes:8192 - i * 1000, psnrRGB:i ? 35 : Infinity, processingMs:i * 3, alphaErrorPercent:0},
-       data:type === 'tradeoff' ? {width, height} : type === 'difference' ? computeDifference(input, image, 'white', region) : type === 'errorHistogram' ? computeErrorHistogram(input, image, 'white', region) : compute[type](input, 'white', region)};
+       data:type === 'tradeoff' ? {width, height} : type === 'difference' ? computeDifference(input, image, 'white', region) : type === 'errorHistogram' ? computeErrorHistogram(input, image, 'white', region) : type === 'cieXy' ? computeCieXy(input, 'white', region) : type === 'deltaE' ? computeDeltaE00(input, image, 'white', region) : compute[type](input, 'white', region)};
   });
   return {version:1, revision:1, source:{name:'gradient.png', width, height, bytes:8192},
     method:'Графики используют одинаковую шкалу и рассчитанные данные выбранной области изображения.', items,
@@ -74,7 +75,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     elements.set('analysisCombinedChart', combined);
     globalThis.document = {getElementById:get, createElement: tag => tag === 'canvas' ? canvas() : element(), querySelectorAll: () => cards};
     get('analysisType').value = snapshot.settings.type;
-     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', profile:'Профиль', difference:'Карта различий', tradeoff:'Размер и метрика'}[snapshot.settings.type];
+     get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', cieXy:'CIE xy', deltaE:'Цветовая разница ΔE00', profile:'Профиль', difference:'Карта различий', tradeoff:'Размер и метрика'}[snapshot.settings.type];
     get('analysisMetric').value = snapshot.settings.metric;
     const deps = {...createAnalysisCombined(), ...createScopePlots(), isAnalysisResizing:() => false, getAnalysisSnapshot:() => snapshot,
       downloadBlob: (blob, name) => downloads.push({blob, name})};
@@ -103,8 +104,8 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
 }
 
 async function main() {
-   for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','profile','difference','tradeoff']) {
-     const modes = type === 'tradeoff' ? ['metrics'] : type === 'difference' ? ['separate'] : ['vectorscope','errorHistogram'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
+   for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','cieXy','deltaE','profile','difference','tradeoff']) {
+     const modes = type === 'tradeoff' ? ['metrics'] : ['difference','deltaE'].includes(type) ? ['separate'] : ['vectorscope','errorHistogram','cieXy'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
     for (const display of modes) {
       const snapshot = await makeSnapshot(type, display, 4), before = structuredClone(snapshot);
       const short = await exportReport(snapshot, {width:1400, height:112, dpr:2});
@@ -129,6 +130,12 @@ async function main() {
   const {report} = await exportReport(unavailable);
   assert.equal(report.images.length, 1);
   assert.ok(report.ops.some(op => op[0] === 'fillText' && op[1].includes('Результат ещё не готов.')));
+  const color = await exportReport(await makeSnapshot('deltaE','separate'), {includeJSON:true});
+  assert.equal(color.json.settings.type,'deltaE');
+  assert.ok(color.json.items[1].data.mean > 0);
+  const xy = await exportReport(await makeSnapshot('cieXy','overlay'), {includeJSON:true});
+  assert.equal(xy.json.items[0].data.bins.length,257*257);
+  assert.ok(xy.report.images[0].ops.some(op => op[0] === 'image'), 'CIE xy includes color density in PNG');
   console.log('PASS report-sized redraw for all charts/modes, 2/4 cells, DPR, viewport data, common scale, unavailable cells and unchanged live dimensions');
 }
 module.exports = {makeSnapshot, exportReport};

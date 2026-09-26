@@ -2,6 +2,7 @@
 import {ANALYSIS_CHANNELS,analysisMaximum,spatialChannels,SIGNAL_NAMES} from '../core/analysis-output.mjs';
 import {histogramView,histogramTick,groupHistogramDelta} from '../core/histogram-view.mjs';
 import {chromaCoordinates} from '../core/vectorscope.mjs';
+import {renderCieXy} from './scope-plots.mjs';
 const COLORS=['#ff4b55','#27e36c','#3594ff','#f1f5f9','#facc15','#22d3ee','#f472b6'],NAMES=['R','G','B','α','Y′','Cb','Cr'];
 const FILL_COLORS=['#e8b4bc','#afd6ba','#b2c8e8','#c9d1db','#e4dbaf','#a1dce3','#e7b2d4'];
 const SIGNAL_COLORS=['#facc15','#22d3ee','#f472b6'],SIGNAL_FILLS=['#e4dbaf','#a1dce3','#e7b2d4'];
@@ -118,6 +119,7 @@ export function createAnalysisCombined(){
     }
   }
   function renderAnalysisOverlay(canvas,items,settings,outputSize){
+    if(settings.type==='cieXy'){renderCieXy(canvas,items.map(item=>item.data),outputSize);return;}
      const {ctx,width,height,dpr}=prepare(canvas,outputSize),kind=settings.type,profile=kind==='profile',error=kind==='errorHistogram',signal=kind==='signalHistogram',hist=kind==='histogram'||signal||error;
      const view=kind==='histogram'||signal?histogramView(items,settings.channel,Math.max(256,width-74),{allowUnknownColorSpace:true}):null;
     if(view){items=view.items;canvas.dataset.xMin=String(view.scale.min);canvas.dataset.xMax=String(view.scale.max);canvas.dataset.bins=String(view.scale.bins);}

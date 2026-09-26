@@ -32,6 +32,10 @@ function events() {
    const combinedSignal=normalizePreferences({version:1,analysis:{type:'ycbcrWaveform',displays:{ycbcrWaveform:'delta'}}});
    assert.equal(combinedSignal.analysis.type,'ycbcrWaveform');
    assert.equal(combinedSignal.analysis.displays.ycbcrWaveform,'delta');
+   const colorModes=normalizePreferences({version:1,analysis:{type:'cieXy',displays:{cieXy:'separate',deltaE:'overlay'}}});
+   assert.equal(colorModes.analysis.type,'cieXy');
+   assert.equal(colorModes.analysis.displays.cieXy,'separate');
+   assert.equal(colorModes.analysis.displays.deltaE,'separate','ΔE00 has no overlay mode');
    const invalidErrorMode=structuredClone(custom);invalidErrorMode.analysis.displays.errorHistogram='delta';
    assert.equal(normalizePreferences(invalidErrorMode).analysis.displays.errorHistogram,'overlay');
   const legacy=structuredClone(custom);legacy.comparison.autoApply=false;

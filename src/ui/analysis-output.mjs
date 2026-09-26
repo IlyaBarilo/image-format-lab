@@ -12,7 +12,7 @@ export function createAnalysisOutput({app},deps){
   const get=id=>document.getElementById(id),pair=get('analysisPair'),metric=get('analysisMetric');
   const displayInputs=[['separate',get('analysisDisplaySeparate')],['overlay',get('analysisDisplayOverlay')],['delta',get('analysisDisplayDelta')]];
   // Each diagram keeps its own display choice; preferences persist this map.
-  const displays=new Map([['histogram','overlay'],['signalHistogram','overlay'],['errorHistogram','overlay'],['profile','overlay']]);
+  const displays=new Map([['histogram','overlay'],['signalHistogram','overlay'],['errorHistogram','overlay'],['profile','overlay'],['cieXy','overlay']]);
   const combined=get('analysisCombined'),canvas=get('analysisCombinedChart'),legend=get('analysisCombinedLegend'),note=get('analysisCombinedInfo');
   const png=get('analysisPNG'),json=get('analysisJSON'),notice=get('analysisSaveStatus');
   let saving=false,attached=false,lastDelta=null;
@@ -23,7 +23,7 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile','ssim'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','errorProfile','ssim','deltaE'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
@@ -35,9 +35,9 @@ export function createAnalysisOutput({app},deps){
     if(pair.dataset.layout!==key){const old=pair.value;pair.replaceChildren();for(let a=1;a<=app.layout;a++)for(let b=a+1;b<=app.layout;b++){const option=document.createElement('option');option.value=`${a},${b}`;option.textContent=`${a} + ${b}`;pair.append(option);}pair.value=[...pair.options].some(o=>o.value===old)?old:'1,2';pair.dataset.layout=key;}
     const settings=getAnalysisOutputSettings();
     for(const option of pair.options){const [a,b]=option.value.split(',');option.textContent=settings.display==='delta'?`${b} − ${a}`:`${a} + ${b}`;}
-    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile','ssim'].includes(kind);
+    get('analysisDisplayField').hidden=['tradeoff','difference','errorProfile','ssim','deltaE'].includes(kind);
     get('analysisDisplayDeltaField').hidden=!DELTA_TYPES.includes(kind);
-    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile','ssim'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
+    for(const [value,input] of displayInputs){input.checked=settings.display===value;input.disabled=['tradeoff','difference','errorProfile','ssim','deltaE'].includes(kind)||(value==='delta'&&!DELTA_TYPES.includes(kind));}
     get('analysisPairField').hidden=!['overlay','delta'].includes(settings.display)||app.layout===2;
     get('analysisMetricField').hidden=kind!=='tradeoff';
     combined.hidden=settings.display==='separate';
@@ -93,6 +93,7 @@ export function createAnalysisOutput({app},deps){
             if(items.some(i=>i.data.underflow?.some(n=>n)||i.data.overflow?.some(n=>n)))note.textContent+=' '+items.map(i=>`${i.cell}: ${histogramSummary(i.data,snapshot.settings.channel)}`).join(' ');
           }
           if(snapshot.settings.type==='errorHistogram'){get('analysisLevelValue').textContent=snapshot.settings.level===0?'0%':`${fmt(snapshot.settings.level/255*100)}%`;note.textContent=errorBinInterval(snapshot.settings.level)+'; группа 0 — только точное совпадение.';}
+          if(snapshot.settings.type==='cieXy')note.textContent=items.map(item=>`${item.cell}: ${item.data.exact?'все пиксели':'выборка '+fmt(item.data.sampleCount)+' из '+fmt(item.data.pixelCount)}, чёрных ${fmt(item.data.blackCount)}${item.data.colorAssumption==='srgb-assumed'?'; sRGB предположен':''}`).join('. ')+'. Белый треугольник — sRGB, точка — D65.';
           const descriptions=items.map(i=>`${i.label}: ${i.data.width}×${i.data.height}, область ${i.data.bounds.x}, ${i.data.bounds.y}: ${i.data.bounds.width}×${i.data.bounds.height}${i.data.sampleCount?`, ${i.data.sampleCount} отсчётов`:''}${histView?'. '+histogramSummary(i.data,snapshot.settings.channel):''}${snapshot.settings.type==='errorHistogram'?`. ${errorHistogramSummary(i.data)}; ${i.data.bitDepth.source}/${i.data.bitDepth.result} бит/канал${i.data.colorComparison==='unknown-code-values'?'; цветовая метка неизвестна, сравниваются кодовые значения':''}`:''}`);
           get('analysisDetails').textContent=descriptions.join('\n');
           const sizes=new Set(items.map(i=>`${i.data.width}×${i.data.height}`));get('analysisStatus').textContent=sizes.size>1?(snapshot.settings.scope==='viewport'?'Размеры различаются; анализируется видимая часть каждой ячейки без выравнивания содержимого.':'Размеры различаются; используются одинаковые относительные область и линия без выравнивания содержимого.'):'';
