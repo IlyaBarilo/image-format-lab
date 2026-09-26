@@ -197,7 +197,8 @@ async function dimensions(page, bytes) {
       report.checks.push('public UI export ' + format);
     }
     for (const format of ['pngUpng', 'gifenc']) {
-      await cell.locator('.format-select').selectOption(format);
+      await cell.locator('.format-select').selectOption(format==='pngUpng'?'png':format);
+      if(format==='pngUpng')await cell.locator('.png-mode').selectOption('optimized');
       assert.deepEqual(await dimensions(page, await downloadFrom(page, save)), [960, 640]);
       report.checks.push('public UI export ' + format);
     }
@@ -330,11 +331,13 @@ async function dimensions(page, bytes) {
     assert.equal(await slowPage.locator('#retryCodecs').isVisible(), false);
     await slowPage.locator('#sampleImage').click();
     await slowPage.locator('#convertAll').click();
-    assert.equal(await slowPage.locator('#batchFormat').inputValue(), 'pngUpng');
+    assert.equal(await slowPage.locator('#batchFormat').inputValue(), 'png');
+    assert.equal(await slowPage.locator('#batchPngMode').inputValue(), 'optimized');
     assert.equal(await slowPage.locator('#batchStart').isDisabled(), true);
     await slowPage.evaluate(() => codecProbe.release());
     await slowPage.waitForFunction(() => document.getElementById('codecStatus').dataset.state === 'ready');
-    assert.equal(await slowPage.locator('#batchFormat').inputValue(), 'pngUpng');
+    assert.equal(await slowPage.locator('#batchFormat').inputValue(), 'png');
+    assert.equal(await slowPage.locator('#batchPngMode').inputValue(), 'optimized');
     assert.deepEqual(await dimensions(slowPage, await downloadFrom(slowPage, slowPage.locator('#batchPreviewDownload'))), [960, 640]);
     assert.equal(await slowPage.locator('#batchStart').isDisabled(), false);
     assert.equal(await slowPage.evaluate(() => codecProbe.scripts.length), 3);

@@ -99,10 +99,17 @@ function chunks(bytes){
   reportDeps.codecLabel=reports.codecLabel;
   reportDeps.comparisonReport=reports.comparisonReport;
   reportDeps.csvCell=reports.csvCell;
-  assert.deepEqual(reports.comparisonReport().variants[0].palette,integrated.paletteInfo);
+  const observation=reports.comparisonReport().variants[0];
+  assert.deepEqual(observation.palette,integrated.paletteInfo);
+  assert.equal(observation.config.format,'png');
+  assert.equal(observation.config.formatMode,'palette');
+  assert.equal(observation.config.gifColors,16);
   reports.saveComparisonReport('csv');
   const csv=await saved.text();
   assert.match(csv,/palette_used_entries/);
+  assert.match(csv,/"format","format_mode"/);
+  assert.match(csv,/"png","palette"/);
+  assert.match(csv,/png_index_depth/);
   assert.match(csv,new RegExp(String(integrated.paletteInfo.usedEntries)));
   console.log('PASS indexed PNG bit depths, PLTE/tRNS, independent decoding, shared GIF palette and source ownership');
 })().catch(error=>{console.error(error);process.exitCode=1;});

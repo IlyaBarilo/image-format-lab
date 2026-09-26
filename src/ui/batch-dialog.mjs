@@ -25,6 +25,7 @@ export function createBatchDialog({els, app}, deps) {
     if (app.batchRun?.running || app.samplePending || !app.files.length || els.batchDialog.open) return;
     const config = app.exportConfig;
     document.getElementById('batchPngDepth').value=config.pngDepth || 'auto';
+    document.getElementById('batchPngMode').value=config.format==='pngIndexed'?'palette':config.format==='pngUpng'?'optimized':'rgba';
     document.getElementById('batchPngFilter').value=config.pngFilter || 'default';
     document.getElementById('batchPngLevel').value=String(config.pngLevel??6);
     document.getElementById("batchBmpDepth").value = config.format === 'bmp8' ? '8' : config.format === "bmp32" ? "32" : "24";
@@ -57,7 +58,7 @@ export function createBatchDialog({els, app}, deps) {
   }
   
   function readBatchDialogConfig() {
-    const format = formatFromOption(els.batchFormat.value, document.getElementById("batchBmpDepth").value);
+    const format = formatFromOption(els.batchFormat.value, document.getElementById("batchBmpDepth").value,document.getElementById('batchPngMode').value);
     const def = FORMAT_DEFS[format];
     const limited = els.batchResizeMode.value === "limit";
     const quality = Number(els.batchQualityNumber.value);
@@ -109,6 +110,7 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
     document.getElementById('batchPngField').hidden=config.format!=='png';
+    document.getElementById('batchPngModeField').hidden=!['png','pngIndexed','pngUpng'].includes(config.format);
     document.getElementById('batchPngFilterField').hidden=!['png','pngIndexed'].includes(config.format);
     document.getElementById('batchPngLevelField').hidden=!['png','pngIndexed'].includes(config.format)||config.pngFilter==='default';
     document.getElementById('batchPngLevelValue').textContent=String(config.pngLevel);

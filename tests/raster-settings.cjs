@@ -12,6 +12,22 @@ class Element {
   close(){this.open=false;this.emit('close');}
 }
 (async()=>{
+  const {FORMAT_OPTIONS,formatFromOption,formatOptionValue,reportFormatConfig}=await import('../src/core/format-options.mjs');
+  assert.equal(FORMAT_OPTIONS.filter(option=>option.value==='png').length,1);
+  assert.equal(formatOptionValue('pngIndexed'),'png');
+  assert.equal(formatOptionValue('pngUpng'),'png');
+  assert.equal(formatFromOption('png','24','palette'),'pngIndexed');
+  assert.equal(formatFromOption('png','24','optimized'),'pngUpng');
+  assert.equal(formatFromOption('png','24','rgba'),'png');
+  for(const [internal,format,formatMode] of [
+    ['pngIndexed','png','palette'],['png','png','full-color'],['pngUpng','png','optimized'],
+    ['bmp8','bmp','8-bit'],['bmp24','bmp','24-bit'],['bmp32','bmp','32-bit'],
+    ['gifenc','gif','gifenc'],['webpLossless','webp','lossless'],['jxlLossless','jxl','lossless']
+  ]){
+    const report=reportFormatConfig({format:internal});
+    assert.equal(report.format,format);
+    assert.equal(report.formatMode,formatMode);
+  }
   const {normalizeBatchSettings,validateComparison,parseProfiles}=await import('../src/core/settings.mjs');
   const {DEFAULT_VARIANTS,DEFAULT_EXPORT_CONFIG}=await import('../src/core/config.mjs');
   const {normalizeTiffOptions}=await import('../src/core/raster-codecs.mjs');
@@ -161,8 +177,8 @@ class Element {
   png.controls.pngFilter.value='adaptive';png.controls.pngFilter.emit('change');assert.equal(png.config.pngFilter,'adaptive');assert.equal(png.controls.pngLevelWrap.hidden,false);
   png.controls.pngLevel.value='9';png.controls.pngLevel.emit('input');assert.equal(png.config.pngLevel,9);
   const beforePng=dirty;png.controls.pngDepth.value='8';png.controls.pngDepth.emit('change');assert.equal(png.config.pngDepth,'8');assert.equal(dirty,beforePng+1);
-  png.controls.select.value='pngUpng';png.controls.select.emit('change');assert.equal(png.controls.pngDepthWrap.hidden,true);
-  png.controls.select.value='png';png.controls.select.emit('change');assert.equal(png.controls.pngDepth.value,'8');
+  png.controls.pngMode.value='optimized';png.controls.pngMode.emit('change');assert.equal(png.config.format,'pngUpng');assert.equal(png.controls.pngDepthWrap.hidden,true);
+  png.controls.pngMode.value='rgba';png.controls.pngMode.emit('change');assert.equal(png.config.format,'png');assert.equal(png.controls.pngDepth.value,'8');
   controls.buildCellControls(png);assert.equal(png.controls.pngDepth.value,'8');
   app.exportConfig={...DEFAULT_EXPORT_CONFIG,format:'png',pngDepth:'16'};batchDeps.openBatchDialog();
   assert.equal(get('batchPngField').hidden,false);assert.equal(get('batchPngDepth').value,'16');

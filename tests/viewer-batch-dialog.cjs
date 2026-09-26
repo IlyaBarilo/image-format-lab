@@ -196,7 +196,15 @@ async function finished(page) {
       assert.equal(await page.locator('#batchGifColors').inputValue(),'256');
       assert.equal(await page.locator('#batchGifDither').isChecked(),true);
       assert.equal(await page.locator('#batchFormat option[value="gifenc"]').evaluate(el=>el.disabled),false);
-      assert.equal(await page.locator('#batchFormat option[value="pngUpng"]').evaluate(el=>el.disabled),false);
+      assert.equal(await page.locator('#batchFormat option[value="png"]').evaluate(el=>el.disabled),false);
+      await page.locator('#batchFormat').selectOption('png');
+      await page.locator('#batchPngMode').selectOption('optimized');
+      assert.equal(await page.locator('#batchPngField').isVisible(),false);
+      assert.equal(await page.locator('#batchPngFilterField').isVisible(),false);
+      await page.locator('#batchPngMode').selectOption('palette');
+      assert.equal(await page.locator('#batchGifField').isVisible(),true);
+      await page.locator('#batchPngMode').selectOption('rgba');
+      assert.equal(await page.locator('#batchPngField').isVisible(),true);
       await page.locator('#batchFormat').selectOption('bmp');
       assert.equal(await page.locator('#batchBmpField').isVisible(),true);
       await page.locator('#batchBmpDepth').selectOption('32');
@@ -264,10 +272,11 @@ async function finished(page) {
       await page.waitForFunction(()=>app.source && !app.sourceLoading);
       assert.equal(await page.evaluate(()=>app.exportConfig.format),'pngUpng');
       await page.locator('#convertAll').click();
-      assert.equal(await page.locator('#batchFormat').inputValue(),'pngUpng');
+      assert.equal(await page.locator('#batchFormat').inputValue(),'png');
+      assert.equal(await page.locator('#batchPngMode').inputValue(),'optimized');
       assert.equal(await page.locator('#batchStart').isDisabled(),true);
       assert.match(await page.locator('#batchDialogError').textContent(),/кодек/);
-      await page.locator('#batchFormat').selectOption('png'); await page.locator('#batchStart').click(); await finished(page);
+      await page.locator('#batchPngMode').selectOption('rgba'); await page.locator('#batchStart').click(); await finished(page);
       assert.equal(await page.evaluate(()=>downloads[0].type),'image/png');
     });
 

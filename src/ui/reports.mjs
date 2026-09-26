@@ -1,4 +1,5 @@
 import { FORMAT_DEFS, OPTIONAL_CODECS } from "./../core/config.mjs";
+import { reportFormatConfig } from '../core/format-options.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createReports({app, els}, deps) {
@@ -14,13 +15,13 @@ export function createReports({app, els}, deps) {
   function comparisonReport() {
     const source = app.source;
     if (!source || app.sourceLoading) throw new Error("Дождитесь открытия исходника.");
-    return {version:1, createdAt:new Date().toISOString(), browser:navigator.userAgent,
+    return {version:2, createdAt:new Date().toISOString(), browser:navigator.userAgent,
       source:{name:source.name, width:source.width, height:source.height, bytes:source.size,bitDepth:source.pixelBuffer?.bitDepth??8,colorSpace:source.pixelBuffer?.colorSpace??'unknown'},
       methodology:{psnr:"RGB по всем пикселям на белой подложке в нормированной шкале исходных отсчётов; Infinity означает совпадение видимого RGB", alpha:"Средняя абсолютная ошибка alpha, % от полного диапазона канала", time:"Время обработки варианта, включая ожидание, декодирование и метрики; не изолированный тест кодировщика", reference:"Рабочие пиксели декодированного исходника; PNG16 сохраняет 16 бит, после изменения размера используется RGBA8. Для неизвестного цвета сравниваются кодовые значения, без ICC/HDR-преобразований", zoom:"100%: один пиксель изображения на один CSS-пиксель"},
       variants:app.variants.filter(v=>!v.cell.classList.contains("hidden")).map(v=>{
         const ready=deps.isVariantReady(v);
         return {cell:v.index+1, status:ready?"ready":v.error?"error":v.processing?"processing":"stale",
-          config:{...(ready?v.resultConfig:v.config)}, codec:deps.codecLabel(v.config.format,ready?v.resultConfig:v.config),
+          config:reportFormatConfig(ready?v.resultConfig:v.config), codec:deps.codecLabel(v.config.format,ready?v.resultConfig:v.config),
           error:v.error || null, palette:ready?v.paletteInfo||null:null,
           metrics:ready?{...v.measurement, psnrRGB:v.measurement?.psnrRGB===Infinity?"Infinity":v.measurement?.psnrRGB}:null};
       })};
@@ -44,8 +45,22 @@ export function createReports({app, els}, deps) {
   function saveComparisonReport(type) {
     const report = deps.comparisonReport();
     if (type === "json") { deps.downloadBlob(new Blob([JSON.stringify(report,null,2)], {type:"application/json"}), "comparison-report.json"); return; }
-    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_colors","bmp_compression","palette_defined_entries","palette_stored_entries","palette_used_entries","palette_transparent_used","png_filter","png_deflate_level"];
-    const rows = report.variants.map(v => {const m=v.metrics || {},paletted=['gif','gifenc','pngIndexed','bmp8'].includes(v.config.format);return [report.source.name,report.source.width,report.source.height,report.source.bytes,report.createdAt,report.browser,v.cell,v.status,v.config.format,v.config.quality,paletted?(v.config.format==='bmp8'?(v.config.bmpColors??256):v.config.gifColors):'',["gif","pngIndexed"].includes(v.config.format)?v.config.gifDither:'',v.config.matte,v.config.metadataPolicy || els.metadataPolicy.value,v.codec,v.config.format==="tiff"?(v.config.tiffCompression||"deflate"):"",v.config.format==="tiff"?(v.config.tiffLevel??6):"",v.config.format==="tiff"?(v.config.tiffPredictor??true):"",m.bytes,m.width,m.height,m.percentOfSource,m.psnrRGB,m.alphaErrorPercent,m.processingMs,v.error,v.config.format==='png'?(v.config.pngDepth||'auto'):'',report.source.bitDepth,m.bitDepth,m.precisionNote,v.config.format==='jpeg'?(v.config.jpegSubsampling||'420'):'',v.config.format==='jpeg'?(v.config.jpegProgressive??false):'',v.config.format==='bmp8'?(v.config.bmpColors??256):'',v.config.format==='bmp8'?(v.config.bmpCompression||'none'):'',v.palette?.definedEntries??'',v.palette?.storedEntries??'',v.palette?.usedEntries??'',v.palette?.transparentUsed??'', ['png','pngIndexed'].includes(v.config.format)?(v.config.pngFilter||'default'):'', ['png','pngIndexed'].includes(v.config.format)?(v.config.pngLevel??6):''];});
+    const headers = ["source","source_width","source_height","source_bytes","created_at","browser","cell","status","format","format_mode","quality","palette","dither","matte","metadata","codec","tiff_compression","tiff_level","tiff_predictor","bytes","width","height","percent_of_source","psnr_rgb_db_white_background","alpha_mean_error_percent","processing_ms","error","png_depth","source_bit_depth","result_bit_depth","precision_note","jpeg_subsampling","jpeg_progressive","bmp_depth","bmp_colors","bmp_compression","palette_defined_entries","palette_stored_entries","palette_used_entries","palette_transparent_used","png_filter","png_deflate_level","png_index_depth"];
+    const rows = report.variants.map(v => {
+      const c=v.config,m=v.metrics||{},palette=c.format==='png'&&c.formatMode==='palette',bmp8=c.format==='bmp'&&c.bmpDepth===8;
+      const paletted=palette||bmp8||c.format==='gif';
+      return [report.source.name,report.source.width,report.source.height,report.source.bytes,report.createdAt,report.browser,
+        v.cell,v.status,c.format,c.formatMode||'',c.quality,paletted?(bmp8?(c.bmpColors??256):c.gifColors):'',
+        palette||c.format==='gif'&&c.formatMode==='built-in'?c.gifDither:'',c.matte,c.metadataPolicy||els.metadataPolicy.value,v.codec,
+        c.format==='tiff'?(c.tiffCompression||'deflate'):'',c.format==='tiff'?(c.tiffLevel??6):'',c.format==='tiff'?(c.tiffPredictor??true):'',
+        m.bytes,m.width,m.height,m.percentOfSource,m.psnrRGB,m.alphaErrorPercent,m.processingMs,v.error,
+        c.format==='png'&&c.formatMode==='full-color'?(c.pngDepth||'auto'):'',report.source.bitDepth,m.bitDepth,m.precisionNote,
+        c.format==='jpeg'?(c.jpegSubsampling||'420'):'',c.format==='jpeg'?(c.jpegProgressive??false):'',
+        c.format==='bmp'?c.bmpDepth:'',bmp8?(c.bmpColors??256):'',bmp8?(c.bmpCompression||'none'):'',
+        v.palette?.definedEntries??'',v.palette?.storedEntries??'',v.palette?.usedEntries??'',v.palette?.transparentUsed??'',
+        c.format==='png'&&c.formatMode!=='optimized'?(c.pngFilter||'default'):'',
+        c.format==='png'&&c.formatMode!=='optimized'?(c.pngLevel??6):'',palette?(v.palette?.indexDepth??''):''];
+    });
     deps.downloadBlob(new Blob(["\ufeff",[headers,...rows].map(row=>row.map(deps.csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}),"comparison-report.csv");
   }
 
@@ -72,7 +87,7 @@ export function createReports({app, els}, deps) {
        JSON.stringify(deps.getAnalysisSnapshot().settings)!==JSON.stringify(analysisSnapshot.settings)){
       throw new Error('Исходник или настройки изменились во время подготовки протокола. Повторите сохранение.');
     }
-    return {version:1,kind:'image-format-lab-experiment',createdAt:report.createdAt,
+    return {version:2,kind:'image-format-lab-experiment',createdAt:report.createdAt,
       input:{...report.source,mimeType:source.file.type||'unknown',sha256},
       comparison,analysis:{settings:analysisSnapshot.settings,method:analysisSnapshot.method},
       observations:report.variants.map((observation,i)=>({...observation,sha256:outputHashes[i]})),methodology:report.methodology,

@@ -48,7 +48,9 @@ function fixture({width=13,height=11,depth=16,type=6,interlace=0,trns,extra=[],m
 }
 
 (async()=>{
-  const {decodePng,encodePng,pngPreview,pngHeader}=await import('../src/core/png.mjs');
+  const {decodePng,encodePng,pngPreview,pngHeader,checkPngSize}=await import('../src/core/png.mjs');
+  assert.doesNotThrow(()=>checkPngSize(4000,3000));
+  assert.throws(()=>checkPngSize(4000,3001),/12 мегапикселями/);
   const {createPixelBuffer}=await import('../src/core/pixel-buffer.mjs');
   const {computePixelMetrics}=await import('../src/core/metrics.mjs');
   const {computeHistogram}=await import('../src/core/histogram.mjs');
@@ -90,8 +92,8 @@ function fixture({width=13,height=11,depth=16,type=6,interlace=0,trns,extra=[],m
   assert.throws(()=>decodePng(valid.subarray(0,-1),pako),/блок/);
   assert.throws(()=>decodePng(Buffer.concat([valid,Buffer.from([0])]),pako),/конец/);
   for(const mutate of [raw=>raw.subarray(0,-1),raw=>Buffer.concat([raw,Buffer.alloc(100000)]),raw=>{raw[0]=5;return raw;}])assert.throws(()=>decodePng(fixture({mutate}).bytes,pako));
-  const giantHeader=Buffer.from(valid.subarray(16,29));giantHeader.writeUInt32BE(8000001);giantHeader.writeUInt32BE(1,4);
-  assert.throws(()=>decodePng(Buffer.concat([valid.subarray(0,8),chunk('IHDR',giantHeader),chunk('IDAT',Buffer.alloc(0)),chunk('IEND')]),{get Inflate(){throw new Error('Inflate must not be reached');}}),/8 мегапикселями/);
+  const giantHeader=Buffer.from(valid.subarray(16,29));giantHeader.writeUInt32BE(12000001);giantHeader.writeUInt32BE(1,4);
+  assert.throws(()=>decodePng(Buffer.concat([valid.subarray(0,8),chunk('IHDR',giantHeader),chunk('IDAT',Buffer.alloc(0)),chunk('IEND')]),{get Inflate(){throw new Error('Inflate must not be reached');}}),/12 мегапикселями/);
   for(const name of ['iCCP','gAMA','cHRM','cICP'])assert.throws(()=>decodePng(fixture({extra:[chunk(name,Buffer.alloc(4))]}).bytes,pako),/цветового/);
   assert.equal(decodePng(fixture({extra:[chunk('sRGB',Buffer.from([0]))]}).bytes,pako).colorSpace,'srgb');
   assert.throws(()=>decodePng(fixture({extra:[chunk('ABCD')]}).bytes,pako),/обязательный/);
@@ -154,8 +156,8 @@ function fixture({width=13,height=11,depth=16,type=6,interlace=0,trns,extra=[],m
   let csv;deps.downloadBlob=blob=>{csv=blob;};deps.saveComparisonReport('csv');
   assert.match(await csv.text(),/"png_depth","source_bit_depth","result_bit_depth","precision_note"/);
   deps.disposeVariantOutput(variant);assert.equal(variant.pixelBuffer,null);
-  const huge=Buffer.from(valid.subarray(0,33));huge.writeUInt32BE(8000001,16);huge.writeUInt32BE(1,20);
-  await assert.rejects(deps.decodePngFile({size:128*1024*1024,slice:()=>new Blob([huge]),arrayBuffer(){throw new Error('Must not read the large file');}}),/8 мегапикселями/);
+  const huge=Buffer.from(valid.subarray(0,33));huge.writeUInt32BE(12000001,16);huge.writeUInt32BE(1,20);
+  await assert.rejects(deps.decodePngFile({size:128*1024*1024,slice:()=>new Blob([huge]),arrayBuffer(){throw new Error('Must not read the large file');}}),/12 мегапикселями/);
   console.log('PASS real comparison/controller/report paths, original uint16, explicit quantization, depth metadata and precision notices');
 
   const bundled=buildSync({entryPoints:['src/workers/compute.worker.mjs'],bundle:true,write:false,platform:'browser',format:'iife'}).outputFiles[0].text;

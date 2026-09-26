@@ -533,6 +533,7 @@ select:disabled {
 
 .quality-wrap,
 .gif-wrap,
+.png-mode-wrap,
 .png-depth-wrap,
 .bmp-depth-wrap,
 .bmp-colors-wrap,
@@ -572,6 +573,7 @@ select:disabled {
   min-width: 66px;
 }
 
+.png-mode-wrap,
 .png-depth-wrap,
 .bmp-depth-wrap,
 .bmp-colors-wrap,

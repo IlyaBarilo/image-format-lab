@@ -1,7 +1,7 @@
 import { FORMAT_DEFS } from "./../core/config.mjs";
 import { normalizeTiffOptions } from "./../core/raster-codecs.mjs";
 import { normalizeJpegOptions } from './../core/jpeg-encode.mjs';
-import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
+import { FORMAT_OPTIONS, isBmpFormat, isPngFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createControls({els, app}, deps) {
@@ -100,6 +100,14 @@ export function createControls({els, app}, deps) {
     bmpCompression.value = variant.config.bmpCompression || 'none';
     bmpCompressionWrap.append(document.createTextNode('Сжатие'), bmpCompression);
     head.append(bmpColorsWrap, bmpCompressionWrap);
+    const pngModeWrap=document.createElement('label');pngModeWrap.className='png-mode-wrap';
+    pngModeWrap.title='Полные цвета сохраняют RGBA8/16; палитра ограничивает число цветов и прозрачность; PNG opt использует UPNG для RGBA8.';
+    const pngMode=document.createElement('select');pngMode.className='select png-mode';
+    for(const [value,label] of [['rgba','Полные цвета'],['palette','Палитра'],['optimized','PNG opt']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;pngMode.append(option);
+    }
+    pngMode.value=variant.config.format==='pngIndexed'?'palette':variant.config.format==='pngUpng'?'optimized':'rgba';
+    pngModeWrap.append(document.createTextNode('Режим'),pngMode);head.append(pngModeWrap);
     const pngDepthWrap=document.createElement('label');
     pngDepthWrap.className='png-depth-wrap';
     pngDepthWrap.hidden=variant.config.format!=='png';
@@ -264,6 +272,8 @@ export function createControls({els, app}, deps) {
     variant.headContent = content;
     if (headSizeObserver) headSizeObserver.observe(content);
     variant.controls = {
+      pngModeWrap,
+      pngMode,
       pngDepthWrap,
       pngDepth,
       pngFilterWrap,
@@ -319,7 +329,7 @@ export function createControls({els, app}, deps) {
     });
   
     select.addEventListener("change", () => {
-      variant.config.format = formatFromOption(select.value, bmpDepth.value);
+      variant.config.format = formatFromOption(select.value, bmpDepth.value, pngMode.value);
       deps.syncControlsVisibility(variant);
       deps.markDirty(variant);
     });
@@ -327,6 +337,12 @@ export function createControls({els, app}, deps) {
     bmpDepth.addEventListener("change", () => {
       if (!isBmpFormat(variant.config.format)) return;
       variant.config.format = formatFromOption("bmp", bmpDepth.value);
+      deps.syncControlsVisibility(variant);
+      deps.markDirty(variant);
+    });
+    pngMode.addEventListener('change',()=>{
+      if(select.value!=='png')return;
+      variant.config.format=formatFromOption('png',bmpDepth.value,pngMode.value);
       deps.syncControlsVisibility(variant);
       deps.markDirty(variant);
     });
@@ -406,6 +422,7 @@ export function createControls({els, app}, deps) {
       if (isBmpFormat(format)) variant.controls.bmpDepth.value = format === 'bmp8' ? '8' : format === "bmp32" ? "32" : "24";
       variant.controls.select.value = formatOptionValue(format);
     }
+    if(variant.controls.pngModeWrap){variant.controls.pngModeWrap.hidden=!isPngFormat(format);variant.controls.pngMode.value=format==='pngIndexed'?'palette':format==='pngUpng'?'optimized':'rgba';}
     if (variant.controls.bmpColorsWrap) {
       variant.controls.bmpColorsWrap.hidden = format !== 'bmp8';
       variant.controls.bmpCompressionWrap.hidden = format !== 'bmp8';
@@ -556,9 +573,7 @@ export function createControls({els, app}, deps) {
   function updateFormatHelp() {
     const webpRead = "Браузер; при отказе — встроенный libwebp";
     const read = {
-      png: "PNG16: точные серые/RGB/RGBA, Adam7, sRGB или без цветовых блоков; до 8 Мп / 128 МиБ. PNG8 — браузер",
-      pngIndexed: "Палитровый PNG — браузер",
-      pngUpng: "Как PNG; PNG opt сохраняет только 8 бит/канал",
+      png: "PNG16: точные серые/RGB/RGBA, Adam7, sRGB или без цветовых блоков; до 12 Мп / 128 МиБ. PNG8, палитровый PNG и PNG opt — браузер",
       original: "По правилам формата исходника",
       webp: webpRead, webpLossless: webpRead,
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
@@ -571,9 +586,7 @@ export function createControls({els, app}, deps) {
     const write = {
       original: "Исходные байты без перекодирования; все метаданные сохраняются",
       jpeg: "Встроенный libjpeg-turbo; качество 1–100, 4:4:4 / 4:2:2 / 4:2:0, обычный или прогрессивный JPEG; прозрачность заменяется заливкой",
-      png: "Авто / 8 / 16 бит на канал. PNG16: собственный код + pako, точные отсчёты и alpha; исходные размеры, до 8 Мп. Обычный PNG8 — браузер",
-      pngIndexed: "Собственный кодировщик + pako; 2–256 цветов, индекс 1/2/4/8 бит, переключаемый дизеринг, двоичная прозрачность; до 8 Мп",
-      pngUpng: "Встроенные UPNG / pako; 8 бит/канал, полная прозрачность; PNG16 предварительно сводится к 8 битам",
+      png: "Полные цвета: Авто / 8 / 16 бит на канал, точный PNG до 12 Мп; обычный PNG8 — браузер. Палитра: 2–256 цветов, дизеринг, двоичная прозрачность. PNG opt: UPNG / pako, 8 бит/канал",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность",
       avif: "Встроенные libheif / libaom; качество 1–100, поддерживает прозрачность",

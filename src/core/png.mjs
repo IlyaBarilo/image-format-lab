@@ -3,7 +3,7 @@ import { indexedPalette } from './gif.mjs';
 
 // Exact static PNG samples; display conversion is deliberately separate.
 // Container, byte order, filters and Adam7: https://www.w3.org/TR/png-3/
-export const PNG_MAX_PIXELS = 8000000;
+export const PNG_MAX_PIXELS = 12000000;
 export const PNG_MAX_FILE_BYTES = 128 * 1024 * 1024;
 const signature = [137,80,78,71,13,10,26,10];
 const channels = {0:1,2:3,4:2,6:4};
@@ -29,7 +29,7 @@ export function pngHeader(bytes) {
   return {width,height,depth,type,interlace:bytes[28]};
 }
 export function checkPngSize(width,height) {
-  if (![width,height].every(n=>Number.isSafeInteger(n)&&n>0)||!Number.isSafeInteger(width*height)||width*height>PNG_MAX_PIXELS) fail('точный путь ограничен 8 мегапикселями для контроля памяти.');
+  if (![width,height].every(n=>Number.isSafeInteger(n)&&n>0)||!Number.isSafeInteger(width*height)||width*height>PNG_MAX_PIXELS) fail('точный путь ограничен 12 мегапикселями для контроля памяти.');
 }
 function passesFor(h) {
   return (h.interlace?adam7:[[0,0,1,1]]).map(([x,y,dx,dy])=>({x,y,dx,dy,
@@ -144,14 +144,33 @@ function chunk(name,data){
   for(let i=0;i<4;i++)out[4+i]=name.charCodeAt(i);
   out.set(data,8);v.setUint32(out.length-4,crc(out.subarray(4,out.length-4)));return out;
 }
+function rowDeflater(pako,level,pieces){
+  if(typeof pako?.Deflate!=='function')fail('кодировщик Deflate недоступен.');
+  const deflater=new pako.Deflate({level,chunkSize:65536});
+  deflater.onData=data=>{
+    for(let at=0;at<data.length;at+=1048576)pieces.push(chunk('IDAT',data.subarray(at,at+1048576)));
+  };
+  return (row,last)=>{
+    deflater.push(row,last);
+    if(deflater.err)fail('ошибка сжатия Deflate.');
+    if(last&&!deflater.ended)fail('неполный поток Deflate.');
+  };
+}
 export function encodeIndexedPng(source,maxColors,useDither,pako,options={}){
   checkPngSize(source.width,source.height);
-  if(typeof pako?.deflate!=='function')fail('кодировщик Deflate недоступен.');
   const {pngFilter,pngLevel}=normalizePngOptions(options);
   const {palette,indexed,transparentIndex,paletteInfo}=indexedPalette(maxColors,useDither,source);
   const depth=palette.length<=2?1:palette.length<=4?2:palette.length<=16?4:8;
   const rowSize=Math.ceil(source.width*depth/8);
-  const raw=new Uint8Array((rowSize+1)*source.height);
+  const header=new Uint8Array(13),v=view(header);
+  v.setUint32(0,source.width);v.setUint32(4,source.height);
+  header[8]=depth;header[9]=3;
+  const plte=new Uint8Array(palette.length*3);
+  palette.forEach((color,i)=>plte.set([color.r,color.g,color.b],i*3));
+  const pieces=[new Uint8Array(signature),chunk('IHDR',header),chunk('PLTE',plte)];
+  if(transparentIndex>=0)pieces.push(chunk('tRNS',Uint8Array.of(0)));
+  const pushRow=rowDeflater(pako,pngLevel,pieces);
+  const filtered=new Uint8Array(rowSize+1);
   let previous=new Uint8Array(rowSize);
   for(let y=0;y<source.height;y++){
     const row=new Uint8Array(rowSize);
@@ -159,19 +178,10 @@ export function encodeIndexedPng(source,maxColors,useDither,pako,options={}){
       const index=indexed[y*source.width+x],at=x*depth>>3;
       row[at]|=index<<(8-depth-(x*depth&7));
     }
-    filterRow(raw,(rowSize+1)*y,row,previous,1,pngFilter==='default'?'none':pngFilter);
+    filterRow(filtered,0,row,previous,1,pngFilter==='default'?'none':pngFilter);
+    pushRow(filtered,y===source.height-1);
     previous=row;
   }
-  const header=new Uint8Array(13),v=view(header);
-  v.setUint32(0,source.width);v.setUint32(4,source.height);
-  header[8]=depth;header[9]=3;
-  const plte=new Uint8Array(palette.length*3);
-  palette.forEach((color,i)=>plte.set([color.r,color.g,color.b],i*3));
-  const compressed=pako.deflate(raw,{level:pngLevel});
-  const pieces=[new Uint8Array(signature),chunk('IHDR',header),chunk('PLTE',plte)];
-  if(transparentIndex>=0)pieces.push(chunk('tRNS',Uint8Array.of(0)));
-  for(let at=0;at<compressed.length;at+=1048576)
-    pieces.push(chunk('IDAT',compressed.subarray(at,at+1048576)));
   pieces.push(chunk('IEND',new Uint8Array()));
   return {blob:new Blob(pieces,{type:'image/png'}),previewImageData:null,
     paletteInfo:{...paletteInfo,storedEntries:palette.length,indexDepth:depth}};
@@ -187,20 +197,21 @@ export function encodePng(input,depth,pako,options={}){
   if(![8,16].includes(depth)||!['uint8','uint16'].includes(pixels.sampleType)||pixels.alphaMode!=='straight')fail('для записи нужны целые независимые каналы RGB и alpha.');
   if(!['srgb','unknown'].includes(pixels.colorSpace))fail('запись этого цветового пространства пока не поддерживается.');
   const peak=2**pixels.bitDepth-1,outPeak=2**depth-1,bpp=4*depth/8,rowSize=pixels.width*bpp;
-  const raw=new Uint8Array((rowSize+1)*pixels.height),row=new Uint8Array(rowSize),previous=new Uint8Array(rowSize);
+  const header=new Uint8Array(13);view(header).setUint32(0,pixels.width);view(header).setUint32(4,pixels.height);header[8]=depth;header[9]=6;
+  const pieces=[new Uint8Array(signature),chunk('IHDR',header)];
+  if(pixels.colorSpace==='srgb')pieces.push(chunk('sRGB',new Uint8Array([0])));
+  const pushRow=rowDeflater(pako,pngLevel,pieces);
+  const filtered=new Uint8Array(rowSize+1),row=new Uint8Array(rowSize),previous=new Uint8Array(rowSize);
   for(let y=0;y<pixels.height;y++){
     for(let i=0;i<pixels.width*4;i++){
       const value=pixels.data[(y*pixels.width*4)+i];if(value>peak)fail('отсчёт вне диапазона.');
       const n=Math.round(value/peak*outPeak);
       if(depth===16){row[i*2]=n>>>8;row[i*2+1]=n&255;}else row[i]=n;
     }
-    filterRow(raw,y*(rowSize+1),row,previous,bpp,pngFilter==='default'?'sub':pngFilter);
+    filterRow(filtered,0,row,previous,bpp,pngFilter==='default'?'sub':pngFilter);
+    pushRow(filtered,y===pixels.height-1);
     previous.set(row);
   }
-  const header=new Uint8Array(13);view(header).setUint32(0,pixels.width);view(header).setUint32(4,pixels.height);header[8]=depth;header[9]=6;
-  const compressed=pako.deflate(raw,{level:pngLevel}),pieces=[new Uint8Array(signature),chunk('IHDR',header)];
-  if(pixels.colorSpace==='srgb')pieces.push(chunk('sRGB',new Uint8Array([0])));
-  for(let at=0;at<compressed.length;at+=1048576)pieces.push(chunk('IDAT',compressed.subarray(at,at+1048576)));
   pieces.push(chunk('IEND',new Uint8Array()));
   return new Blob(pieces,{type:'image/png'});
 }
