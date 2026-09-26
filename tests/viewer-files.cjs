@@ -21,6 +21,7 @@ async function snapshot(page) {
 }
 
 (async () => {
+  const {SAMPLE_CATALOG} = await import('../src/core/reference-samples.mjs');
   const browser = await chromium.launch({ headless: true,
     ...(process.env.IMAGE_TEST_BROWSER ? { executablePath: process.env.IMAGE_TEST_BROWSER } : {}) });
   console.log(`Chromium ${browser.version()}`);
@@ -280,7 +281,12 @@ async function snapshot(page) {
       await page.locator('#sampleMenuToggle').focus();
       await page.keyboard.press('ArrowDown');
       assert.equal(await page.locator('#sampleMenuToggle').getAttribute('aria-expanded'),'true');
-      assert.equal(await page.locator('#sampleMenu .sample-menu-item').count(),5);
+      const menuItems=await page.locator('#sampleMenu .sample-menu-item').evaluateAll(items=>items.map(item=>({id:item.dataset.sampleId,text:item.textContent})));
+      assert.deepEqual(menuItems.map(item=>item.id),SAMPLE_CATALOG.map(item=>item.id));
+      for(const [index,item] of menuItems.entries()){
+        assert.ok(item.text.includes(SAMPLE_CATALOG[index].label),`Образец ${item.id}: название`);
+        assert.ok(item.text.includes(SAMPLE_CATALOG[index].description),`Образец ${item.id}: описание`);
+      }
       assert.equal(await page.locator('#sampleMenu .sample-menu-item').first().evaluate(element=>element===document.activeElement),true);
       assert.match(await page.locator('#sampleMenu').textContent(),/младшими разрядами/);
       for (const width of [1440, 390]) {
