@@ -69,9 +69,11 @@ export function createEncode({}, deps) {
       if(depth===16&&(dims.width!==source.width||dims.height!==source.height))
         throw new Error('JPEG XL 16 бит пока сохраняется только в исходном размере. Уберите изменение размеров или выберите 8 бит на канал.');
       const prepared=deps.outputSourceForConfig(config,source);
-      const candidate=prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData);
+      const preserveIcc=prepared===source&&Boolean(source.iccProfile&&source.nativePixelBuffer);
+      const candidate=preserveIcc?source.nativePixelBuffer:(prepared.pixelBuffer ?? pixelBufferFromImageData(prepared.imageData));
       const codec=await deps.loadOptionalCodec('modern');
-      const blob=await codec.encode(prepared.imageData,config.quality,format,config,candidate);
+      const blob=await codec.encode(prepared.imageData,config.quality,format,config,candidate,
+        preserveIcc?source.iccProfile:null);
       return deps.withEncodedMeta({blob,previewImageData:null,panoramaPreserved:false,
         precisionNote:depth===16?(pixels.bitDepth===16?'16 бит/канал · экранный SDR':'16 бит/канал · из 8 бит; деталей не добавлено'):
           highDepth?`8 бит/канал · из ${pixels.bitDepth} бит`:''},prepared);

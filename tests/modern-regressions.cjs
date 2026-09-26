@@ -81,6 +81,38 @@ async function download(page, button) {
       if(!rejected)throw Error('JPEG XL 16-bit resize silently rounded the source');
     });
     report.checks.push('JPEG XL lossless Auto preserves exact RGBA16 through downloaded-file decode; explicit 8/16-bit choices and resize guard');
+    const { createIccP3Sample } = await import('../src/core/reference-samples.mjs');
+    const { encodePng } = await import('../src/core/png.mjs');
+    const p3 = createIccP3Sample();
+    const p3File = encodePng(p3.pixels,16,require('../vendor/pako-2.1.0.min.js'),{iccProfile:p3.iccProfile});
+    const p3Base64 = Buffer.from(await p3File.arrayBuffer()).toString('base64');
+    await page.evaluate(async base64 => {
+      const bytes=Uint8Array.from(atob(base64),letter=>letter.charCodeAt(0));
+      await addFiles([new File([bytes],'jxl-icc-p3.png',{type:'image/png'})]);
+    },p3Base64);
+    await page.waitForFunction(()=>app.source?.name==='jxl-icc-p3.png'&&app.source?.iccProfile);
+    await page.evaluate(async()=>{
+      const source=app.source,codec=await loadOptionalCodec('modern');
+      if(!source.nativePixelBuffer||source.pixelBuffer.data.every((value,i)=>value===source.nativePixelBuffer.data[i]))
+        throw Error('Profiled source did not keep independent native and sRGB samples');
+      const config={...DEFAULT_EXPORT_CONFIG,format:'jxlLossless',jxlEffort:1,jxlDepth:'auto'};
+      const saved=await encodeFromSource(config,source),decoded=await codec.decode(saved.blob);
+      if(decoded.pixelBuffer?.bitDepth!==16||!decoded.nativePixelBuffer||
+          !source.nativePixelBuffer.data.every((value,i)=>decoded.nativePixelBuffer.data[i]===value)||
+          !source.iccProfile.every((value,i)=>decoded.iccProfile[i]===value)||
+          !source.pixelBuffer.data.every((value,i)=>decoded.pixelBuffer.data[i]===value))
+        throw Error('Profiled JPEG XL did not preserve native RGBA16/ICC or managed sRGB');
+      const reduced=await encodeFromSource({...config,jxlDepth:'8'},source);
+      const decoded8=await codec.decode(reduced.blob);
+      if(decoded8.pixelBuffer?.bitDepth!==8||!decoded8.iccProfile||
+          !source.nativePixelBuffer.data.every((value,i)=>decoded8.nativePixelBuffer.data[i]===Math.round(value/257)))
+        throw Error('Profiled JPEG XL 8-bit did not round native samples');
+      const unsupported=source.iccProfile.slice();unsupported.set([67,77,89,75],16);
+      let rejected=false;
+      try{await codec.encode(source.imageData,100,'jxlLossless',config,source.nativePixelBuffer,unsupported);}catch{rejected=true;}
+      if(!rejected)throw Error('Unsupported JPEG XL ICC was accepted');
+    });
+    report.checks.push('Profiled PNG16 to JPEG XL lossless: exact native samples/ICC, separate sRGB analysis, 8-bit reduction and invalid ICC rejection');
     for (const format of ['avif', 'jxl']) {
       const matching = cases.filter(c => c.width === 256 && c.height === 192 && c.format === format);
       assert.ok(matching.find(c => c.quality === 85).bytes > matching.find(c => c.quality === 20).bytes, format + ' quality must change the output');

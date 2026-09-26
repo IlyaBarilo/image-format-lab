@@ -3,6 +3,7 @@ import { embeddedCodecSource } from './embedded-codecs.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
 import { createPixelBuffer } from '../core/pixel-buffer.mjs';
 import { pngPreview } from '../core/png.mjs';
+import { parseIccSdr, prepareIccSdr } from '../core/icc-sdr.mjs';
 
 export function createModern() {
   let session, sequence = 0, queue = Promise.resolve();
@@ -63,7 +64,8 @@ export function createModern() {
         const id = ++sequence;
         current.pending = { id, resolve, reject };
         current.timer = setTimeout(() => current.fail(new Error(type === 'encode' ? 'Превышено время кодирования WebP / JPEG XL' : type === 'decode' ? 'Превышено время декодирования WebP / JPEG XL' : 'Превышено время побайтового преобразования JPEG / JPEG XL')), type === 'jpeg-to-jxl' || type === 'jxl-to-jpeg' ? 180000 : 120000);
-        try { current.worker.postMessage({ type, id, buffer, ...properties }, [buffer]); }
+        try { current.worker.postMessage({ type, id, buffer, ...properties },
+          properties.iccBuffer ? [buffer, properties.iccBuffer] : [buffer]); }
         catch (error) { current.fail(error); }
       });
     });
@@ -76,15 +78,21 @@ export function createModern() {
     const result = await operate('decode', () => file.arrayBuffer(), { format });
     const columns = Math.ceil(result.width / 8), rows = Math.ceil(result.height / 8);
     const owners = result.blockOwners ? new Uint32Array(result.blockOwners) : null;
-    const exact = result.depth === 16 ? createPixelBuffer({width:result.width,height:result.height,
-      data:new Uint16Array(result.buffer),sampleType:'uint16',bitDepth:16}) : null;
-    const preview = exact ? pngPreview(exact).data : new Uint8ClampedArray(result.buffer);
+    const native = result.depth === 16 ? createPixelBuffer({width:result.width,height:result.height,
+      data:new Uint16Array(result.buffer),sampleType:'uint16',bitDepth:16})
+      : result.iccBuffer ? createPixelBuffer({width:result.width,height:result.height,
+        data:new Uint8Array(result.buffer),sampleType:'uint8',bitDepth:8}) : null;
+    const prepared = native ? await prepareIccSdr(native,
+      result.iccBuffer ? new Uint8Array(result.iccBuffer) : null) : null;
+    const preview = prepared ? pngPreview(prepared.pixelBuffer).data : new Uint8ClampedArray(result.buffer);
     return { width: result.width, height: result.height,
-      imageData: new ImageData(preview, result.width, result.height), pixelBuffer:exact,
-      precisionNote:exact?'16 бит/канал · экранный SDR':'', close: null,
+      imageData: new ImageData(preview, result.width, result.height),
+      ...(prepared || {pixelBuffer:null,nativePixelBuffer:null,iccProfile:null}),
+      colorManagementNote:result.iccBuffer?'ICC→sRGB':'',
+      precisionNote:result.depth===16?'16 бит/канал · экранный SDR':'', close: null,
       blockGrid: owners?.length === columns * rows ? { kind: 'jxl-vardct', columns, rows, owners } : null };
   }
-  async function encode(imageData, quality, format = 'jxl', options = {}, exactPixels = null) {
+  async function encode(imageData, quality, format = 'jxl', options = {}, exactPixels = null, iccProfile = null) {
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100)
@@ -93,6 +101,12 @@ export function createModern() {
     const { webpMethod, jxlEffort, jxlDepth } = normalizeModernOptions(options);
     const candidate = exactPixels ? createPixelBuffer(exactPixels) : createPixelBuffer({width,height,data});
     if(candidate.width!==width||candidate.height!==height)throw new Error('Размеры точных пикселей JPEG XL не совпадают с изображением');
+    if(iccProfile){
+      if(format!=='jxlLossless'||!(iccProfile instanceof Uint8Array)||candidate.alphaMode!=='straight'||
+        !['uint8','uint16'].includes(candidate.sampleType))
+        throw new Error('JPEG XL: ICC сохраняется только с целыми RGBA при кодировании без потерь');
+      parseIccSdr(iccProfile);
+    }
     const depth = format === 'jxlLossless' && (jxlDepth === '16' || jxlDepth === 'auto' && candidate.sampleType === 'uint16' && candidate.bitDepth === 16) ? 16 : 8;
     if(width*height*4*(depth/8)>256*1024*1024)throw new Error('JPEG XL: растр превышает 256 МиБ');
     let bytes;
@@ -104,8 +118,14 @@ export function createModern() {
         for(let i=0;i<expanded.length;i++)expanded[i]=candidate.data[i]*257;
         bytes=new Uint8Array(expanded.buffer);
       }else throw new Error('JPEG XL 16 бит требует целочисленные RGBA8/16 с независимой прозрачностью');
+    }else if(iccProfile){
+      bytes=new Uint8Array(candidate.data.length);
+      if(candidate.sampleType==='uint16')for(let i=0;i<bytes.length;i++)bytes[i]=Math.round(candidate.data[i]/257);
+      else bytes.set(candidate.data);
     }else bytes=new Uint8ClampedArray(data);
-    const result = await operate('encode', () => bytes.buffer, { width, height, quality, format, webpMethod, jxlEffort, depth });
+    const iccBuffer=iccProfile?iccProfile.slice().buffer:null;
+    const result = await operate('encode', () => bytes.buffer, { width, height, quality, format, webpMethod, jxlEffort, depth,
+      ...(iccBuffer?{iccBuffer}:{}) });
     return new Blob([result.buffer], { type: format === 'webpLossless' ? 'image/webp' : 'image/jxl' });
   }
   async function convertExactJpeg(file, operation) {

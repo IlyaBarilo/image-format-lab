@@ -12,29 +12,33 @@
 #include <vector>
 namespace {
 std::vector<uint8_t> output;
+std::vector<uint8_t> icc_profile;
 std::vector<uint32_t> block_owners;
 int width=0,height=0,bit_depth=8;
 char error[256]={};
 constexpr size_t limit=256u*1024*1024;
+constexpr size_t icc_limit=1024u*1024;
 int fail(const char* text) { std::snprintf(error,sizeof(error),"%s",text);return 1; }
 bool dimensions(int w,int h) {return w>0 && h>0 && uint64_t(w)*h<=40000000;}
 }
 extern "C" size_t viewer_jxl_block_map(JxlDecoder*, uint32_t*, size_t,
                                         uint32_t, uint32_t);
 extern "C" {
-void viewer_modern_clear() {std::vector<uint8_t>().swap(output);std::vector<uint32_t>().swap(block_owners);width=height=0;bit_depth=8;error[0]=0;}
+void viewer_modern_clear() {std::vector<uint8_t>().swap(output);std::vector<uint8_t>().swap(icc_profile);std::vector<uint32_t>().swap(block_owners);width=height=0;bit_depth=8;error[0]=0;}
 const char* viewer_modern_error(){return error;}
 const uint8_t* viewer_modern_output(){return output.data();}
 size_t viewer_modern_output_size(){return output.size();}
 int viewer_modern_width(){return width;}
 int viewer_modern_height(){return height;}
 int viewer_modern_depth(){return bit_depth;}
+const uint8_t* viewer_modern_icc(){return icc_profile.data();}
+size_t viewer_modern_icc_size(){return icc_profile.size();}
 const uint32_t* viewer_modern_block_owners(){return block_owners.data();}
 size_t viewer_modern_block_count(){return block_owners.size();}
 // kind: 1 WebP lossless, 2 JPEG XL lossy, 3 JPEG XL lossless.
-static int encode_pixels(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort,int depth) {
+static int encode_pixels(const uint8_t* rgba,size_t length,int w,int h,int quality,int kind,int webp_method,int jxl_effort,int depth,const uint8_t* icc=nullptr,size_t icc_size=0) {
  viewer_modern_clear();
- if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4*(depth/8) || length>limit || quality<1 || quality>100 || kind<1 || kind>3 || webp_method<0 || webp_method>6 || jxl_effort<1 || jxl_effort>10 || (depth!=8 && (depth!=16 || kind!=3))) return fail("Invalid image or encoder options; limit 40 megapixels / 256 MiB");
+ if (!rgba || !dimensions(w,h) || length!=size_t(w)*h*4*(depth/8) || length>limit || quality<1 || quality>100 || kind<1 || kind>3 || webp_method<0 || webp_method>6 || jxl_effort<1 || jxl_effort>10 || (depth!=8 && (depth!=16 || kind!=3)) || (icc_size && (!icc || icc_size>icc_limit || kind!=3))) return fail("Invalid image, ICC profile or encoder options; limit 40 megapixels / 256 MiB");
  if (kind==1) {
   if(w>16383 || h>16383) return fail("WebP dimensions exceed 16383 pixels");
   WebPConfig config;WebPPicture picture;
@@ -57,7 +61,8 @@ static int encode_pixels(const uint8_t* rgba,size_t length,int w,int h,int quali
   JxlBasicInfo info;JxlEncoderInitBasicInfo(&info);info.xsize=w;info.ysize=h;
   info.bits_per_sample=depth;info.num_color_channels=3;info.num_extra_channels=1;info.alpha_bits=depth;info.uses_original_profile=lossless;
   JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
-  if(JxlEncoderSetBasicInfo(enc.get(),&info)!=JXL_ENC_SUCCESS || JxlEncoderSetColorEncoding(enc.get(),&color)!=JXL_ENC_SUCCESS) return fail("JPEG XL image setup failed");
+  if(JxlEncoderSetBasicInfo(enc.get(),&info)!=JXL_ENC_SUCCESS ||
+     (icc_size ? JxlEncoderSetICCProfile(enc.get(),icc,icc_size) : JxlEncoderSetColorEncoding(enc.get(),&color))!=JXL_ENC_SUCCESS) return fail("JPEG XL image or color profile setup failed");
   auto* frame=JxlEncoderFrameSettingsCreate(enc.get(),nullptr);
   if(!frame || JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_EFFORT,jxl_effort)!=JXL_ENC_SUCCESS ||
      JxlEncoderFrameSettingsSetOption(frame,JXL_ENC_FRAME_SETTING_KEEP_INVISIBLE,1)!=JXL_ENC_SUCCESS ||
@@ -82,6 +87,9 @@ int viewer_modern_encode(const uint8_t* rgba,size_t length,int w,int h,int quali
 int viewer_modern_encode16(const uint8_t* rgba,size_t length,int w,int h,int jxl_effort) {
  return encode_pixels(rgba,length,w,h,100,3,4,jxl_effort,16);
 }
+int viewer_modern_encode_icc(const uint8_t* rgba,size_t length,int w,int h,int depth,int jxl_effort,const uint8_t* icc,size_t icc_size) {
+ return encode_pixels(rgba,length,w,h,100,3,4,jxl_effort,depth,icc,icc_size);
+}
 int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
  viewer_modern_clear();
  if(!input || !length || length>limit) return fail("Empty input or file exceeds 256 MiB");
@@ -95,7 +103,7 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
  std::unique_ptr<JxlDecoder,decltype(&JxlDecoderDestroy)> dec(JxlDecoderCreate(nullptr),JxlDecoderDestroy);
  if(!dec) return fail("Cannot allocate JPEG XL decoder");
  JxlPixelFormat pixels{4,JXL_TYPE_UINT8,JXL_NATIVE_ENDIAN,0};
- bool grid_allowed=false;
+ bool grid_allowed=false,original_profile=false;
  if(JxlDecoderSubscribeEvents(dec.get(),JXL_DEC_BASIC_INFO|JXL_DEC_COLOR_ENCODING|JXL_DEC_FULL_IMAGE)!=JXL_DEC_SUCCESS || JxlDecoderSetInput(dec.get(),input,length)!=JXL_DEC_SUCCESS) return fail("JPEG XL input rejected");
  JxlDecoderCloseInput(dec.get());
  for(;;) {
@@ -104,15 +112,33 @@ int viewer_modern_decode(const uint8_t* input,size_t length,int kind) {
    JxlBasicInfo info;
    if(JxlDecoderGetBasicInfo(dec.get(),&info)!=JXL_DEC_SUCCESS || info.xsize>40000000 || info.ysize>40000000 || !dimensions(info.xsize,info.ysize)) return fail("JPEG XL exceeds 40 megapixels");
    width=info.xsize;height=info.ysize;
+   original_profile=info.uses_original_profile;
    if(info.bits_per_sample==16 && info.exponent_bits_per_sample==0) {
     if(info.alpha_premultiplied) return fail("Premultiplied JPEG XL 16-bit alpha is unsupported");
     pixels.data_type=JXL_TYPE_UINT16;bit_depth=16;
    }
    grid_allowed=info.orientation==JXL_ORIENT_IDENTITY && !info.have_animation;
   } else if(status==JXL_DEC_COLOR_ENCODING) {
-   if(bit_depth==8) {
+   if(!original_profile) {
+    if(bit_depth==16) return fail("JPEG XL 16-bit with non-original color profile is unsupported");
     JxlColorEncoding color;JxlColorEncodingSetToSRGB(&color,JXL_FALSE);
     if(JxlDecoderSetPreferredColorProfile(dec.get(),&color)!=JXL_DEC_SUCCESS) return fail("JPEG XL color conversion failed");
+   } else {
+    JxlColorEncoding encoded;
+    if(JxlDecoderGetColorAsEncodedProfile(dec.get(),JXL_COLOR_PROFILE_TARGET_ORIGINAL,&encoded)==JXL_DEC_SUCCESS) {
+     if((encoded.color_space!=JXL_COLOR_SPACE_RGB && encoded.color_space!=JXL_COLOR_SPACE_GRAY) ||
+        encoded.white_point!=JXL_WHITE_POINT_D65 ||
+        (encoded.color_space==JXL_COLOR_SPACE_RGB && encoded.primaries!=JXL_PRIMARIES_SRGB) ||
+        encoded.transfer_function!=JXL_TRANSFER_FUNCTION_SRGB)
+      return fail("JPEG XL structured color profile is outside supported SDR sRGB");
+    } else {
+     size_t size=0;
+     if(JxlDecoderGetICCProfileSize(dec.get(),JXL_COLOR_PROFILE_TARGET_ORIGINAL,&size)!=JXL_DEC_SUCCESS || size<132 || size>icc_limit)
+      return fail("JPEG XL ICC profile is missing or exceeds 1 MiB");
+     icc_profile.resize(size);
+     if(JxlDecoderGetColorAsICCProfile(dec.get(),JXL_COLOR_PROFILE_TARGET_ORIGINAL,icc_profile.data(),size)!=JXL_DEC_SUCCESS)
+      return fail("JPEG XL ICC profile cannot be read");
+    }
    }
   } else if(status==JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
    size_t size=0;

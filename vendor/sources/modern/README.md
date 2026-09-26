@@ -31,7 +31,13 @@ separate JPEG XL lossless path accepts integer straight RGBA16 samples in
 native-endian byte order. `viewer_modern_encode16` stores 16-bit color and alpha;
 `viewer_modern_depth` identifies a 16-bit decoded buffer. The ordinary WebP and
 lossy JPEG XL paths remain RGBA8. This bridge preserves RGB values under fully
-transparent alpha and limits uncompressed output to 256 MiB. A fresh
+transparent alpha and limits uncompressed output to 256 MiB.
+`viewer_modern_icc` and `viewer_modern_icc_size` return an embedded original ICC
+profile (at most 1 MiB) alongside lossless integer RGBA. `viewer_modern_encode_icc`
+stores those original samples and the validated profile in JPEG XL lossless.
+Structured sRGB needs no ICC; unsupported structured color descriptions are
+rejected rather than silently treated as sRGB. Lossy JPEG XL keeps its existing
+8-bit sRGB decoder path. A fresh
 Worker owns the heap and is terminated after each operation. WebP has an
 additional 16383-pixel per-axis format limit. Encoded buffers are capped at
 256 MiB. WebP lossless accepts method 0–6 (default 4). JPEG XL accepts effort

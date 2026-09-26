@@ -67,8 +67,12 @@ export function createIccP3Sample() {
   const iccProfile=new Uint8Array(416),view=new DataView(iccProfile.buffer);
   const ascii=(offset,value)=>{for(let i=0;i<value.length;i++)iccProfile[offset+i]=value.charCodeAt(i);};
   view.setUint32(0,iccProfile.length);
+  ascii(4,'IFL ');
   view.setUint32(8,0x04300000);
   ascii(12,'mntr');ascii(16,'RGB ');ascii(20,'XYZ ');ascii(36,'acsp');
+  ascii(40,'MSFT');ascii(80,'IFL ');
+  for(const [index,value] of [0.9642,1,0.8249].entries())
+    view.setInt32(68+index*4,Math.round(value*65536));
   view.setUint32(128,7);
   const names=['rXYZ','gXYZ','bXYZ','rTRC','gTRC','bTRC','wtpt'];
   const matrix=[
