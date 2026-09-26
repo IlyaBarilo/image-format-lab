@@ -51,7 +51,7 @@ const avif=(size,superblock,{transform=false,superres=false,wrongExtent=false}={
   const pointer=codec._malloc(pixels.length);
   try{
     codec.HEAPU8.set(pixels,pointer);
-    assert.equal(codec._viewer_avif_encode(pointer,pixels.length,192,128,80),0,codec.UTF8ToString(codec._viewer_heic_error()));
+    assert.equal(codec._viewer_avif_encode(pointer,pixels.length,192,128,80,6),0,codec.UTF8ToString(codec._viewer_heic_error()));
     const output=codec.HEAPU8.slice(codec._viewer_heic_output(),codec._viewer_heic_output()+codec._viewer_heic_output_size());
     const result=await heifBlockGrid(new Blob([output]),'avif',192,128);
     assert.ok(result&&result.kind==='avif-superblock'&&[64,128].includes(result.width),'bundled AVIF encoder: '+JSON.stringify(result));
@@ -62,7 +62,8 @@ const avif=(size,superblock,{transform=false,superres=false,wrongExtent=false}={
     assert.ok(ctu&&ctu.kind==='heic-ctu'&&[16,32,64].includes(ctu.width),'bundled HEIC encoder: '+JSON.stringify(ctu));
     for(const format of ['avif','heic']){
       codec._viewer_heic_clear();
-      const resultCode=(format==='avif'?codec._viewer_avif_encode:codec._viewer_heic_encode)(pointer,129*65*4,129,65,80);
+      const resultCode=format==='avif'?codec._viewer_avif_encode(pointer,129*65*4,129,65,80,6)
+        :codec._viewer_heic_encode(pointer,129*65*4,129,65,80);
       assert.equal(resultCode,0,codec.UTF8ToString(codec._viewer_heic_error()));
       const odd=codec.HEAPU8.slice(codec._viewer_heic_output(),codec._viewer_heic_output()+codec._viewer_heic_output_size());
       assert.ok(await heifBlockGrid(new Blob([odd]),format,129,65),format+' odd dimensions retain the encoded grid origin');

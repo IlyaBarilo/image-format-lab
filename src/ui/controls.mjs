@@ -2,6 +2,7 @@ import { FORMAT_DEFS } from "./../core/config.mjs";
 import { normalizeTiffOptions } from "./../core/raster-codecs.mjs";
 import { normalizeJpegOptions } from './../core/jpeg-encode.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
+import { normalizeAvifOptions } from '../core/avif-options.mjs';
 import { FORMAT_OPTIONS, isBmpFormat, isPngFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -231,6 +232,17 @@ export function createControls({els, app}, deps) {
     modernEffortValue.className='quality-value modern-effort-value';
     modernEffortWrap.append(document.createTextNode('Усилие'),modernEffort,modernEffortValue);
     head.append(modernEffortWrap);
+
+    const avifSpeedWrap=document.createElement('label');
+    avifSpeedWrap.className='quality-wrap avif-speed-wrap';
+    avifSpeedWrap.title='Скорость AVIF 0–9: большее значение кодирует быстрее, но может увеличить файл или изменить результат. Ноль может работать очень долго. Качество задаётся отдельно.';
+    const avifSpeed=document.createElement('input');
+    avifSpeed.className='avif-speed';avifSpeed.type='range';avifSpeed.min='0';avifSpeed.max='9';avifSpeed.step='1';
+    avifSpeed.setAttribute('aria-label','Скорость AVIF');
+    const avifSpeedValue=document.createElement('span');
+    avifSpeedValue.className='quality-value avif-speed-value';
+    avifSpeedWrap.append(document.createTextNode('Скорость'),avifSpeed,avifSpeedValue);
+    head.append(avifSpeedWrap);
   
     const tiffOptions = normalizeTiffOptions(variant.config);
     const tiffCompressionWrap = document.createElement("label");
@@ -311,6 +323,9 @@ export function createControls({els, app}, deps) {
       modernEffortWrap,
       modernEffort,
       modernEffortValue,
+      avifSpeedWrap,
+      avifSpeed,
+      avifSpeedValue,
       select,
       qualityWrap,
       quality,
@@ -344,6 +359,11 @@ export function createControls({els, app}, deps) {
       const key=variant.config.format==='webpLossless'?'webpMethod':'jxlEffort';
       variant.config[key]=Number(modernEffort.value);
       modernEffortValue.textContent=modernEffort.value;
+      deps.markDirty(variant);
+    });
+    avifSpeed.addEventListener('input',()=>{
+      variant.config.avifSpeed=Number(avifSpeed.value);
+      avifSpeedValue.textContent=avifSpeed.value;
       deps.markDirty(variant);
     });
   
@@ -475,6 +495,11 @@ export function createControls({els, app}, deps) {
       variant.controls.modernEffort.setAttribute('aria-label',webp?'Метод WebP lossless':'Усилие JPEG XL');
       variant.controls.modernEffort.value=String(webp?options.webpMethod:options.jxlEffort);
       variant.controls.modernEffortValue.textContent=variant.controls.modernEffort.value;
+    }
+    if(variant.controls.avifSpeedWrap){
+      variant.controls.avifSpeedWrap.hidden=format!=='avif';
+      variant.controls.avifSpeed.value=String(normalizeAvifOptions(variant.config).avifSpeed);
+      variant.controls.avifSpeedValue.textContent=variant.controls.avifSpeed.value;
     }
   
     if (variant.controls.tiffCompressionWrap) {
@@ -620,7 +645,7 @@ export function createControls({els, app}, deps) {
       png: "Полные цвета: Авто / 8 / 16 бит на канал, точный PNG до 12 Мп; обычный PNG8 — браузер. Палитра: 2–256 цветов, дизеринг, двоичная прозрачность. PNG opt: UPNG / pako, 8 бит/канал",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность; метод 0–6 меняет усилие сжатия",
-      avif: "Встроенные libheif / libaom; качество 1–100, поддерживает прозрачность",
+      avif: "Встроенные libheif / libaom; качество 1–100 и скорость 0–9, поддерживает прозрачность",
       jxl: "Встроенный libjxl; качество 1–100, усилие 1–10, поддерживает прозрачность",
       jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; усилие 1–10",
       tiff: "Встроенный libtiff; RGBA8 без потерь: без сжатия, Deflate или LZW; уровень Deflate 1–9 и предиктор",

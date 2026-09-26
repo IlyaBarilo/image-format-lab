@@ -56,7 +56,7 @@ export function createEncode({}, deps) {
     if (['heic', 'avif', 'webpLossless', 'jxl', 'jxlLossless', 'tiff'].includes(format)) {
       const codec = await deps.loadOptionalCodec(format === 'tiff' ? 'utif' : ['heic', 'avif'].includes(format) ? 'heic' : 'modern');
       const blob = format==='tiff' ? await codec.encode(outputSource.imageData, config)
-        : ['heic','avif'].includes(format) ? await codec.encode(outputSource.imageData, config.quality, format)
+        : ['heic','avif'].includes(format) ? await codec.encode(outputSource.imageData, config.quality, format, config)
           : await codec.encode(outputSource.imageData, config.quality, format, config);
       return deps.withEncodedMeta({ blob, previewImageData: null, panoramaPreserved: false }, outputSource);
     }

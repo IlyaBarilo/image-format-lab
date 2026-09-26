@@ -2,6 +2,7 @@ import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
 import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import { pngDepth, normalizePngOptions } from '../core/png.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
+import { normalizeAvifOptions } from '../core/avif-options.mjs';
 import { BATCH_STORAGE_KEY, FORMAT_DEFS, MATTES } from "./../core/config.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -47,6 +48,7 @@ export function createBatchSettings({app}, deps) {
     if (config.format === "tiff") normalizeTiffOptions(config);
     if (config.format === 'jpeg') normalizeJpegOptions(config);
     if (['webpLossless','jxl','jxlLossless'].includes(config.format)) normalizeModernOptions(config);
+    if (config.format === 'avif') normalizeAvifOptions(config);
     if (config.format === 'png') pngDepth(config.pngDepth);
     if (['png','pngIndexed'].includes(config.format)) normalizePngOptions(config);
     if (config.delivery !== undefined && !["files", "zip"].includes(config.delivery)) throw new Error("Выберите способ получения результата.");
@@ -78,6 +80,7 @@ export function createBatchSettings({app}, deps) {
     const tiff=config.format==='tiff'?normalizeTiffOptions(config):null;
     const modern=['webpLossless','jxl','jxlLossless'].includes(config.format)?normalizeModernOptions(config):null;
     const modernText=config.format==='webpLossless'?`, метод ${modern.webpMethod}`:modern?`, усилие ${modern.jxlEffort}`:'';
+    const avifText=config.format==='avif'?`, скорость ${normalizeAvifOptions(config).avifSpeed}`:'';
     const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}${pngCompression}`
       : tiff ? `, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
@@ -85,7 +88,7 @@ export function createBatchSettings({app}, deps) {
       : config.format === 'bmp8' ? `, до ${config.bmpColors} цветов, ${config.bmpCompression === 'rle8' ? 'RLE8' : 'без сжатия'}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };
     const matte = def.alpha === "none" ? `; заливка ${matteNames[config.matte]}` : "";
-    return `${def.label}${details}${modernText}; ${size}${matte}; ${config.format === "jpeg" && config.metadataPolicy !== "none" ? "GPano сохраняется в JPEG" : config.format==='png' ? "исходные метаданные удаляются; точный PNG сохраняет известную метку sRGB" : "метаданные удаляются"}` + (config.targetKB ? `; до ${config.targetKB} КБ, качество ${config.minQuality}–${config.quality}` : "");
+    return `${def.label}${details}${modernText}${avifText}; ${size}${matte}; ${config.format === "jpeg" && config.metadataPolicy !== "none" ? "GPano сохраняется в JPEG" : config.format==='png' ? "исходные метаданные удаляются; точный PNG сохраняет известную метку sRGB" : "метаданные удаляются"}` + (config.targetKB ? `; до ${config.targetKB} КБ, качество ${config.minQuality}–${config.quality}` : "");
   }
 
   return { restoreBatchSettings, persistBatchSettings, formatUnavailableReason, validateExportConfig, exportConfigDescription };

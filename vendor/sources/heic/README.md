@@ -58,7 +58,7 @@ python build.py --sdk /path/to/emsdk --work /path/to/heic-work --output /path/to
 ```
 
 Use absolute tool paths with `--cmake` and `--ninja` if they are not in PATH.
-`--jobs 4` controls compilation concurrency. A `.map` beside the JS records
+`--jobs 4` controls compilation concurrency. A `.map` in the work directory records
 linked objects. The output includes WASM and has no runtime file dependencies.
 Library objects are rebuilt with `--clean-first`: copied source timestamps cannot
 silently leave objects from a previous source revision in the decoder.
@@ -134,4 +134,7 @@ for upstream RTCD generation; pass `--perl PATH/perl` if not on PATH. On Windows
 the Perl supplied with Git for Windows can be used. AOM is scalar, single-threaded,
 without libyuv/libwebm/apps/tests or Butteraugli tuning. The original HEIC ABI
 remains available; AVIF adds `viewer_avif_encode` and `viewer_avif_can_encode`.
+`viewer_avif_encode` accepts speed as its sixth argument, an integer from 0 to 9
+(default 6 in the application), with higher values generally encoding faster.
+Speed 0 may be slow. The HEIC encoder does not use this parameter.
 Recombination updates the complete HEIC/AVIF module and its source archive.

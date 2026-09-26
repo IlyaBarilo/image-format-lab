@@ -16,6 +16,8 @@ tests.push('ssim');
 tests.push('png-indexed');
 tests.push('modern-options');
 tests.push('modern-native-options');
+tests.push('avif-speed');
+tests.push('avif-native-speed');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

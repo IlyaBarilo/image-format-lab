@@ -555,9 +555,12 @@ select:disabled {
 }
 
 .modern-effort { width: 94px; accent-color: var(--accent); }
+.avif-speed { width: 94px; accent-color: var(--accent); }
 .modern-effort-wrap[hidden],
+.avif-speed-wrap[hidden],
 #batchWebpMethodField[hidden],
-#batchJxlEffortField[hidden] { display: none; }
+#batchJxlEffortField[hidden],
+#batchAvifSpeedField[hidden] { display: none; }
 .batch-field > input[type="range"] { accent-color: var(--accent); }
 
 .workspace:not(.files-hidden) .quality { width: 94px; }

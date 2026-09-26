@@ -310,6 +310,8 @@ libjpeg-turbo описаны в [инструкции](../vendor/sources/jpeg/RE
 ## AVIF / JPEG XL / WebP lossless / TIFF / ICO
 
 `services/heic.mjs` и HEIC Worker обслуживают также AVIF (libaom).
+`core/avif-options.mjs` проверяет скорость AVIF 0–9 с прежним значением 6;
+параметр передаётся только в AVIF-кодировщик через HEIC Worker. Путь HEIC не меняется.
 `services/modern.mjs` / `workers/modern.worker.mjs` обслуживают JPEG XL и WebP lossless;
 [сборка из исходников](../vendor/sources/modern/README.md).
 `core/modern-options.mjs` проверяет WebP method 0–6 и JPEG XL effort 1–10

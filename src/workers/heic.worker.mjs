@@ -27,7 +27,12 @@ self.onmessage = async ({ data: request }) => {
         if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
             input.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100)
           throw new Error('Некорректные параметры HEIC');
-        if ((request.format === 'avif' ? codec._viewer_avif_encode : codec._viewer_heic_encode)(pointer, input.length, width, height, quality))
+        if (request.format === 'avif' && (!Number.isInteger(request.avifSpeed) || request.avifSpeed < 0 || request.avifSpeed > 9))
+          throw new Error('Некорректная скорость AVIF');
+        const status = request.format === 'avif'
+          ? codec._viewer_avif_encode(pointer, input.length, width, height, quality, request.avifSpeed)
+          : codec._viewer_heic_encode(pointer, input.length, width, height, quality);
+        if (status)
           throw new Error(codec.UTF8ToString(codec._viewer_heic_error()));
         const at = codec._viewer_heic_output(), size = codec._viewer_heic_output_size();
         if (at <= 0 || size < 16 || size > 256 * 1024 * 1024 || at + size > codec.HEAPU8.length)

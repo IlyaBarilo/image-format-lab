@@ -1,5 +1,6 @@
 import workerSource from 'viewer:heic-worker';
 import { embeddedCodecSource } from './embedded-codecs.mjs';
+import { normalizeAvifOptions } from '../core/avif-options.mjs';
 
 export function createHeic() {
   let session, sequence = 0, queue = Promise.resolve();
@@ -74,13 +75,14 @@ export function createHeic() {
     return { width: result.width, height: result.height,
       imageData: new ImageData(new Uint8ClampedArray(result.buffer), result.width, result.height), close: null };
   }
-  async function encode(imageData, quality, format = 'heic') {
+  async function encode(imageData, quality, format = 'heic', options = {}) {
     const { width, height, data } = imageData;
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width * height > 40000000 ||
         data?.length !== width * height * 4 || !Number.isInteger(quality) || quality < 1 || quality > 100)
       throw new Error('Некорректные параметры HEIC или превышен лимит 40 мегапикселей');
     // Transfer a new buffer, never the viewer's source pixels.
-    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format });
+    const avifSpeed = format === 'avif' ? normalizeAvifOptions(options).avifSpeed : undefined;
+    const result = await operate('encode', () => new Uint8ClampedArray(data).buffer, { width, height, quality, format, avifSpeed });
     return new Blob([result.buffer], { type: format === 'avif' ? 'image/avif' : 'image/heic' });
   }
   const api = { decode, encode };

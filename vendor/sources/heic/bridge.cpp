@@ -97,10 +97,11 @@ int viewer_heic_decode(const uint8_t* input, size_t length) {
     return fail("Invalid decoded HEIC pixel plane");
   return 0;
 }
-int encode_image(const uint8_t* rgba, size_t length, int width, int height, int quality, heif_compression_format format) {
+int encode_image(const uint8_t* rgba, size_t length, int width, int height, int quality, heif_compression_format format, int avif_speed) {
   viewer_heic_clear(); last_error[0] = 0;
   if (!rgba || !valid_size(width, height) || length != size_t(width) * height * 4 || quality < 1 || quality > 100)
     return fail("Invalid HEIC pixels, quality, or 40 megapixel limit exceeded");
+  if (format == heif_compression_AV1 && (avif_speed < 0 || avif_speed > 9)) return fail("Invalid AVIF speed");
   context = heif_context_alloc();
   if (!context) return fail("Cannot allocate HEIC context");
   bool alpha = false;
@@ -136,7 +137,7 @@ int encode_image(const uint8_t* rgba, size_t length, int width, int height, int 
   error = heif_encoder_set_lossy_quality(encoder.get(), quality);
   if (error.code) return fail(error.message);
   if (format == heif_compression_AV1) {
-    error = heif_encoder_set_parameter_integer(encoder.get(), "speed", 6);
+    error = heif_encoder_set_parameter_integer(encoder.get(), "speed", avif_speed);
     if (error.code) return fail(error.message);
     error = heif_encoder_set_parameter_integer(encoder.get(), "threads", 1);
     if (error.code) return fail(error.message);
@@ -150,9 +151,9 @@ int encode_image(const uint8_t* rgba, size_t length, int width, int height, int 
   return 0;
 }
 int viewer_heic_encode(const uint8_t* rgba, size_t length, int width, int height, int quality) {
-  return encode_image(rgba, length, width, height, quality, heif_compression_HEVC);
+  return encode_image(rgba, length, width, height, quality, heif_compression_HEVC, 6);
 }
-int viewer_avif_encode(const uint8_t* rgba, size_t length, int width, int height, int quality) {
-  return encode_image(rgba, length, width, height, quality, heif_compression_AV1);
+int viewer_avif_encode(const uint8_t* rgba, size_t length, int width, int height, int quality, int speed) {
+  return encode_image(rgba, length, width, height, quality, heif_compression_AV1, speed);
 }
 }

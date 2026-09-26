@@ -202,8 +202,8 @@
     {
       "file": "sources/heic/README.md",
       "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
-      "bytes": 7800,
-      "sha256": "b9163f4c3c7bb89b4b88b5800f6bf23dc1ba6cc69bd4a21f8a95424358974119"
+      "bytes": 8034,
+      "sha256": "fcca9652267016c04c05f16897b802d27e75622ef95add4e03b3fb1320552807"
     },
     {
       "file": "sources/heic/PROJECT-LICENSE",
@@ -226,14 +226,14 @@
     {
       "file": "sources/heic/bridge.cpp",
       "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
-      "bytes": 8135,
-      "sha256": "2716f76b7feb7e243d39171453cc2840e662c87e3dc3efd592c96ff071d896f8"
+      "bytes": 8292,
+      "sha256": "9d9e967ee23b03e6e42e165a8b76cc2e1129e80023452a8354cc3a96bd94eaae"
     },
     {
       "file": "sources/heic/build.py",
       "url": "HEIC source/recombination package; see sources/heic/README.md and sources.lock.json",
-      "bytes": 8371,
-      "sha256": "559a17b99f57467248f6415d78c5dc1715dbbe730835ac522752bd524f04fc5c"
+      "bytes": 8369,
+      "sha256": "b0cee58403c22512b399a22aedf9b30a45560fc5eb77484d9d4dbc68cf89bee4"
     },
     {
       "file": "sources/heic/package.py",
@@ -514,14 +514,14 @@
     {
       "file": "heic-decoder.js",
       "url": "Built from sources/heic/ using Emscripten 6.0.9; libheif 1.23.4, libde265 1.1.2 and Kvazaar 2.3.2",
-      "bytes": 6982019,
-      "sha256": "36dbcbbf7608e5ddc1a2abe1d5808d3fca042936fe0a97b23a4ffb77a4ecfedb"
+      "bytes": 6982259,
+      "sha256": "caffb08545d49bfe87b59e0a519a70d67e8a2c6c4188c83bdc24fcacf1813b55"
     },
     {
       "file": "heic-sources.zip",
       "url": "Deterministic package of sources/heic/package-files.json",
-      "bytes": 6764486,
-      "sha256": "08a790ba392aa6d52502493163ba077aa4a3c4fe66275e8384f25fbb597a2e3f"
+      "bytes": 6764617,
+      "sha256": "ce4fac5e3ecc7aca96009284e1a361361d20776bb296f41ac0b019e95f387e3c"
     },
     {
       "file": "gifenc-1.0.3-sources.zip",

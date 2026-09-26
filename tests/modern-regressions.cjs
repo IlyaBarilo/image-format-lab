@@ -74,6 +74,15 @@ async function download(page, button) {
       assert.ok(saved.bytes.length>10);
     }
     report.checks.push('all six selectors, appropriate quality visibility, current comparison preview and downloads');
+    await cell.locator('.format-select').selectOption('avif');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1]));
+    assert.equal(await cell.locator('.avif-speed').isVisible(),true);
+    assert.equal(await cell.locator('.avif-speed').inputValue(),'6');
+    await cell.locator('.avif-speed').press('End');
+    await page.waitForFunction(()=>isVariantReady(app.variants[1])&&app.variants[1].resultConfig.avifSpeed===9);
+    await cell.locator('.format-select').selectOption('jxl');
+    assert.equal(await cell.locator('.avif-speed').isVisible(),false);
+    report.checks.push('AVIF speed updates its encoded cell; unrelated formats hide the control');
     await cell.locator('.format-select').selectOption('webpLossless');
     await page.waitForFunction(()=>isVariantReady(app.variants[1]));
     assert.equal(await cell.locator('.modern-effort').isVisible(),true);
@@ -111,6 +120,8 @@ async function download(page, button) {
       await page.locator('#batchFormat').selectOption(format);
       assert.equal(await page.locator('#batchWebpMethodField').isVisible(),format==='webpLossless');
       assert.equal(await page.locator('#batchJxlEffortField').isVisible(),['jxl','jxlLossless'].includes(format));
+      assert.equal(await page.locator('#batchAvifSpeedField').isVisible(),format==='avif');
+      if(format==='avif')await page.locator('#batchAvifSpeed').press('End');
       if(format==='tiff') {
         await page.locator('#batchTiffSettings').click();
         await page.locator('#tiffCompression').selectOption('lzw');
