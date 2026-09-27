@@ -60,6 +60,7 @@ export function decodeTiffFloat(buffer, page = 0, pako) {
   const data = new Float32Array(width * height * 4), preview = new Uint8ClampedArray(width * height * 4);
   const min = [Infinity, Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity, -Infinity];
   let negative = 0, aboveOne = 0;
+  const visibleMin = [Infinity, Infinity, Infinity], visibleMax = [-Infinity, -Infinity, -Infinity];
   for (let strip = 0; strip < offsets.length; strip++) {
     const row = strip * rowsPerStrip, rows = Math.min(rowsPerStrip, height - row);
     const expected = rows * width * channels * 4, start = offsets[strip], length = counts[strip];
@@ -94,6 +95,10 @@ export function decodeTiffFloat(buffer, page = 0, pako) {
         min[channel] = Math.min(min[channel], value); max[channel] = Math.max(max[channel], value);
         if (channel < 3) { if (value < 0) negative++; if (value > 1) aboveOne++; }
       }
+      if (data[target + 3] > 0) for (let channel = 0; channel < 3; channel++) {
+        visibleMin[channel] = Math.min(visibleMin[channel], data[target + channel]);
+        visibleMax[channel] = Math.max(visibleMax[channel], data[target + channel]);
+      }
     }
   }
   let cursor = u32(offset + 2 + entries * 12);
@@ -108,5 +113,6 @@ export function decodeTiffFloat(buffer, page = 0, pako) {
   }
   return { pixels: createPixelBuffer({width, height, data, sampleType:'float32', bitDepth:32,
       colorSpace:'unknown', alphaMode:'straight'}), preview, pages,
-    stats:{min, max, negative, aboveOne, mapping:'Каналы 0–1 → 0–255; вне диапазона — обрезка. Цветовое пространство не определено.'} };
+    stats:{min, max, visibleMin, visibleMax, negative, aboveOne,
+      mapping:'Каналы 0–1 → 0–255; вне диапазона — обрезка. Цветовое пространство не определено.'} };
 }

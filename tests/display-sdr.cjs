@@ -1,8 +1,11 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 (async () => {
   const { createPixelBuffer } = await import('../src/core/pixel-buffer.mjs');
-  const { createSdrMapper, createFloat16SdrMapper, normalizeDisplay, DEFAULT_DISPLAY } = await import('../src/core/display-sdr.mjs');
+  const { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, resolveFloatDisplayRange,
+    normalizeDisplay, DEFAULT_DISPLAY } = await import('../src/core/display-sdr.mjs');
   const source = new Uint16Array([
     0, 16384, 32768, 65535,
     32768, 32769, 65535, 0,
@@ -50,6 +53,13 @@ const assert = require('node:assert/strict');
   assert.deepEqual(normalizeDisplay({ mode: 'sdr', black: 60, white: 50, exposure: 9, dither: 'yes' }), { ...DEFAULT_DISPLAY, mode: 'sdr' });
   assert.throws(() => createSdrMapper(pixels, new Uint8ClampedArray(1)), RangeError);
   assert.throws(() => createSdrMapper(pixels, output)(0, 3), RangeError);
+  const markup = fs.readFileSync(path.join(__dirname, '../src/index.html'), 'utf8');
+  global.document = { getElementById: id => markup.includes(`id="${id}"`) ? { id } : null };
+  const { collectElements } = await import('../src/state.mjs');
+  const liveElements = collectElements();
+  for (const id of ['displayMode', 'displayFloatFields', 'displayFloatRange', 'displayFloatBounds',
+    'displayFloatMin', 'displayFloatMax', 'displayFloatRangeValue', 'displayDitherField'])
+    assert.equal(liveElements[id]?.id, id, `Display control ${id} must be wired to the HTML`);
   const { createDisplay, probeFloat16Canvas } = await import('../src/ui/display.mjs');
   const floatContext = {
     getContextAttributes: () => ({ colorType: 'float16' }),
@@ -69,7 +79,9 @@ const assert = require('node:assert/strict');
   const control = value => ({ value, checked: true, textContent: '', disabled: false,
     addEventListener() {}, setAttribute() {}, classList: { toggle() {} } });
   const els = Object.fromEntries(['displayMode','displayBlack','displayWhite','displayExposure','displayDither',
-    'displayBlackValue','displayWhiteValue','displayExposureValue','displayMenuToggle','displayOutputNote'].map(id => [id, control('0')]));
+    'displayBlackValue','displayWhiteValue','displayExposureValue','displayMenuToggle','displayOutputNote',
+    'displayFloatRange','displayFloatMin','displayFloatMax','displayFloatRangeValue','displayFloatFields',
+    'displaySdrFields','displayFloatBounds','displayDitherField'].map(id => [id, control('0')]));
   els.displayMenu = { hidden: true, contains: () => false };
   const app = { display: { ...DEFAULT_DISPLAY, mode: 'sdr', dither: false }, source: { pixelBuffer: pixels, width: 2, height: 2 }, variants: [] };
   const ui = createDisplay({ app, els }, { redrawPreviews: () => { redraws++; } });
@@ -134,6 +146,42 @@ const assert = require('node:assert/strict');
   const partialApp = { float16Canvas: true, wipeFloat16: true, layout: 2 };
   createBootstrap({ app: partialApp, els: {} }, noop).init();
   assert.equal(partialApp.float16CanvasReady, false, 'One downgraded cell keeps every view on the common RGBA8 path');
+  const floatData = new Float32Array([-0.5, 0.5, 2, 1, 0.25, 0.75, 1.5, 0]);
+  const native = createPixelBuffer({ width: 2, height: 1, data: floatData, sampleType: 'float32', bitDepth: 32, colorSpace: 'unknown' });
+  const preview = createPixelBuffer({ width: 2, height: 1, data: new Uint8ClampedArray([0, 128, 255, 255, 64, 191, 255, 0]) });
+  const snapshot = floatData.slice(), mapped = new Uint8ClampedArray(8), mapped16 = new Float16Array(8);
+  assert.deepEqual(resolveFloatDisplayRange({ floatRange: 'auto' },
+    { visibleMin: [-0.5, 0.5, 1.5], visibleMax: [0.25, 0.75, 2] }), [-0.5, 2]);
+  assert.deepEqual(resolveFloatDisplayRange({ floatRange: 'auto' }, { visibleMin: [Infinity], visibleMax: [-Infinity] }), [0, 1]);
+  assert.deepEqual(resolveFloatDisplayRange({ floatRange: 'manual', floatMin: -0.5, floatMax: 2.5 }), [-0.5, 2.5]);
+  assert.deepEqual(resolveFloatDisplayRange({ floatRange: 'manual', floatMin: 3, floatMax: 2 }), [0, 1]);
+  createFloatRangeMapper(native, mapped, [-0.5, 2.5], { dither: false })(0, 1);
+  createFloatRangeMapper(native, mapped16, [-0.5, 2.5], { floatOutput: true })(0, 1);
+  assert.deepEqual([...mapped], [0, 85, 213, 255, 64, 106, 170, 0]);
+  assert.ok(Math.abs(mapped16[1] - 1 / 3) < 0.001);
+  assert.equal(mapped16[7], 0, 'Transparent alpha remains zero');
+  assert.deepEqual(floatData, snapshot, 'Screen mapping never changes native floats');
+  assert.throws(() => createFloatRangeMapper(native, mapped, [2, 1]), RangeError);
+  const shown = { nativePixelBuffer: native, pixelBuffer: preview, floatStats: { visibleMin: [-0.5, 0.5, 1.5], visibleMax: [0.25, 0.75, 2] } };
+  const originalVariant = { pixelBuffer: preview, resultConfig: { format: 'original' }, resultSource: shown,
+    ctx: floatContext, cell: { classList: { contains: () => false } } };
+  const encodedVariant = { pixelBuffer: preview, resultConfig: { format: 'jpeg' }, resultSource: shown,
+    ctx: floatContext, cell: { classList: { contains: () => false } } };
+  app.source = shown; app.variants = [originalVariant, encodedVariant];
+  app.display = normalizeDisplay({ ...DEFAULT_DISPLAY, mode: 'float', floatRange: 'manual', floatMin: -0.5, floatMax: 2.5, dither: false });
+  global.document = { createElement: () => floatCanvas };
+  const rangeUI = createDisplay({ app, els }, { redrawPreviews: () => { redraws++; } });
+  assert.equal(rangeUI.displayImage(preview, fallback, floatContext, originalVariant), fallback);
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(rangeUI.displayImage(preview, fallback, floatContext, originalVariant), floatCanvas);
+  assert.equal(floatPainted[0], 0, 'Original cell uses the native negative float');
+  assert.ok(Math.abs(floatPainted[2] - 2.5 / 3) < 0.001);
+  assert.equal(rangeUI.displayImage(preview, fallback, floatContext, encodedVariant), fallback);
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(rangeUI.displayImage(preview, fallback, floatContext, encodedVariant), floatCanvas);
+  assert.ok(Math.abs(floatPainted[0] - 1 / 6) < 0.001, 'Encoded SDR cell uses the same screen range');
+  assert.match(els.displayOutputNote.textContent, /метрики и файлы не меняются/);
+  assert.deepEqual(floatData, snapshot);
   delete global.document;
-  console.log('PASS exact source, RGBA8/float16 paths, capability probe, fallback and invalid settings');
+  console.log('PASS exact source, float32 screen window, RGBA8/float16 paths, capability probe and fallback');
 })().catch(error => { console.error(error); process.exitCode = 1; });

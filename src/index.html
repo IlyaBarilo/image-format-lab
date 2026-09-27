@@ -65,14 +65,25 @@
         <button class="text-btn" id="displayMenuToggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="displayMenu" title="Настроить отображение без изменения пикселей и сохранённого файла">Отображение</button>
         <div class="display-menu" id="displayMenu" role="dialog" aria-label="Настройки отображения" hidden>
           <label for="displayMode">Режим просмотра</label>
-          <select class="select" id="displayMode"><option value="standard">Обычный</option><option value="sdr">SDR с настройками</option></select>
-          <label for="displayBlack">Чёрная точка <output id="displayBlackValue">0%</output></label>
-          <input id="displayBlack" type="range" min="0" max="95" step="1" value="0">
-          <label for="displayWhite">Белая точка <output id="displayWhiteValue">100%</output></label>
-          <input id="displayWhite" type="range" min="5" max="100" step="1" value="100">
-          <label for="displayExposure">Экспозиция <output id="displayExposureValue">0 EV</output></label>
-          <input id="displayExposure" type="range" min="-3" max="3" step="0.25" value="0">
-          <label class="display-check" for="displayDither"><input id="displayDither" type="checkbox" checked> Сглаживание переходов 16→8 бит</label>
+          <select class="select" id="displayMode"><option value="standard">Обычный</option><option value="sdr">SDR с настройками</option><option value="float">TIFF float32 · диапазон</option></select>
+          <div class="display-control-group" id="displaySdrFields" hidden>
+            <label for="displayBlack">Чёрная точка <output id="displayBlackValue">0%</output></label>
+            <input id="displayBlack" type="range" min="0" max="95" step="1" value="0">
+            <label for="displayWhite">Белая точка <output id="displayWhiteValue">100%</output></label>
+            <input id="displayWhite" type="range" min="5" max="100" step="1" value="100">
+            <label for="displayExposure">Экспозиция <output id="displayExposureValue">0 EV</output></label>
+            <input id="displayExposure" type="range" min="-3" max="3" step="0.25" value="0">
+          </div>
+          <div class="display-control-group" id="displayFloatFields" hidden>
+            <label for="displayFloatRange">Диапазон исходника</label>
+            <select class="select" id="displayFloatRange"><option value="unit">0–1</option><option value="auto">Авто по видимым RGB</option><option value="manual">Вручную</option></select>
+            <div class="display-float-bounds" id="displayFloatBounds" hidden>
+              <label for="displayFloatMin">От <input id="displayFloatMin" type="number" step="any" value="0"></label>
+              <label for="displayFloatMax">До <input id="displayFloatMax" type="number" step="any" value="1"></label>
+            </div>
+            <output id="displayFloatRangeValue" aria-live="polite"></output>
+          </div>
+          <label class="display-check" for="displayDither" id="displayDitherField"><input id="displayDither" type="checkbox" checked> Сглаживание переходов при выводе в 8 бит</label>
           <p id="displayOutputNote">Путь вывода определяется при запуске. Точные данные не меняются.</p>
         </div>
       </div>

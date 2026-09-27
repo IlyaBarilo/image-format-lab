@@ -109,7 +109,7 @@ export function createFilePassport({ app }, deps) {
       const stats=snapshot.floatStats;
       rows.push(['Диапазон float32 (R, G, B, α)', stats.min.map((value,i)=>`${String(value).replace('.', ',')}…${String(stats.max[i]).replace('.', ',')}`).join(' · ')],
         ['RGB ниже 0 / выше 1', `${number(stats.negative)} / ${number(stats.aboveOne)} отсчётов`],
-        ['Экран и сравнение', 'SDR-предпросмотр 8 бит: 0–1 → 0–255 с обрезкой; точные значения — в пиксельном инспекторе.']);
+        ['Экран и сравнение', 'Обычный показ и метрики: SDR 8 бит с обрезкой 0–1. Режим диапазона в меню «Отображение» меняет только экранную шкалу; точные числа — в инспекторе.']);
     }
     fields(rasterFields,rows);
     return info;

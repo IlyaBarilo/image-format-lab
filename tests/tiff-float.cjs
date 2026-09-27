@@ -13,6 +13,9 @@ const pako=require('../vendor/pako-2.1.0.min.js');
   assert.equal(decoded.pages,1);
   assert.deepEqual(decoded.pixels.data,sample.pixels.data);
   assert.ok(decoded.stats.min[0]<0&&decoded.stats.max[0]>1);
+  assert.equal(decoded.stats.visibleMin[0],decoded.pixels.data[16*4],
+    'Auto display ignores hidden RGB samples while exact source statistics retain them');
+  assert.equal(decoded.stats.visibleMax[0],decoded.stats.max[0]);
   assert.ok(decoded.stats.negative>0&&decoded.stats.aboveOne>0);
   assert.equal(decoded.pixels.data[3],0);
   assert.equal(decoded.preview[0],0);

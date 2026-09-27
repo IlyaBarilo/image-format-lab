@@ -19,6 +19,7 @@ export function createSource({app, els}, deps) {
       if (generation !== app.sourceGeneration) return false;
       app.source = source;
       source.fileId = fileId;
+      deps.syncDisplayControls();
       
       els.emptyState.style.display = "none";
       deps.resetView();
@@ -48,6 +49,7 @@ export function createSource({app, els}, deps) {
     app.sourceLoading = false;
     app.source = null;
     app.sourceError = "";
+    deps.syncDisplayControls();
     for (const variant of app.variants) {
       clearTimeout(variant.debounce);
       variant.generation++;

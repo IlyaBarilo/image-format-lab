@@ -1114,10 +1114,18 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
 .display-picker > .text-btn.active { border-color:var(--accent); }
 .display-menu { position:absolute; z-index:35; top:calc(100% + 5px); left:0; width:min(290px,calc(100vw - 24px)); display:grid; gap:7px; padding:12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--panel); box-shadow:var(--segment-shadow); }
 .display-menu[hidden] { display:none; }
+.display-control-group { display:grid; gap:7px; }
+.display-control-group[hidden], .display-float-bounds[hidden] { display:none; }
+.display-float-bounds { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.display-float-bounds label { display:grid; gap:3px; }
+.display-menu .display-float-bounds label { display:grid; align-items:stretch; }
+.display-float-bounds input { width:100%; min-width:0; padding:5px 6px; border:1px solid var(--line-strong); border-radius:6px; background:var(--panel); color:var(--text); font:inherit; }
+.display-menu #displayFloatRangeValue { font-size:11px; line-height:1.4; }
 .display-menu label { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:600; }
 .display-menu output { color:var(--muted); font-variant-numeric:tabular-nums; }
 .display-menu input[type="range"] { width:100%; accent-color:var(--accent); }
 .display-menu .display-check { justify-content:flex-start; font-weight:400; }
+.display-menu .display-check[hidden] { display:none; }
 .display-menu p { margin:4px 0 0; color:var(--muted); font-size:11px; line-height:1.4; }
 .stage.has-analysis .grid.wipe {
   grid-template-columns: repeat(2,minmax(0,1fr));

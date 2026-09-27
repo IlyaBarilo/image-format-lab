@@ -1,4 +1,5 @@
-import { createSdrMapper, createFloat16SdrMapper, MAX_DISPLAY_PIXELS, normalizeDisplay } from '../core/display-sdr.mjs';
+import { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, resolveFloatDisplayRange,
+  validFloatDisplayRange, MAX_DISPLAY_PIXELS, normalizeDisplay } from '../core/display-sdr.mjs';
 
 export function probeFloat16Canvas(documentRef = document) {
   if (typeof Float16Array !== 'function') return false;
@@ -29,10 +30,21 @@ export function createDisplay({ app, els }, deps) {
     cache = new WeakMap();
   }
 
-  function displayImage(pixels, fallback, targetContext) {
-    if (app.display.mode !== 'sdr' || !pixels || !['uint8', 'uint16'].includes(pixels.sampleType) ||
+  const floatSource = () => app.source?.nativePixelBuffer?.sampleType === 'float32' ? app.source.nativePixelBuffer : null;
+  function screenPixels(variant) {
+    const native = floatSource();
+    return app.display.mode === 'float' && native && variant?.resultConfig?.format === 'original' &&
+      variant.resultSource === app.source && variant.pixelBuffer?.width === native.width &&
+      variant.pixelBuffer?.height === native.height ? native : variant?.pixelBuffer;
+  }
+  function displayImage(pixels, fallback, targetContext, variant = null) {
+    const floatMode = app.display.mode === 'float' && Boolean(floatSource());
+    if (floatMode && variant) pixels = screenPixels(variant);
+    if ((!floatMode && app.display.mode !== 'sdr') || !pixels ||
+        !['uint8', 'uint16', ...(floatMode ? ['float32'] : [])].includes(pixels.sampleType) ||
         pixels.width * pixels.height > MAX_DISPLAY_PIXELS) return fallback;
-    const kind = pixels.bitDepth > 8 && app.float16CanvasReady && !float16Failed && isFloat16Context(targetContext) ? 'float16' : 'unorm8';
+    const kind = (floatMode || pixels.bitDepth > 8) && app.float16CanvasReady && !float16Failed &&
+      isFloat16Context(targetContext) ? 'float16' : 'unorm8';
     let entries = cache.get(pixels);
     if (!entries) { entries = {}; cache.set(pixels, entries); }
     let entry = entries[kind];
@@ -64,9 +76,11 @@ export function createDisplay({ app, els }, deps) {
       if (kind === 'float16' && (image.pixelFormat !== 'rgba-float16' || !(image.data instanceof Float16Array))) {
         fail(); return fallback;
       }
-      const mapRows = kind === 'float16'
-        ? createFloat16SdrMapper(pixels, image.data, app.display)
-        : createSdrMapper(pixels, image.data, app.display);
+      const range = floatMode ? resolveFloatDisplayRange(app.display, app.source.floatStats) : null;
+      const mapRows = floatMode
+        ? createFloatRangeMapper(pixels, image.data, range, { floatOutput: kind === 'float16', dither: app.display.dither })
+        : kind === 'float16' ? createFloat16SdrMapper(pixels, image.data, app.display)
+          : createSdrMapper(pixels, image.data, app.display);
       let row = 0;
       function advance() {
         if (token !== revision || cache.get(pixels)?.[kind] !== entry) return;
@@ -93,22 +107,40 @@ export function createDisplay({ app, els }, deps) {
     els.displayWhite.value = String(value.white);
     els.displayExposure.value = String(value.exposure);
     els.displayDither.checked = value.dither;
+    els.displayFloatRange.value = value.floatRange;
+    els.displayFloatMin.value = String(value.floatMin);
+    els.displayFloatMax.value = String(value.floatMax);
     els.displayBlackValue.textContent = `${value.black}%`;
     els.displayWhiteValue.textContent = `${value.white}%`;
     els.displayExposureValue.textContent = `${value.exposure > 0 ? '+' : ''}${value.exposure} EV`;
-    for (const control of [els.displayBlack, els.displayWhite, els.displayExposure, els.displayDither]) control.disabled = value.mode !== 'sdr';
-    els.displayMenuToggle.classList.toggle('active', value.mode === 'sdr');
-    const high = app.source?.pixelBuffer?.bitDepth > 8 || app.variants.some(variant => variant.pixelBuffer?.bitDepth > 8);
+    const floatMode = value.mode === 'float', native = floatSource();
+    els.displaySdrFields.hidden = value.mode !== 'sdr';
+    els.displayFloatFields.hidden = !floatMode;
+    els.displayFloatBounds.hidden = !floatMode || value.floatRange !== 'manual';
+    els.displayDitherField.hidden = value.mode === 'standard';
+    for (const control of [els.displayBlack, els.displayWhite, els.displayExposure]) control.disabled = value.mode !== 'sdr';
+    for (const control of [els.displayFloatRange, els.displayFloatMin, els.displayFloatMax]) control.disabled = !floatMode;
+    els.displayMenuToggle.classList.toggle('active', value.mode !== 'standard');
+    const range = resolveFloatDisplayRange(value, app.source?.floatStats);
+    els.displayFloatRangeValue.textContent = native
+      ? `Экранная шкала: ${range[0].toLocaleString('ru-RU')}…${range[1].toLocaleString('ru-RU')}.`
+      : 'Доступно для поддерживаемого исходника TIFF float32.';
+    const high = floatMode && native || app.source?.pixelBuffer?.bitDepth > 8 || app.variants.some(variant => variant.pixelBuffer?.bitDepth > 8);
     const oversized = [app.source, ...app.variants].some(item => item?.pixelBuffer && item.pixelBuffer.width * item.pixelBuffer.height > MAX_DISPLAY_PIXELS);
     const float16Eligible = high && app.float16CanvasReady && !float16Failed &&
       app.variants.every(variant => !variant.pixelBuffer || isFloat16Context(variant.ctx));
-    els.displayDither.disabled = value.mode !== 'sdr' || Boolean(float16Eligible);
+    els.displayDither.disabled = value.mode === 'standard' || Boolean(float16Eligible);
     els.displayDither.title = float16Eligible ? 'Дизеринг нужен только при выводе через RGBA8.' : '';
-    const visibleHigh = app.variants.filter(variant => variant.pixelBuffer?.bitDepth > 8 && !variant.cell?.classList?.contains('hidden'));
+    const visibleHigh = app.variants.filter(variant => (floatMode && native || variant.pixelBuffer?.bitDepth > 8) &&
+      variant.pixelBuffer && !variant.cell?.classList?.contains('hidden'));
     const float16Ready = float16Eligible && (visibleHigh.length
-      ? visibleHigh.every(variant => cache.get(variant.pixelBuffer)?.float16?.canvas)
-      : Boolean(app.source?.pixelBuffer && cache.get(app.source.pixelBuffer)?.float16?.canvas));
-    els.displayOutputNote.textContent = value.mode !== 'sdr'
+      ? visibleHigh.every(variant => cache.get(screenPixels(variant))?.float16?.canvas)
+      : Boolean(app.source?.pixelBuffer && cache.get(floatMode && native ? native : app.source.pixelBuffer)?.float16?.canvas));
+    els.displayOutputNote.textContent = floatMode
+      ? !native ? 'Диапазонный показ доступен только для поддерживаемого исходника TIFF float32.'
+        : oversized ? 'Свыше 12 Мп остаётся обычный предпросмотр; точные данные не меняются.'
+        : `Показ значений исходного float32 через ${float16Ready ? 'Canvas float16' : float16Eligible ? 'подготовку Canvas float16' : 'Canvas RGBA8'} в общей шкале. Перекодированные варианты уже ограничены SDR; метрики и файлы не меняются. Цветовое пространство исходника не определено; это не HDR и не подтверждение 10-битного сигнала монитора.`
+      : value.mode !== 'sdr'
       ? 'Обычный предпросмотр из RGBA8. Точные пиксели остаются доступными для анализа и сохранения.'
       : oversized
       ? 'Свыше 12 Мп остаётся обычный предпросмотр. Точные пиксели и анализ не меняются.'
@@ -126,8 +158,15 @@ export function createDisplay({ app, els }, deps) {
       if (event.target === els.displayBlack) els.displayWhite.value = String(Number(els.displayBlack.value) + 1);
       else els.displayBlack.value = String(Number(els.displayWhite.value) - 1);
     }
+    const floatMin = Number(els.displayFloatMin.value), floatMax = Number(els.displayFloatMax.value);
+    if (els.displayMode.value === 'float' && els.displayFloatRange.value === 'manual' &&
+        (!els.displayFloatMin.value.trim() || !els.displayFloatMax.value.trim() || !validFloatDisplayRange(floatMin, floatMax))) {
+      els.displayFloatRangeValue.textContent = 'Введите конечные границы: «От» меньше «До».';
+      return;
+    }
     const value = normalizeDisplay({ mode: els.displayMode.value, black: Number(els.displayBlack.value),
-      white: Number(els.displayWhite.value), exposure: Number(els.displayExposure.value), dither: els.displayDither.checked });
+      white: Number(els.displayWhite.value), exposure: Number(els.displayExposure.value), dither: els.displayDither.checked,
+      floatRange: els.displayFloatRange.value, floatMin, floatMax });
     app.display = value;
     syncDisplayControls();
     clearDisplayCache();
@@ -142,7 +181,8 @@ export function createDisplay({ app, els }, deps) {
       const width = els.displayMenu.getBoundingClientRect().width;
       els.displayMenu.style.left = `${Math.max(12 - button.left, Math.min(0, window.innerWidth - 12 - width - button.left))}px`;
     };
-    for (const control of [els.displayMode, els.displayBlack, els.displayWhite, els.displayExposure, els.displayDither])
+    for (const control of [els.displayMode, els.displayBlack, els.displayWhite, els.displayExposure, els.displayDither,
+      els.displayFloatRange, els.displayFloatMin, els.displayFloatMax])
       control.addEventListener('input', applyControls);
     els.displayMenuToggle.addEventListener('click', () => {
       els.displayMenu.hidden = !els.displayMenu.hidden;

@@ -227,6 +227,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createSource(context, dependencies([
     "clearDisplayCache",
+    "syncDisplayControls",
     "updateAnalysis",
     "clearBatchPreview",
     "decodeSourceFile",
