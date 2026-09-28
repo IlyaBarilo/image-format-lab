@@ -37,7 +37,7 @@ export function createSource({app, els}, deps) {
       deps.drawAll();
       return false;
     } finally {
-      if (generation === app.sourceGeneration) { app.sourceLoading = false; deps.updateAnalysis(); }
+      if (generation === app.sourceGeneration) { app.sourceLoading = false; deps.updateAnalysis(); deps.updateStudySummary?.(); }
       
     }
   }

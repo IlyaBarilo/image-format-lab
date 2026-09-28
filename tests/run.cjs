@@ -10,6 +10,7 @@ tests.push('heif-blocks');
 tests.push('jxl-blocks');
 tests.push('analysis-guides');
 tests.push('crop-source');
+tests.push('comparison-summary');
 tests.push('signal-scopes');
 tests.push('precise-vector-difference');
 tests.push('boundary-map');

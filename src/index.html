@@ -559,6 +559,12 @@
     </section>
     <section>
       <h3>Отчёт текущего сравнения</h3>
+      <h4>Краткая сводка готовых ячеек</h4>
+      <p class="batch-note" id="comparisonSummarySource">Сначала откройте изображение.</p>
+      <div class="comparison-summary-wrap"><table id="comparisonSummaryTable" aria-label="Краткая сводка текущего сравнения"><thead><tr><th>№</th><th>Формат и режим</th><th>Размер</th><th>Файл</th><th>bpp</th><th>Q</th><th>PSNR RGB</th><th>Δα, %</th><th>Бит/канал</th><th>Примечание</th></tr></thead><tbody id="comparisonSummaryRows"></tbody></table></div>
+      <p class="batch-note" id="comparisonSummaryNote"></p>
+      <div class="study-tools"><button class="text-btn" id="comparisonSummaryCopy" type="button" disabled>Копировать таблицу</button><button class="text-btn" id="comparisonSummaryCSV" type="button" disabled>Скачать краткий CSV</button></div>
+      <p class="batch-note">bpp — биты файла на пиксель результата; Q указано только для форматов с настройкой качества. Копия таблицы содержит значения с разделителями табуляции.</p>
       <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button></div>
       <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
       <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>

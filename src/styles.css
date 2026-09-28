@@ -915,6 +915,10 @@ select:disabled {
 .study-tools input[type=file] { width:100%; box-sizing:border-box; }
 .study-tools input[type=text] { padding:8px; border:1px solid var(--line); border-radius:6px; color:var(--text); background:var(--control-bg); }
 .study-dialog table { border-collapse:collapse; width:100%; table-layout:fixed; overflow-wrap:anywhere; font-size:13px; }
+.comparison-summary-wrap { max-width:100%; overflow-x:auto; }
+#comparisonSummaryTable { min-width:980px; table-layout:auto; }
+#comparisonSummaryTable td, #comparisonSummaryTable th { white-space:nowrap; }
+#comparisonSummaryTable td:nth-child(2), #comparisonSummaryTable td:last-child { white-space:normal; min-width:130px; }
 #batchBudgetFields { border:1px solid var(--line); border-radius:8px; padding:12px; margin:14px 0; min-width:0; }
 .study-dialog td, .study-dialog th { padding:7px; text-align:left; border-bottom:1px solid var(--line); }
 .quality-series-chart { display:block; width:100%; height:auto; margin:10px 0; border:1px solid var(--line); border-radius:8px; background:var(--panel); }

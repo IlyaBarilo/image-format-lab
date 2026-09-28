@@ -438,6 +438,7 @@ export function createCanvas({app, els}, deps) {
     }
     deps.syncCellHeadSizes();
     deps.updateAnalysis();
+    deps.updateStudySummary?.();
   
     deps.resizeCanvases();
     deps.drawAll();

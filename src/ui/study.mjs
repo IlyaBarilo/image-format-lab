@@ -1,6 +1,7 @@
 import { DEFAULT_VARIANTS, EXPERIMENTS, PROFILE_KEY } from "./../core/config.mjs";
 import { REFERENCE_SAMPLES } from '../core/reference-samples.mjs';
 import { reconstructionName, sameBlobBytes } from '../core/jpeg-reconstruction.mjs';
+import { buildComparisonSummary, summaryCsv, summaryTsv } from '../core/comparison-summary.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStudy({app, els}, deps) {
@@ -23,6 +24,55 @@ export function createStudy({app, els}, deps) {
   }
   
   function studyNotice(message) { document.getElementById("studyNotice").textContent = message; }
+
+  function currentSummary(){
+    return buildComparisonSummary(deps.comparisonReport(),{
+      iccProfile:Boolean(app.source?.iccProfile),nativePixelBuffer:app.source?.nativePixelBuffer
+    });
+  }
+  function updateStudySummary(){
+    const dialog=document.getElementById('studyDialog');
+    if(!dialog?.open)return;
+    const get=id=>document.getElementById(id),body=get('comparisonSummaryRows');
+    let summary;
+    try{summary=currentSummary();}catch{
+      body.replaceChildren();get('comparisonSummarySource').textContent='Сначала откройте изображение.';
+      get('comparisonSummaryNote').textContent='';
+      get('comparisonSummaryCopy').disabled=get('comparisonSummaryCSV').disabled=true;
+      return;
+    }
+    const {source,rows}=summary;
+    get('comparisonSummarySource').textContent=`${source.name} · ${source.width}×${source.height} · исходник ${source.depth==='float32'?'float32':`${source.depth} бит/канал`}`;
+    get('comparisonSummaryNote').textContent=rows.length
+      ?`${source.colorNote} Показаны только готовые результаты; Q разных кодеков не является общей шкалой качества.`
+      :`Готовых результатов пока нет. ${source.colorNote}`;
+    body.replaceChildren(...rows.map(row=>{
+      const tr=document.createElement('tr');
+      const cells=[row.cell,`${row.format} · ${row.mode}`,`${row.width}×${row.height}`,
+        deps.formatBytes(row.bytes),row.bpp.toFixed(2),row.quality??'—',
+        row.psnr===Infinity?'∞':row.psnr===null?'—':row.psnr.toFixed(2),
+        row.alpha===null?'—':row.alpha.toFixed(2),row.depth??'—',row.note||'—'];
+      for(const value of cells){const td=document.createElement('td');td.textContent=String(value);tr.append(td);}
+      return tr;
+    }));
+    get('comparisonSummaryCopy').disabled=get('comparisonSummaryCSV').disabled=!rows.length;
+  }
+  async function copyStudySummary(){
+    const summary=currentSummary();if(!summary.rows.length)throw new Error('Нет готовых результатов для копирования.');
+    const value=summaryTsv(summary);
+    try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return;}}catch{}
+    const textarea=document.createElement('textarea');
+    textarea.value=value;textarea.setAttribute('aria-hidden','true');
+    textarea.style.cssText='position:fixed;left:-10000px;top:0;opacity:0';
+    const dialog=document.getElementById('studyDialog'),focused=document.activeElement;
+    dialog.append(textarea);textarea.select();
+    let copied=false;try{copied=Boolean(document.execCommand?.('copy'));}finally{textarea.remove();focused?.focus?.();}
+    if(!copied)throw new Error('Буфер обмена недоступен. Скачайте краткий CSV.');
+  }
+  function saveStudySummary(){
+    const summary=currentSummary();if(!summary.rows.length)throw new Error('Нет готовых результатов для экспорта.');
+    deps.downloadBlob(new Blob([summaryCsv(summary)],{type:'text/csv;charset=utf-8'}),'comparison-summary.csv');
+  }
 
   function applyExperiment(key) {
     const experiment=EXPERIMENTS[key];
@@ -53,7 +103,7 @@ export function createStudy({app, els}, deps) {
     catch { deps.studyNotice("Не удалось прочитать наборы. Можно импортировать исправный JSON или сохранить новые настройки."); }
     deps.updateProfiles();
     const action=(id,fn)=>$(id).addEventListener("click",()=>{try {fn();} catch(error){deps.studyNotice(error.message);}});
-    action("studyOpen",()=>{deps.updateFormatHelp();$("studyDialog").showModal();});
+    action("studyOpen",()=>{deps.updateFormatHelp();$("studyDialog").showModal();updateStudySummary();});
     const question=()=>{$("experimentQuestion").textContent=EXPERIMENTS[$("experimentSelect").value].question;}; question();
     $("experimentSelect").addEventListener("change",question);
     action("experimentApply",()=>applyExperiment($("experimentSelect").value));
@@ -123,6 +173,11 @@ export function createStudy({app, els}, deps) {
       }catch(error){deps.studyNotice(error.message);}
     });
     action("reportJSON",()=>deps.saveComparisonReport("json")); action("reportCSV",()=>deps.saveComparisonReport("csv"));
+    $('comparisonSummaryCopy').addEventListener('click',async()=>{
+      try{await copyStudySummary();deps.studyNotice('Краткая сводка скопирована.');}
+      catch(error){deps.studyNotice(error.message||String(error));}
+    });
+    action('comparisonSummaryCSV',()=>saveStudySummary());
     $("reportProtocol").addEventListener('click',async()=>{
       const button=$("reportProtocol");if(button.disabled)return;button.disabled=true;
       try{await deps.saveExperimentProtocol();deps.studyNotice('Протокол опыта сохранён.');}
@@ -150,5 +205,6 @@ export function createStudy({app, els}, deps) {
     if(wipeCanvas){wipeCanvas.tabIndex=0;wipeCanvas.addEventListener('keydown',navigateCanvas);}
   }
 
-  return { captureComparison, applyComparison, studyNotice, saveProfiles, updateProfiles, attachStudyEvents };
+  return { captureComparison, applyComparison, studyNotice, saveProfiles, updateProfiles,
+    updateStudySummary, copyStudySummary, saveStudySummary, attachStudyEvents };
 }

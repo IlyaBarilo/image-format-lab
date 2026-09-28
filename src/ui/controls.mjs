@@ -643,6 +643,7 @@ export function createControls({els, app}, deps) {
     variant.metricsEls.time.textContent = m.time || "—";
     variant.controls.download.disabled = !deps.isVariantReady(variant);
     deps.updateAnalysis();
+    deps.updateStudySummary?.();
     deps.updatePixelInspector?.({ redraw: true });
     if (variant.controls.fileInfo) variant.controls.fileInfo.disabled = !app.source;
     deps.updateFilePassport?.();

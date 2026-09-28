@@ -203,6 +203,7 @@ export function createApplication() {
     "renderVariant",
     "resizeCanvases",
     "syncControlsVisibility",
+    "updateStudySummary",
     "updateBatchDialog",
     "updateBatchDialogFormats",
     "updateMetrics"
@@ -229,6 +230,7 @@ export function createApplication() {
     "clearDisplayCache",
     "syncDisplayControls",
     "updateAnalysis",
+    "updateStudySummary",
     "clearBatchPreview",
     "decodeSourceFile",
     "encodeExactPng",
@@ -267,6 +269,7 @@ export function createApplication() {
     "resizeCanvases",
     "roundRect",
     "syncCellHeadSizes",
+    "updateStudySummary",
     "updateLayout"
   ])));
   Object.assign(actions, createDisplay(context, dependencies(["redrawPreviews"])));
@@ -277,6 +280,7 @@ export function createApplication() {
     "buildCellControls",
     "buildMetrics",
     "captureComparison",
+    "comparisonReport",
     "comparisonScale",
     "createSampleFile",
     "disposeVariantOutput",
