@@ -15,9 +15,15 @@ export function analysisRegionBounds(width, height, region = null) {
   if (region == null) return { x: 0, y: 0, width, height };
   if (region.unit === 'pixels') {
     const { x, y, width: w, height: h } = region;
-    if (![x,y,w,h].every(Number.isInteger) || x < 0 || y < 0 || w < 1 || h < 1 || x + w > width || y + h > height)
+    const referenceWidth=region.referenceWidth??width,referenceHeight=region.referenceHeight??height;
+    if (![referenceWidth,referenceHeight,x,y,w,h].every(Number.isInteger) ||
+        referenceWidth<1 || referenceHeight<1 || referenceWidth*referenceHeight>40000000 ||
+        x<0 || y<0 || w<1 || h<1 || x+w>referenceWidth || y+h>referenceHeight)
       throw new Error('Некорректная область анализа в пикселях.');
-    return { x, y, width: w, height: h };
+    if(referenceWidth===width&&referenceHeight===height)return {x,y,width:w,height:h};
+    const left=Math.floor(x*width/referenceWidth),top=Math.floor(y*height/referenceHeight);
+    return {x:left,y:top,width:Math.ceil((x+w)*width/referenceWidth)-left,
+      height:Math.ceil((y+h)*height/referenceHeight)-top};
   }
   const { x0, y0, x1, y1 } = region;
   if (![x0,y0,x1,y1].every(Number.isInteger) || x0 < 0 || y0 < 0 || x1 > 1000 || y1 > 1000 || x0 >= x1 || y0 >= y1)

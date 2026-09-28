@@ -37,10 +37,24 @@ const pako=require('../vendor/pako-2.1.0.min.js');
       assert.deepEqual((await png.decodePngFile(blob)).pixelBuffer.data,pixels.data,
         'new cropped PNG8 must use the exact source decoder');
     }
+    const pixelRegion={unit:'pixels',x:1,y:1,width:2,height:2,referenceWidth:4,referenceHeight:3};
+    const exact=cropSourcePixels(source,pixelRegion);
+    assert.deepEqual(exact.bounds,{x:1,y:1,width:2,height:2});
+    assert.deepEqual([...exact.pixels.data.subarray(0,8)],[...source.data.subarray((4+1)*4,(4+3)*4)]);
+    assert.deepEqual((await import('../src/core/analysis-region.mjs')).analysisRegionBounds(2,2,pixelRegion),
+      {x:0,y:0,width:2,height:2},'resized results use the same proportional source area');
   }
   const minimal=createPixelBuffer({width:1,height:1,data:new Uint8ClampedArray([1,2,3,4])});
   assert.throws(()=>cropSourcePixels(minimal,null),/примените/);
   assert.throws(()=>cropSourcePixels(minimal,{x0:100,y0:0,x1:100,y1:1000}),/область/);
   assert.throws(()=>cropSourcePixels({...minimal,colorSpace:'display-p3'},{x0:0,y0:0,x1:1000,y1:1000}),/не поддерживается/);
+  const {createIccP3Sample}=await import('../src/core/reference-samples.mjs');
+  const iccProfile=createIccP3Sample().iccProfile;
+  const raw=createPixelBuffer({width:2,height:1,sampleType:'uint16',bitDepth:16,colorSpace:'unknown',
+    data:new Uint16Array([40000,10000,5000,32768,1000,35000,65000,65535])});
+  const iccCrop=cropSourcePixels(raw,{unit:'pixels',x:1,y:0,width:1,height:1,referenceWidth:2,referenceHeight:1});
+  const profiled=decodePng(new Uint8Array(await encodePng(iccCrop.pixels,16,pako,{iccProfile}).arrayBuffer()),pako,{withIcc:true});
+  assert.deepEqual(profiled.pixels.data,raw.data.subarray(4));
+  assert.deepEqual(profiled.iccProfile,iccProfile,'profiled crop retains both original codes and ICC');
   console.log('PASS cropped RGBA8/16 samples, exact PNG readback and source ownership');
 })().catch(error=>{console.error(error);process.exitCode=1;});

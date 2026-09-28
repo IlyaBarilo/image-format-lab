@@ -2,6 +2,7 @@ import { BACKGROUNDS } from "./../core/config.mjs";
 import { visibleAnalysisRegion } from '../core/analysis-viewport.mjs';
 import { codecGridSpec, visibleCodecBlockCells, visibleCodecBlockLines, visibleGridLines, wipePair } from '../core/wipe-view.mjs';
 import { analysisGuideGeometry } from '../core/analysis-guides.mjs';
+import { MAX_DISPLAY_PIXELS } from '../core/display-sdr.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createCanvas({app, els}, deps) {
@@ -81,6 +82,11 @@ export function createCanvas({app, els}, deps) {
     deps.drawBackground(ctx, width, height);
   
     if (!app.source) return;
+    if(app.display.mode==='alpha'&&
+        (variant.pixelBuffer?.width*variant.pixelBuffer?.height||app.source.width*app.source.height)>MAX_DISPLAY_PIXELS){
+      deps.drawOverlayMessage(ctx,canvas,'Канал α: предел 12 Мп');
+      return;
+    }
   
     const image = variant.bitmap ? (deps.displayImage?.(variant.pixelBuffer, variant.bitmap, ctx, variant) || variant.bitmap) : null;
     const sourceW = image ? image.width : app.source.width;
@@ -247,6 +253,9 @@ export function createCanvas({app, els}, deps) {
     const pair=wipePair(first,second,deps.isVariantReady);
     if(pair.message){deps.drawOverlayMessage(ctx,canvas,pair.message);return;}
     const {width,height}=pair;
+    if(app.display.mode==='alpha'&&width*height>MAX_DISPLAY_PIXELS){
+      deps.drawOverlayMessage(ctx,canvas,'Канал α: предел 12 Мп');return;
+    }
     const scale=deps.getDrawScale(canvas);
     const x=canvas.width/2-(app.view.centerX-(app.source.width-width)/2)*scale;
     const y=canvas.height/2-(app.view.centerY-(app.source.height-height)/2)*scale;

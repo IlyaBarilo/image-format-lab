@@ -65,7 +65,7 @@
         <button class="text-btn" id="displayMenuToggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="displayMenu" title="Настроить отображение без изменения пикселей и сохранённого файла">Отображение</button>
         <div class="display-menu" id="displayMenu" role="dialog" aria-label="Настройки отображения" hidden>
           <label for="displayMode">Режим просмотра</label>
-          <select class="select" id="displayMode"><option value="standard">Обычный</option><option value="sdr">SDR с настройками</option><option value="float">TIFF float32 · диапазон</option></select>
+          <select class="select" id="displayMode"><option value="standard">Обычный</option><option value="sdr">SDR с настройками</option><option value="float">TIFF float32 · диапазон</option><option value="alpha">Канал α</option></select>
           <div class="display-control-group" id="displaySdrFields" hidden>
             <label for="displayBlack">Чёрная точка <output id="displayBlackValue">0%</output></label>
             <input id="displayBlack" type="range" min="0" max="95" step="1" value="0">
@@ -255,7 +255,7 @@
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
           <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport" selected>Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
-          <button class="text-btn" id="analysisCropSource" type="button" title="Добавить применённую область как новый исходный PNG без переноса метаданных" hidden>Создать исходник</button>
+          <button class="text-btn" id="analysisCropSource" type="button" title="Добавить применённую область как новый исходный PNG; поддерживаемый ICC сохраняется, остальные метаданные не переносятся" hidden>Создать исходник</button>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisFloatRangeField" hidden>Диапазон <select class="select" id="analysisFloatRange"><option value="unit">0–1</option><option value="auto">Авто по исходнику</option><option value="manual">Вручную</option></select></label>
           <label id="analysisFloatMinField" hidden>От <input class="small-input" id="analysisFloatMin" type="number" step="any" value="0"></label>
@@ -276,6 +276,7 @@
           <canvas id="analysisRegionCanvas" width="1" height="1" role="img" aria-label="Область на исходном изображении; координаты доступны в полях рядом"></canvas>
           <div>
             <div class="analysis-actions" id="analysisLinePresets" hidden><button class="text-btn" type="button" data-line-preset="horizontal">Горизонталь</button><button class="text-btn" type="button" data-line-preset="vertical">Вертикаль</button><button class="text-btn" type="button" data-line-preset="diagonal">Диагональ</button></div>
+            <label id="analysisRegionUnitField">Координаты <select class="select" id="analysisRegionUnit"><option value="percent">Проценты</option><option value="pixels">Пиксели исходника</option></select></label>
             <div class="analysis-region-fields">
               <label>Слева, % <input class="small-input" id="analysisRegionX" type="number" min="0" max="99.9" step="0.1" value="0"></label>
               <label>Сверху, % <input class="small-input" id="analysisRegionY" type="number" min="0" max="99.9" step="0.1" value="0"></label>

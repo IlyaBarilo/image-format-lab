@@ -34,6 +34,14 @@ export function defaultPreferences() {
 const record = value => value && typeof value === 'object' && !Array.isArray(value);
 const ratio = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
 function geometry(value, area) {
+  if(area&&record(value)&&value.unit==='pixels'){
+    const {x,y,width,height,referenceWidth,referenceHeight}=value;
+    if([x,y,width,height,referenceWidth,referenceHeight].every(Number.isInteger)&&
+        referenceWidth>0&&referenceHeight>0&&referenceWidth*referenceHeight<=40000000&&
+        x>=0&&y>=0&&width>0&&height>0&&x+width<=referenceWidth&&y+height<=referenceHeight)
+      return {unit:'pixels',x,y,width,height,referenceWidth,referenceHeight};
+    return null;
+  }
   if(!record(value)||!['x0','y0','x1','y1'].every(k=>Number.isInteger(value[k])&&value[k]>=0&&value[k]<=1000))return null;
   if(area&&(value.x0>=value.x1||value.y0>=value.y1))return null;
   return Object.fromEntries(['x0','y0','x1','y1'].map(k=>[k,value[k]]));

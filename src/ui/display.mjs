@@ -1,4 +1,4 @@
-import { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, resolveFloatDisplayRange,
+import { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, createAlphaMapper, resolveFloatDisplayRange,
   validFloatDisplayRange, MAX_DISPLAY_PIXELS, normalizeDisplay } from '../core/display-sdr.mjs';
 
 export function probeFloat16Canvas(documentRef = document) {
@@ -33,17 +33,18 @@ export function createDisplay({ app, els }, deps) {
   const floatSource = () => app.source?.nativePixelBuffer?.sampleType === 'float32' ? app.source.nativePixelBuffer : null;
   function screenPixels(variant) {
     const native = floatSource();
-    return app.display.mode === 'float' && native && variant?.resultConfig?.format === 'original' &&
+    return (app.display.mode === 'float'||app.display.mode === 'alpha') && native && variant?.resultConfig?.format === 'original' &&
       variant.resultSource === app.source && variant.pixelBuffer?.width === native.width &&
       variant.pixelBuffer?.height === native.height ? native : variant?.pixelBuffer;
   }
   function displayImage(pixels, fallback, targetContext, variant = null) {
     const floatMode = app.display.mode === 'float' && Boolean(floatSource());
-    if (floatMode && variant) pixels = screenPixels(variant);
-    if ((!floatMode && app.display.mode !== 'sdr') || !pixels ||
-        !['uint8', 'uint16', ...(floatMode ? ['float32'] : [])].includes(pixels.sampleType) ||
+    const alphaMode = app.display.mode === 'alpha';
+    if ((floatMode||alphaMode) && variant) pixels = screenPixels(variant);
+    if ((!floatMode && !alphaMode && app.display.mode !== 'sdr') || !pixels ||
+        !['uint8', 'uint16', ...((floatMode||alphaMode) ? ['float32'] : [])].includes(pixels.sampleType) ||
         pixels.width * pixels.height > MAX_DISPLAY_PIXELS) return fallback;
-    const kind = (floatMode || pixels.bitDepth > 8) && app.float16CanvasReady && !float16Failed &&
+    const kind = !alphaMode && (floatMode || pixels.bitDepth > 8) && app.float16CanvasReady && !float16Failed &&
       isFloat16Context(targetContext) ? 'float16' : 'unorm8';
     let entries = cache.get(pixels);
     if (!entries) { entries = {}; cache.set(pixels, entries); }
@@ -77,7 +78,7 @@ export function createDisplay({ app, els }, deps) {
         fail(); return fallback;
       }
       const range = floatMode ? resolveFloatDisplayRange(app.display, app.source.floatStats) : null;
-      const mapRows = floatMode
+      const mapRows = alphaMode ? createAlphaMapper(pixels,image.data) : floatMode
         ? createFloatRangeMapper(pixels, image.data, range, { floatOutput: kind === 'float16', dither: app.display.dither })
         : kind === 'float16' ? createFloat16SdrMapper(pixels, image.data, app.display)
           : createSdrMapper(pixels, image.data, app.display);
@@ -117,7 +118,7 @@ export function createDisplay({ app, els }, deps) {
     els.displaySdrFields.hidden = value.mode !== 'sdr';
     els.displayFloatFields.hidden = !floatMode;
     els.displayFloatBounds.hidden = !floatMode || value.floatRange !== 'manual';
-    els.displayDitherField.hidden = value.mode === 'standard';
+    els.displayDitherField.hidden = value.mode === 'standard' || value.mode === 'alpha';
     for (const control of [els.displayBlack, els.displayWhite, els.displayExposure]) control.disabled = value.mode !== 'sdr';
     for (const control of [els.displayFloatRange, els.displayFloatMin, els.displayFloatMax]) control.disabled = !floatMode;
     els.displayMenuToggle.classList.toggle('active', value.mode !== 'standard');
@@ -129,14 +130,17 @@ export function createDisplay({ app, els }, deps) {
     const oversized = [app.source, ...app.variants].some(item => item?.pixelBuffer && item.pixelBuffer.width * item.pixelBuffer.height > MAX_DISPLAY_PIXELS);
     const float16Eligible = high && app.float16CanvasReady && !float16Failed &&
       app.variants.every(variant => !variant.pixelBuffer || isFloat16Context(variant.ctx));
-    els.displayDither.disabled = value.mode === 'standard' || Boolean(float16Eligible);
+    els.displayDither.disabled = value.mode === 'standard' || value.mode === 'alpha' || Boolean(float16Eligible);
     els.displayDither.title = float16Eligible ? 'Дизеринг нужен только при выводе через RGBA8.' : '';
     const visibleHigh = app.variants.filter(variant => (floatMode && native || variant.pixelBuffer?.bitDepth > 8) &&
       variant.pixelBuffer && !variant.cell?.classList?.contains('hidden'));
     const float16Ready = float16Eligible && (visibleHigh.length
       ? visibleHigh.every(variant => cache.get(screenPixels(variant))?.float16?.canvas)
       : Boolean(app.source?.pixelBuffer && cache.get(floatMode && native ? native : app.source.pixelBuffer)?.float16?.canvas));
-    els.displayOutputNote.textContent = floatMode
+    els.displayOutputNote.textContent = value.mode === 'alpha'
+      ? oversized ? 'Свыше 12 Мп просмотр alpha недоступен; исходник, анализ и файлы не меняются.'
+        : 'Канал α показан непрозрачной шкалой: чёрный — 0, белый — максимум. RGB, подложка для метрик, графики и файлы не меняются.'
+      : floatMode
       ? !native ? 'Диапазонный показ доступен только для поддерживаемого исходника TIFF float32.'
         : oversized ? 'Свыше 12 Мп остаётся обычный предпросмотр; точные данные не меняются.'
         : `Показ значений исходного float32 через ${float16Ready ? 'Canvas float16' : float16Eligible ? 'подготовку Canvas float16' : 'Canvas RGBA8'} в общей шкале. Перекодированные варианты уже ограничены SDR; метрики и файлы не меняются. Цветовое пространство исходника не определено; это не HDR и не подтверждение 10-битного сигнала монитора.`

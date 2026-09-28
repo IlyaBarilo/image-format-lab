@@ -1,5 +1,5 @@
 // Own region/line editor, MIT. Application wires this module to the analysis panel.
-import { analysisBounds } from '../core/analysis-region.mjs';
+import { analysisBounds, analysisRegionBounds } from '../core/analysis-region.mjs';
 import { DEFAULT_ANALYSIS_LINE, profileEndpoints } from '../core/line-profile.mjs';
 import { cropSourcePixels, croppedSourceName } from '../core/crop-source.mjs';
 const FULL = { x0: 0, y0: 0, x1: 1000, y1: 1000 };
@@ -9,6 +9,7 @@ export function createAnalysisRegion({ app }, deps) {
   const lineButton = get('analysisLineOpen');
   const cropButton = get('analysisCropSource');
   const scope = get('analysisScope');
+  const unit = get('analysisRegionUnit'), unitField=get('analysisRegionUnitField');
   const fields = ['X','Y','Width','Height'].map(name=>get('analysisRegion'+name));
   const error = get('analysisRegionError');
   let region = null, draft = { ...FULL }, source = null, box = null, drag = null;
@@ -40,7 +41,12 @@ export function createAnalysisRegion({ app }, deps) {
   function syncAnalysisRegion() {
     if(source !== app.source) {
       source = app.source;
-      if(restoreFirstSource&&source)restoreFirstSource=false;
+      if(restoreFirstSource&&source){
+        restoreFirstSource=false;
+        if(region?.unit==='pixels'&&(region.referenceWidth!==source.width||region.referenceHeight!==source.height)){
+          region=null;if(scope.value==='region')scope.value='full';
+        }
+      }
       else {region=null;if(scope.value==='region')scope.value='full';line={...DEFAULT_ANALYSIS_LINE};}
       closeAnalysisRegion();
     }
@@ -51,10 +57,31 @@ export function createAnalysisRegion({ app }, deps) {
     lineButton.title=`A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%) внутри выбранной области`;
   }
   function fillFields() {
-    const values=mode==='line'?[draft.x0,draft.y0,draft.x1,draft.y1]:[draft.x0,draft.y0,draft.x1-draft.x0,draft.y1-draft.y0];
-    values.forEach((value,i)=>{fields[i].value=String(value/10);});
+    const pixels=mode==='region'&&unit.value==='pixels';
+    const labels=mode==='line'?['A · X, %','A · Y, %','B · X, %','B · Y, %']
+      :pixels?['Слева, px','Сверху, px','Ширина, px','Высота, px']
+        :['Слева, %','Сверху, %','Ширина, %','Высота, %'];
+    const values=pixels?[draft.x,draft.y,draft.width,draft.height]
+      :mode==='line'?[draft.x0,draft.y0,draft.x1,draft.y1]
+        :[draft.x0,draft.y0,draft.x1-draft.x0,draft.y1-draft.y0];
+    values.forEach((value,i)=>{
+      fields[i].parentElement.firstChild.textContent=labels[i]+' ';
+      fields[i].step=pixels?'1':'0.1';
+      fields[i].min=pixels?(i<2?'0':'1'):mode==='line'||i<2?'0':'0.1';
+      fields[i].max=pixels?String(i%2===0?source.width:source.height):mode==='line'||i>=2?'100':'99.9';
+      fields[i].value=String(pixels?value:value/10);
+    });
   }
   function readFields() {
+    if(mode==='region'&&unit.value==='pixels'){
+      const values=fields.map(input=>input.value.trim()===''?NaN:Number(input.value));
+      if(!values.every(Number.isInteger))throw new Error('Введите целые пиксельные координаты.');
+      const [x,y,width,height]=values;
+      const value={unit:'pixels',x,y,width,height,referenceWidth:source.width,referenceHeight:source.height};
+      try{analysisRegionBounds(source.width,source.height,value);}
+      catch{throw new Error('Область должна быть внутри исходного кадра и иметь ненулевой размер.');}
+      return value;
+    }
     const values = fields.map(input=>input.value.trim()===''?NaN:Number(input.value)*10);
     if(!values.every(v=>Number.isFinite(v)&&Math.abs(v-Math.round(v))<1e-7)) throw new Error('Введите проценты с шагом 0,1.');
     const [x,y,w,h] = values.map(Math.round), value = {x0:x,y0:y,x1:mode==='line'?w:x+w,y1:mode==='line'?h:y+h};
@@ -86,12 +113,13 @@ export function createAnalysisRegion({ app }, deps) {
       canvas.setAttribute('aria-label',`Линия A (${draft.x0/10}%, ${draft.y0/10}%) → B (${draft.x1/10}%, ${draft.y1/10}%) внутри области. Координаты можно изменить в полях.`);
       return;
     }
-    const x=box.x+draft.x0/1000*box.width,y=box.y+draft.y0/1000*box.height;
-    const rw=(draft.x1-draft.x0)/1000*box.width,rh=(draft.y1-draft.y0)/1000*box.height;
+    const area=analysisRegionBounds(source.width,source.height,draft);
+    const x=box.x+area.x/source.width*box.width,y=box.y+area.y/source.height*box.height;
+    const rw=area.width/source.width*box.width,rh=area.height/source.height*box.height;
     ctx.fillStyle='#0008';ctx.beginPath();ctx.rect(box.x,box.y,box.width,box.height);ctx.rect(x,y,rw,rh);ctx.fill('evenodd');
     ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(x,y,rw,rh);
     ctx.strokeStyle='#0f766e';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.strokeRect(x,y,rw,rh);
-    canvas.setAttribute('aria-label',`Область: слева ${draft.x0/10}%, сверху ${draft.y0/10}%, ширина ${(draft.x1-draft.x0)/10}%, высота ${(draft.y1-draft.y0)/10}%. Координаты можно изменить в полях.`);
+    canvas.setAttribute('aria-label',`Область: X ${area.x}, Y ${area.y}, ширина ${area.width}, высота ${area.height} пикселей исходника. Координаты можно изменить в полях.`);
   }
   function toggleAnalysisLine() { openEditor('line'); }
   function openEditor(nextMode) {
@@ -100,19 +128,23 @@ export function createAnalysisRegion({ app }, deps) {
     if(nextMode === 'line' && scope.value === 'viewport' && !lineRegion()) return;
     closeAnalysisRegion();mode=nextMode;
     const isLine=mode==='line';draft={...(isLine?line:region||FULL)};
+    unitField.hidden=isLine;
+    if(!isLine)unit.value=draft.unit==='pixels'?'pixels':'percent';
     editor.setAttribute('aria-label',isLine?'Общая линия профиля':'Общая область анализа');
-    const labels=isLine?['A · X, %','A · Y, %','B · X, %','B · Y, %']:['Слева, %','Сверху, %','Ширина, %','Высота, %'];
-    fields.forEach((field,i)=>{field.parentElement.firstChild.textContent=labels[i]+' ';field.min=isLine||i<2?'0':'0.1';field.max=isLine||i>=2?'100':'99.9';});
     get('analysisRegionApply').textContent=isLine?'Применить линию':'Применить область';
     get('analysisRegionReset').textContent=isLine?'По центру':'Весь кадр';
     get('analysisLinePresets').hidden=!isLine;
-    get('analysisGeometryHint').textContent=isLine?'Проведите линию A→B внутри выбранной области или задайте её концы в процентах. Она общая для всех профилей; экспорт не меняется.':'Выделите область на исходнике или задайте её в процентах. Графики используют область без кадрирования файла; после применения отдельный исходник можно создать кнопкой рядом со списком областей.';
+    get('analysisGeometryHint').textContent=isLine?'Проведите линию A→B внутри выбранной области или задайте её концы в процентах. Она общая для всех профилей; экспорт не меняется.':'Выделите область или задайте её координаты. Графики используют область без кадрирования файла; отдельный исходник создаётся после применения. Пиксели относятся к исходнику, а в результатах другого размера область масштабируется.';
     fillFields();error.textContent='';
     editor.hidden=false;syncCropButton();if(isLine)lineButton.setAttribute('aria-expanded','true');drawAnalysisRegion();fields[0].focus();
   }
   function apply(value) {
     if(mode==='line')line={...value};
-    else { region=Object.keys(FULL).every(key=>value[key]===FULL[key])?null:{...value}; scope.value=region?'region':'full'; }
+    else {
+      const bounds=analysisRegionBounds(source.width,source.height,value);
+      region=bounds.x===0&&bounds.y===0&&bounds.width===source.width&&bounds.height===source.height?null:{...value};
+      scope.value=region?'region':'full';
+    }
     closeAnalysisRegion(true);syncAnalysisRegion();deps.updateAnalysis();
   }
   function submit() {
@@ -127,8 +159,13 @@ export function createAnalysisRegion({ app }, deps) {
     const selectedFileId=app.selectedFileId,listGeneration=app.listGeneration;
     cropBusy=true;syncAnalysisRegion();
     try{
-      const {bounds,pixels}=cropSourcePixels(currentSource.pixelBuffer,selectedRegion);
-      const blob=await deps.encodeExactPng(pixels,pixels.bitDepth>8?16:8);
+      const withIcc=Boolean(currentSource.iccProfile);
+      const cropInput=withIcc?currentSource.nativePixelBuffer:currentSource.pixelBuffer;
+      if(withIcc&&(!cropInput||cropInput.colorSpace!=='unknown'))
+        throw new Error('Исходные отсчёты ICC недоступны; создание области без профиля запрещено.');
+      const {bounds,pixels}=cropSourcePixels(cropInput,selectedRegion);
+      const blob=await deps.encodeExactPng(pixels,pixels.bitDepth>8?16:8,
+        withIcc?{iccProfile:currentSource.iccProfile}:undefined);
       if(currentSource!==app.source || sourceGeneration!==app.sourceGeneration ||
           selectedFileId!==app.selectedFileId || listGeneration!==app.listGeneration ||
           app.batchRun?.running || JSON.stringify(selectedRegion)!==JSON.stringify(getAnalysisRegion()))return;
@@ -137,7 +174,7 @@ export function createAnalysisRegion({ app }, deps) {
       const newId=String(app.nextFileId);
       deps.addFiles([file],{openFirst:true});
       app.fileRows.get(newId)?.querySelector('.file-select')?.focus();
-      deps.showStatus(`Создан отдельный исходник ${bounds.width}×${bounds.height} из выбранной области. Метаданные не перенесены.`);
+      deps.showStatus(`Создан отдельный исходник ${bounds.width}×${bounds.height} из выбранной области. ${withIcc?'ICC сохранён; прочие метаданные не перенесены.':'Метаданные не перенесены.'}`);
     }catch(error){deps.showStatus(`Не удалось создать исходник из области: ${error.message||error}`,true);}
     finally{cropBusy=false;syncAnalysisRegion();}
   }
@@ -152,6 +189,14 @@ export function createAnalysisRegion({ app }, deps) {
     if(!drag || event.pointerId!==drag.id)return;
     const p=point(event);if(!p)return;
     if(mode==='line')draft={x0:drag.x,y0:drag.y,x1:p.x,y1:p.y};
+    else if(unit.value==='pixels'){
+      const x0=Math.min(source.width-1,Math.floor(Math.min(drag.x,p.x)*source.width/1000));
+      const y0=Math.min(source.height-1,Math.floor(Math.min(drag.y,p.y)*source.height/1000));
+      const x1=Math.max(x0+1,Math.min(source.width,Math.ceil(Math.max(drag.x,p.x)*source.width/1000)));
+      const y1=Math.max(y0+1,Math.min(source.height,Math.ceil(Math.max(drag.y,p.y)*source.height/1000)));
+      draft={unit:'pixels',x:x0,y:y0,width:x1-x0,height:y1-y0,
+        referenceWidth:source.width,referenceHeight:source.height};
+    }
     else{const x0=Math.min(drag.x,p.x,999),y0=Math.min(drag.y,p.y,999);draft={x0,y0,x1:Math.max(x0+1,drag.x,p.x),y1:Math.max(y0+1,drag.y,p.y)};}
     fillFields();error.textContent='';drawAnalysisRegion();
   }
@@ -160,6 +205,24 @@ export function createAnalysisRegion({ app }, deps) {
     scope.addEventListener('change', () => {
       closeAnalysisRegion(); syncAnalysisRegion(); deps.updateAnalysis();
       if (scope.value==='region') openEditor('region');
+    });
+    unit.addEventListener('change',()=>{
+      const previous=draft.unit==='pixels'?'pixels':'percent';
+      const previousDraft={...draft};
+      if(error.textContent){unit.value=previous;return;}
+      try{
+        if(unit.value==='pixels'){
+          const bounds=analysisRegionBounds(source.width,source.height,draft);
+          draft={unit:'pixels',...bounds,referenceWidth:source.width,referenceHeight:source.height};
+        }else{
+          const bounds=analysisRegionBounds(source.width,source.height,draft);
+          draft={x0:Math.round(bounds.x*1000/source.width),y0:Math.round(bounds.y*1000/source.height),
+            x1:Math.round((bounds.x+bounds.width)*1000/source.width),
+            y1:Math.round((bounds.y+bounds.height)*1000/source.height)};
+          analysisRegionBounds(source.width,source.height,draft);
+        }
+        fillFields();error.textContent='';drawAnalysisRegion();
+      }catch{draft=previousDraft;unit.value=previous;error.textContent='Эта область слишком мала для точного ввода в процентах; оставьте пиксели.';}
     });
     get('analysisRegionApply').addEventListener('click',submit);
     get('analysisRegionReset').addEventListener('click',()=>apply(mode==='line'?DEFAULT_ANALYSIS_LINE:FULL));

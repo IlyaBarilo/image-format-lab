@@ -1045,6 +1045,8 @@ select:disabled {
 #analysisRegionCanvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; border-radius: 4px; }
 .analysis-region-fields { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 #analysisLinePresets { margin-bottom: 10px; }
+#analysisRegionUnitField { display: flex; align-items: center; gap: 8px; width: fit-content; margin-bottom: 10px; font-size: 12px; }
+#analysisRegionUnitField[hidden] { display: none; }
 .analysis-region-fields label { display: grid; gap: 4px; font-size: 12px; }
 .analysis-region-fields input { width: 92px; }
 #analysisRegionError { color: var(--bad); margin-bottom: 8px; }

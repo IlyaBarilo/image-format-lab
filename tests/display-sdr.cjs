@@ -4,7 +4,7 @@ const path = require('node:path');
 
 (async () => {
   const { createPixelBuffer } = await import('../src/core/pixel-buffer.mjs');
-  const { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, resolveFloatDisplayRange,
+  const { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, createAlphaMapper, resolveFloatDisplayRange,
     normalizeDisplay, DEFAULT_DISPLAY } = await import('../src/core/display-sdr.mjs');
   const source = new Uint16Array([
     0, 16384, 32768, 65535,
@@ -182,6 +182,28 @@ const path = require('node:path');
   assert.ok(Math.abs(floatPainted[0] - 1 / 6) < 0.001, 'Encoded SDR cell uses the same screen range');
   assert.match(els.displayOutputNote.textContent, /метрики и файлы не меняются/);
   assert.deepEqual(floatData, snapshot);
+  const alpha=new Uint8ClampedArray(16);
+  createAlphaMapper(pixels,alpha)(0,2);
+  assert.deepEqual([...alpha],[255,255,255,255,0,0,0,255,128,128,128,255,255,255,255,255]);
+  const alphaRow=new Uint8ClampedArray(8);
+  createAlphaMapper(pixels,alphaRow)(1,2);
+  assert.deepEqual(alphaRow,alpha.subarray(8),'chunked alpha view retains source row positions');
+  assert.deepEqual(source,original,'alpha view must not alter RGBA16');
+  const alphaFloat=new Uint8ClampedArray(8);
+  createAlphaMapper(native,alphaFloat)(0,1);
+  assert.deepEqual([...alphaFloat],[255,255,255,255,0,0,0,255]);
+  assert.equal(normalizeDisplay({mode:'alpha'}).mode,'alpha');
+  app.display=normalizeDisplay({mode:'alpha'});
+  global.document={createElement:()=>canvas};
+  const alphaUI=createDisplay({app,els}, {redrawPreviews:()=>{redraws++;}});
+  alphaUI.syncDisplayControls();
+  assert.equal(els.displayDitherField.hidden,true);
+  assert.match(els.displayOutputNote.textContent,/Канал α/);
+  assert.equal(alphaUI.displayImage(preview,fallback,null,originalVariant),fallback);
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(alphaUI.displayImage(preview,fallback,null,originalVariant),canvas);
+  assert.deepEqual([...painted],[255,255,255,255,0,0,0,255],'original float32 alpha is used for display');
+  assert.deepEqual(floatData,snapshot);
   delete global.document;
   console.log('PASS exact source, float32 screen window, RGBA8/float16 paths, capability probe and fallback');
 })().catch(error => { console.error(error); process.exitCode = 1; });

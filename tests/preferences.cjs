@@ -27,6 +27,16 @@ function events() {
     pair:[2,4],metric:'processingMs',scope:'region',region:{x0:250,y0:0,x1:800,y1:600},line:{x0:1000,y0:0,x1:0,y1:1000},
       displays:{...custom.analysis.displays,histogram:'delta',signalHistogram:'delta',errorHistogram:'separate',waveform:'overlay',parade:'delta',rgbWaveform:'overlay',ycbcrWaveform:'delta',ycbcrParade:'delta',vectorscope:'overlay',profile:'separate'}});
   assert.deepEqual(normalizePreferences(custom),custom);
+  const pixelRegion={unit:'pixels',x:3,y:5,width:7,height:11,referenceWidth:20,referenceHeight:30};
+  const pixelSettings=structuredClone(custom);pixelSettings.analysis.region={...pixelRegion,privateNote:'discard'};
+  pixelSettings.display.mode='alpha';
+  const restoredPixels=normalizePreferences(pixelSettings);
+  assert.deepEqual(restoredPixels.analysis.region,pixelRegion,'only pixel bounds and source dimensions persist');
+  assert.equal(restoredPixels.display.mode,'alpha');
+  pixelSettings.analysis.region.width=18;
+  assert.equal(normalizePreferences(pixelSettings).analysis.region,null,'out-of-frame pixel regions are rejected');
+  pixelSettings.analysis.region={...pixelRegion,referenceWidth:0};
+  assert.equal(normalizePreferences(pixelSettings).analysis.region,null);
   const oldGrid=structuredClone(custom);oldGrid.gridMode='jpeg-blocks';
   assert.deepEqual(normalizePreferences(oldGrid),custom,'saved JPEG grid mode extends to supported codec grids');
    const combinedSignal=normalizePreferences({version:1,analysis:{type:'ycbcrWaveform',displays:{ycbcrWaveform:'delta'}}});

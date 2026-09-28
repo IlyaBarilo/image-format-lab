@@ -7,7 +7,7 @@ export const MAX_DISPLAY_PIXELS = 12_000_000;
 export function normalizeDisplay(value) {
   const result = { ...DEFAULT_DISPLAY };
   if (!value || typeof value !== 'object' || Array.isArray(value)) return result;
-  if (value.mode === 'sdr' || value.mode === 'float') result.mode = value.mode;
+  if (value.mode === 'sdr' || value.mode === 'float' || value.mode === 'alpha') result.mode = value.mode;
   if (Number.isInteger(value.black) && value.black >= 0 && value.black <= 95) result.black = value.black;
   if (Number.isInteger(value.white) && value.white >= 5 && value.white <= 100) result.white = value.white;
   if (result.white <= result.black) { result.black = 0; result.white = 100; }
@@ -118,6 +118,29 @@ export function createFloatRangeMapper(input, output, range, { floatOutput = fal
       }
       const alpha = source[at + 3] / full;
       output[out + 3] = floatOutput ? alpha : Math.round(clamp(alpha * 255));
+    }
+  };
+}
+
+// Screen-only opaque grayscale: the channel value is visible independently of RGB and matte.
+export function createAlphaMapper(input, output) {
+  const pixels=createPixelBuffer(input),rowLength=pixels.width*4;
+  if(!['uint8','uint16','float32'].includes(pixels.sampleType)||pixels.alphaMode!=='straight')
+    throw new TypeError('Для просмотра alpha нужны RGBA с независимой прозрачностью.');
+  if(!(output instanceof Uint8ClampedArray)||output.length<rowLength||
+      output.length>pixels.data.length||output.length%rowLength!==0)
+    throw new RangeError('Неверный размер буфера просмотра alpha.');
+  const fullFrame=output.length===pixels.data.length;
+  const full=pixels.sampleType==='float32'?1:2**pixels.bitDepth-1;
+  return function mapRows(first,last) {
+    if(!Number.isInteger(first)||!Number.isInteger(last)||first<0||last<first||last>pixels.height||
+        !fullFrame&&last-first>output.length/rowLength)
+      throw new RangeError('Неверный диапазон строк просмотра alpha.');
+    for(let y=first;y<last;y++)for(let x=0;x<pixels.width;x++){
+      const at=(y*pixels.width+x)*4,out=fullFrame?at:((y-first)*pixels.width+x)*4;
+      const value=Math.round(clamp(pixels.data[at+3]/full*255));
+      output[out]=output[out+1]=output[out+2]=value;
+      output[out+3]=255;
     }
   };
 }
