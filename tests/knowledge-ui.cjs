@@ -13,6 +13,7 @@ class Element {
   addEventListener(name, fn) { (this.listeners[name] ??= []).push(fn); }
   emit(name, event = {}) { for (const fn of this.listeners[name] || []) fn(event); }
   setAttribute(name, value) { this[name] = value; this.attributes.add(name); }
+  getAttribute(name) { return this.attributes.has(name) ? this[name] : null; }
   hasAttribute(name) { return this.attributes.has(name); }
   matches(selector) { return selector === 'button, a' && ['button', 'a'].includes(this.tag); }
   closest(selector) {
@@ -59,6 +60,8 @@ class Element {
   global.requestAnimationFrame = fn => fn();
   const { createKnowledge } = await import('../src/ui/knowledge.mjs');
   createKnowledge().attachKnowledgeEvents();
+  assert.match(get('wipeMode').title, /границей/);
+  assert.match(get('analysisPNG')['aria-description'], /графики/);
   const opener = new Element('button'); opener.dataset.knowledgeTarget = 'formats/jpeg#parameters';
   document.activeElement = opener;
   events.click({ target: opener, preventDefault() {} });
@@ -94,6 +97,17 @@ class Element {
   layout.setAttribute('data-knowledge-keyboard-only', '');
   events.click({ target: layout, preventDefault() { throw new Error('Action button click was intercepted'); } });
   assert.equal(get('knowledgeDialog').open, false);
+  const colorLink = new Element('button'); colorLink.dataset.knowledgeTarget = 'analysis/color#cie-xy';
+  events.click({ target: colorLink, preventDefault() {} });
+  const term = descendants(article).find(node => node.className === 'knowledge-term' && /D65/.test(node['aria-label']));
+  assert.ok(term, 'a short definition is rendered as a distinct term');
+  term.emit('click');
+  assert.equal(term.getAttribute('aria-expanded'), 'true');
+  let termEscape = false;
+  events.keydown({ key: 'Escape', preventDefault() { termEscape = true; } });
+  assert.equal(termEscape, true);
+  assert.equal(term.getAttribute('aria-expanded'), 'false');
+  get('knowledgeDialog').close();
   document.activeElement = get('analysisType');
   let modeF1 = false;
   events.keydown({ key: 'F1', preventDefault() { modeF1 = true; } });
@@ -106,5 +120,5 @@ class Element {
   events.keydown({ key: 'F1', preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
   assert.match(get('knowledgeCurrent').textContent, /Прозрачность/);
-  console.log('PASS contextual links, diagrams, search, back, dynamic analysis, action buttons, F1 and focus');
+  console.log('PASS contextual links, term hints, central control hints, diagrams, search, back, F1 and focus');
 })().catch(error => { console.error(error); process.exitCode = 1; });

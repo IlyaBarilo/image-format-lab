@@ -38,19 +38,23 @@ export const formatKnowledge = FORMAT_KNOWLEDGE;
 export const analysisKnowledge = ANALYSIS_KNOWLEDGE;
 
 const diagramIds = new Set(['chroma', 'histogram-waveform', 'analysis-area']);
+export const hintsFile = 'docs/knowledge/hints.json';
 
 const fileById = new Map(knowledgeFiles.map(file => [file.slice('docs/knowledge/'.length, -3), file]));
 const idByFile = new Map([...fileById].map(([id, file]) => [file, id]));
 const heading = /^## (.+) \{#([a-z][a-z0-9-]*)\}$/;
-const linkPattern = /\[([^\]\n]+)\]\(([^()\s]+)\)/g;
+const linkPattern = /\[([^\]\n]+)\]\(([^()\s]+)\)|\[\[([a-z][a-z0-9-]*)\|([^\]\n]+)\]\]/g;
 
-function inline(text, source, targets) {
+function inline(text, source, targets, termIds) {
   const parts = [];
   let offset = 0;
   for (const match of text.matchAll(linkPattern)) {
     if (match.index > offset) parts.push({ text: text.slice(offset, match.index) });
-    const [, label, href] = match;
-    if (href.startsWith('https://')) {
+    const [, label, href, termId, termLabel] = match;
+    if (termId) {
+      if (!termIds.has(termId)) throw new Error(`Unknown knowledge term in ${source}: ${termId}`);
+      parts.push({ text: termLabel, term: termId });
+    } else if (href.startsWith('https://')) {
       const url = new URL(href);
       if (url.username || url.password) throw new Error(`Invalid knowledge URL in ${source}: ${href}`);
       parts.push({ text: label, url: url.href });
@@ -71,7 +75,7 @@ function inline(text, source, targets) {
   return parts;
 }
 
-function parsePage(source, markdown, targets) {
+function parsePage(source, markdown, targets, termIds) {
   const id = idByFile.get(source), lines = markdown.replace(/\r\n?/g, '\n').trim().split('\n');
   if (!id || !/^# [^#]/.test(lines[0])) throw new Error(`Missing knowledge title: ${source}`);
   const group = id.startsWith('formats/') ? 'Форматы' : id.startsWith('concepts/') ? 'Понятия'
@@ -79,8 +83,8 @@ function parsePage(source, markdown, targets) {
   const page = { id, title: lines[0].slice(2).trim(), group, sections: [] };
   let section = null, paragraph = [], list = [];
   function flush() {
-    if (paragraph.length) { section.blocks.push({ type: 'paragraph', parts: inline(paragraph.join(' '), source, targets) }); paragraph = []; }
-    if (list.length) { section.blocks.push({ type: 'list', items: list.map(item => inline(item, source, targets)) }); list = []; }
+    if (paragraph.length) { section.blocks.push({ type: 'paragraph', parts: inline(paragraph.join(' '), source, targets, termIds) }); paragraph = []; }
+    if (list.length) { section.blocks.push({ type: 'list', items: list.map(item => inline(item, source, targets, termIds)) }); list = []; }
   }
   for (const line of lines.slice(1).concat('')) {
     const match = heading.exec(line);
@@ -113,7 +117,19 @@ function parsePage(source, markdown, targets) {
 
 export function buildKnowledge(root) {
   const targets = [];
-  const pages = knowledgeFiles.map(source => parsePage(source, fs.readFileSync(path.join(root, source), 'utf8'), targets));
+  const hints = JSON.parse(fs.readFileSync(path.join(root, hintsFile), 'utf8'));
+  for (const category of ['terms', 'controls']) {
+    if (!Array.isArray(hints[category])) throw new Error(`Missing knowledge hints: ${category}`);
+    const ids = new Set();
+    for (const item of hints[category]) {
+      if (!/^[a-z][a-z0-9-]*$/.test(item.id) && !(category === 'controls' && /^[a-z][A-Za-z0-9]*$/.test(item.id)))
+        throw new Error(`Invalid knowledge hint ID: ${item.id}`);
+      if (ids.has(item.id) || !item.text?.trim()) throw new Error(`Duplicate or empty knowledge hint: ${item.id}`);
+      ids.add(item.id);
+    }
+  }
+  const termIds = new Set(hints.terms.map(item => item.id));
+  const pages = knowledgeFiles.map(source => parsePage(source, fs.readFileSync(path.join(root, source), 'utf8'), targets, termIds));
   const pageById = new Map(pages.map(page => [page.id, page]));
   for (const { source, target } of targets) {
     const [id, anchor] = target.split('#');
@@ -123,10 +139,11 @@ export function buildKnowledge(root) {
     if (!pageById.has(id)) throw new Error(`Missing format knowledge for ${format}`);
   }
   const topics = new Set(pages.flatMap(page => page.sections.map(section => `${page.id}#${section.id}`)));
+  for (const term of hints.terms) if (term.target && !topics.has(term.target)) throw new Error(`Broken knowledge hint target: ${term.id}`);
   for (const [mode, target] of Object.entries(analysisKnowledge)) {
     if (!topics.has(target)) throw new Error(`Missing analysis knowledge for ${mode}: ${target}`);
   }
-  return { pages, formatKnowledge, analysisKnowledge };
+  return { pages, formatKnowledge, analysisKnowledge, hints };
 }
 
 export function validateKnowledgeTargets(data, sources) {
@@ -137,5 +154,8 @@ export function validateKnowledgeTargets(data, sources) {
       ...[...source.matchAll(/['"]((?:formats|concepts|analysis|workflow)\/[a-z0-9/-]+#[a-z0-9-]+)['"]/g)].map(match => match[1])
     ];
     for (const target of targets) if (!topics.has(target)) throw new Error(`Broken context help target in ${name}: ${target}`);
+  }
+  if (sources['src/index.html']) for (const hint of data.hints.controls) {
+    if (!sources['src/index.html'].includes(`id="${hint.id}"`)) throw new Error(`Missing hinted control: ${hint.id}`);
   }
 }

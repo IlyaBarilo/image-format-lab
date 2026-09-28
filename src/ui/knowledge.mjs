@@ -2,6 +2,7 @@
 import { renderKnowledgeDiagram } from './knowledge-diagrams.mjs';
 export function createKnowledge() {
   let data, current = '', opener = null;
+  let openTerm = null;
   const backStack = [];
   const $ = id => document.getElementById(id);
 
@@ -30,11 +31,42 @@ export function createKnowledge() {
         button.textContent = part.text;
         button.addEventListener('click', () => navigate(part.target));
         span.append(button);
+      } else if (part.term) {
+        const hint = readData().hints.terms.find(item => item.id === part.term);
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'knowledge-term';
+        button.setAttribute('aria-label', `${part.text}: ${hint.text}`);
+        button.setAttribute('aria-expanded', 'false');
+        button.append(document.createTextNode(part.text));
+        const bubble = document.createElement('span');
+        bubble.className = 'knowledge-term-tooltip'; bubble.textContent = hint.text;
+        bubble.setAttribute('aria-hidden', 'true');
+        button.append(bubble);
+        const place = () => {
+          const box = button.getBoundingClientRect?.();
+          if (!box) return;
+          bubble.style.left = `${Math.max(8, Math.min(box.left, window.innerWidth - 310))}px`;
+          bubble.style.top = `${box.bottom + 7 > window.innerHeight - 90 ? Math.max(8, box.top - 86) : box.bottom + 7}px`;
+        };
+        button.addEventListener('mouseenter', place);
+        button.addEventListener('focus', place);
+        button.addEventListener('click', event => {
+          event.stopPropagation?.();
+          const expanded = button.getAttribute('aria-expanded') === 'true';
+          closeTerm();
+          if (!expanded) { place(); button.setAttribute('aria-expanded', 'true'); openTerm = button; }
+        });
+        span.append(button);
       } else span.append(document.createTextNode(part.text));
     }
     return span;
   }
+  function closeTerm() {
+    openTerm?.setAttribute('aria-expanded', 'false');
+    openTerm = null;
+  }
   function renderPage(target) {
+    closeTerm();
     const { page, section } = targetParts(target), article = $('knowledgeContent');
     const heading = document.createElement('h3'); heading.textContent = page.title;
     article.replaceChildren(heading);
@@ -105,13 +137,22 @@ export function createKnowledge() {
     } else navigate(target);
   }
   function attachKnowledgeEvents() {
+    for (const hint of readData().hints.controls) {
+      const control = $(hint.id);
+      if (control) {
+        control.title = hint.text;
+        control.setAttribute('aria-description', hint.text);
+      }
+    }
     $('knowledgeBack').addEventListener('click', () => { if (backStack.length) navigate(backStack.pop(), false); });
     $('knowledgeSearch').addEventListener('input', renderIndex);
     $('knowledgeDialog').addEventListener('close', () => {
+      closeTerm();
       if (opener?.isConnected) opener.focus();
       opener = null;
     });
     document.addEventListener('click', event => {
+      if (!event.target.closest?.('.knowledge-term')) closeTerm();
       const analysisButton = event.target.closest?.('[data-knowledge-analysis-select]');
       if (analysisButton) {
         event.preventDefault();
@@ -132,6 +173,9 @@ export function createKnowledge() {
       openKnowledge(link.dataset.knowledgeTarget, link);
     });
     document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && (openTerm || document.activeElement?.classList?.contains?.('knowledge-term'))) {
+        event.preventDefault(); event.stopPropagation?.(); closeTerm(); document.activeElement?.blur?.(); return;
+      }
       if (event.key !== 'F1') return;
       const field = document.activeElement?.closest?.('[data-knowledge-target]');
       if (!field || field.disabled) return;

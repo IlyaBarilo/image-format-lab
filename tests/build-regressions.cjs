@@ -59,7 +59,8 @@ const { assertEmbeddedPayload } = require('./support/embedded-payload.cjs');
   // project texts. No files are changed, and vendor bytes are never converted.
   const embeddedTextPaths = new Set(['src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg',
     'LICENSE', 'NOTICE.md', 'ASSETS.md', 'docs/licenses/acorn-LICENSE', 'docs/licenses/esbuild-LICENSE',
-    ...(await import('../scripts/knowledge.mjs')).knowledgeFiles]
+    ...(await import('../scripts/knowledge.mjs')).knowledgeFiles,
+    (await import('../scripts/knowledge.mjs')).hintsFile]
     .map(name => path.join(root, name)));
   const originalRead = fs.readFileSync;
   try {

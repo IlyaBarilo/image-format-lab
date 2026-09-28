@@ -7,6 +7,7 @@ const path = require('node:path');
   const { buildKnowledge, knowledgeFiles, validateKnowledgeTargets } = await import('../scripts/knowledge.mjs');
   const { FORMAT_DEFS } = await import('../src/core/config.mjs');
   const data = buildKnowledge(root);
+  assert.ok(data.hints.terms.length >= 20 && data.hints.controls.length >= 30);
   const topics = new Set(data.pages.flatMap(page => page.sections.map(section => page.id + '#' + section.id)));
   assert.equal(data.pages.length, 28);
   assert.deepEqual(new Set(Object.keys(FORMAT_DEFS)).difference(new Set(Object.keys(data.formatKnowledge))), new Set());
@@ -27,8 +28,13 @@ const path = require('node:path');
     assert.ok(parts.every(part => !part.url || part.url.startsWith('https://')));
   }
   assert.deepEqual(new Set(diagrams), new Set(['chroma', 'histogram-waveform', 'analysis-area']));
+  const allParts = data.pages.flatMap(page => page.sections.flatMap(section => section.blocks.flatMap(block => block.type === 'paragraph' ? block.parts : block.type === 'list' ? block.items.flat() : [])));
+  assert.ok(allParts.some(part => part.term === 'd65'));
+  for (const target of ['concepts/color-profile#srgb', 'concepts/metrics#psnr', 'concepts/chroma#ycbcr'])
+    assert.ok(allParts.some(part => part.target === target), target + ' must have a direct article link');
   const sources = Object.fromEntries(['src/index.html', 'src/ui/controls.mjs', 'src/ui/knowledge.mjs'].map(name => [name, fs.readFileSync(path.join(root, name), 'utf8')]));
   validateKnowledgeTargets(data, sources);
+  assert.throws(() => validateKnowledgeTargets(data, { 'src/index.html': '<button id="other">' }), /Missing hinted control/);
   assert.throws(() => validateKnowledgeTargets(data, { sample: '<button data-knowledge-target="formats/jpeg#missing">' }), /Broken context help target/);
   for (const file of knowledgeFiles) assert.ok(file.startsWith('docs/knowledge/'));
   const html = fs.readFileSync(path.join(root, 'image-format-lab.html'), 'utf8');

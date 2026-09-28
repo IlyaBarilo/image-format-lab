@@ -8,7 +8,7 @@ import vendorFiles from './vendor-files.cjs';
 import { sourcePackages, githubSourceConfig } from './source-release.mjs';
 import { releaseVersion, verifyReleaseCheckout } from './build-version.mjs';
 import sourceZipTools from './source-zip.cjs';
-import { buildKnowledge, knowledgeFiles, validateKnowledgeTargets } from './knowledge.mjs';
+import { buildKnowledge, knowledgeFiles, hintsFile, validateKnowledgeTargets } from './knowledge.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { rasterSourceNames, modernSourceNames, codecNames, licenseNames, sourceNames, heicSourceNames, jpegSourceNames, jpeg2000SourceNames, binaryNames } = vendorFiles;
@@ -124,7 +124,7 @@ export async function buildViewer({ test = false, debug = false, release = false
   if (/<\/script/i.test(app.outputFiles[0].text)) throw new Error('Unexpected closing script tag in bundle');
   html = replaceOnce(html, '<!-- VIEWER_SCRIPT -->', '<script>\n' + app.outputFiles[0].text + '</script>');
   html = html.replace(/<!doctype html>/i, match => match + '\n<!-- Generated from src/ by npm --prefix scripts run build. Edit the sources; this file is rebuilt. -->');
-  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, ...knowledgeFiles, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/knowledge.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
+  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, ...knowledgeFiles, hintsFile, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/knowledge.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
 }
 
 function writeOutput(html, destination) {
