@@ -954,6 +954,9 @@ select:disabled {
 .knowledge-article section { scroll-margin-top:12px; padding:12px 0; border-top:1px solid var(--line); }
 .knowledge-article p, .knowledge-article ul { margin:0 0 10px; }
 .knowledge-article li { margin:4px 0; }
+.knowledge-diagram { margin:14px 0 18px; }
+.knowledge-diagram svg { display:block; width:100%; height:auto; border-radius:8px; }
+.knowledge-diagram figcaption { margin-top:6px; color:var(--muted); font-size:12px; line-height:1.4; }
 .knowledge-article a, .knowledge-inline-link, .knowledge-text-link { color:var(--accent); }
 .knowledge-inline-link, .knowledge-text-link { display:inline; border:0; padding:0; background:none; font:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
 .knowledge-offline-note { margin:10px 0 0; color:var(--muted); font-size:11px; }

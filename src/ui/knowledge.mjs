@@ -1,4 +1,5 @@
 // The build supplies validated, text-only Markdown blocks. No page text is HTML.
+import { renderKnowledgeDiagram } from './knowledge-diagrams.mjs';
 export function createKnowledge() {
   let data, current = '', opener = null;
   const backStack = [];
@@ -45,7 +46,8 @@ export function createKnowledge() {
       for (const block of item.blocks) {
         if (block.type === 'paragraph') {
           const p = document.createElement('p'); p.append(partsElement(block.parts)); sectionEl.append(p);
-        } else {
+        } else if (block.type === 'diagram') sectionEl.append(renderKnowledgeDiagram(block.id));
+        else {
           const ul = document.createElement('ul');
           for (const parts of block.items) { const li = document.createElement('li'); li.append(partsElement(parts)); ul.append(li); }
           sectionEl.append(ul);
@@ -65,7 +67,8 @@ export function createKnowledge() {
     let count = 0, group = '';
     for (const page of readData().pages) {
       const text = [page.title, ...page.sections.flatMap(section => [section.title, ...section.blocks.flatMap(block => block.type === 'paragraph'
-        ? block.parts.map(part => part.text) : block.items.flatMap(items => items.map(part => part.text)))])].join(' ').toLocaleLowerCase('ru');
+        ? block.parts.map(part => part.text) : block.type === 'list'
+          ? block.items.flatMap(items => items.map(part => part.text)) : [])])].join(' ').toLocaleLowerCase('ru');
       if (query && !text.includes(query)) continue;
       if (page.group !== group) {
         group = page.group;
@@ -89,7 +92,7 @@ export function createKnowledge() {
     current = target;
     renderPage(target);
   }
-  function openKnowledge(target = 'concepts/compression#overview', trigger = document.activeElement) {
+  function openKnowledge(target = 'workflow/start#overview', trigger = document.activeElement) {
     const dialog = $('knowledgeDialog');
     if (!dialog.open) {
       opener = trigger;
@@ -109,6 +112,13 @@ export function createKnowledge() {
       opener = null;
     });
     document.addEventListener('click', event => {
+      const analysisButton = event.target.closest?.('[data-knowledge-analysis-select]');
+      if (analysisButton) {
+        event.preventDefault();
+        const mode = $(analysisButton.dataset.knowledgeAnalysisSelect)?.value;
+        openKnowledge(readData().analysisKnowledge[mode], analysisButton);
+        return;
+      }
       const formatButton = event.target.closest?.('[data-knowledge-format-select]');
       if (formatButton) {
         event.preventDefault();
@@ -117,7 +127,7 @@ export function createKnowledge() {
         return;
       }
       const link = event.target.closest?.('[data-knowledge-target]');
-      if (!link || !link.matches('button, a') || link.disabled) return;
+      if (!link || !link.matches('button, a') || link.disabled || link.hasAttribute('data-knowledge-keyboard-only')) return;
       event.preventDefault();
       openKnowledge(link.dataset.knowledgeTarget, link);
     });
@@ -126,7 +136,9 @@ export function createKnowledge() {
       const field = document.activeElement?.closest?.('[data-knowledge-target]');
       if (!field || field.disabled) return;
       event.preventDefault();
-      const target = field.id === 'batchFormat'
+      const target = field.id === 'analysisType' || field.id === 'analysisVariant'
+        ? readData().analysisKnowledge[field.value]
+        : field.id === 'batchFormat'
         ? readData().formatKnowledge[field.value] + '#overview'
         : field.dataset.knowledgeTarget;
       openKnowledge(target, field);
@@ -136,7 +148,8 @@ export function createKnowledge() {
       batchPngDepth: 'concepts/bit-depth#overview', batchPngMode: 'formats/png#parameters',
       batchBmpDepth: 'formats/bmp#parameters', batchTiffCompression: 'formats/tiff#parameters',
       batchQuality: 'concepts/quality#overview', tiffDepth: 'concepts/bit-depth#overview',
-      tiffCompression: 'formats/tiff#parameters', tiffPredictor: 'formats/tiff#parameters'
+      tiffCompression: 'formats/tiff#parameters', tiffPredictor: 'formats/tiff#parameters',
+      analysisType: 'analysis/histograms#rgb', analysisVariant: 'analysis/histograms#rgb'
     })) {
       const field = $(id);
       if (field) field.dataset.knowledgeTarget = target;

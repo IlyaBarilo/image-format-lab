@@ -8,3 +8,25 @@ export const FORMAT_KNOWLEDGE = Object.freeze({
   gifenc: 'formats/gif', bmp8: 'formats/bmp', bmp24: 'formats/bmp',
   bmp32: 'formats/bmp', bmp: 'formats/bmp', ico: 'formats/ico'
 });
+
+// Every entry in the analysis selector resolves to the section for that mode.
+export const ANALYSIS_KNOWLEDGE = Object.freeze({
+  histogram: 'analysis/histograms#rgb',
+  signalHistogram: 'analysis/histograms#signal',
+  floatSource: 'analysis/histograms#precise',
+  errorHistogram: 'analysis/histograms#error',
+  waveform: 'analysis/spatial#waveform',
+  rgbWaveform: 'analysis/spatial#waveform',
+  ycbcrWaveform: 'analysis/spatial#waveform',
+  parade: 'analysis/spatial#parade',
+  ycbcrParade: 'analysis/spatial#parade',
+  profile: 'analysis/spatial#profile',
+  errorProfile: 'analysis/spatial#error-profile',
+  vectorscope: 'analysis/color#vectorscope',
+  cieXy: 'analysis/color#cie-xy',
+  deltaE: 'analysis/color#delta-e',
+  difference: 'analysis/differences#difference',
+  boundaryMap: 'analysis/differences#boundary',
+  ssim: 'analysis/differences#ssim',
+  tradeoff: 'analysis/tradeoff#graph'
+});

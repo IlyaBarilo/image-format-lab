@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { FORMAT_KNOWLEDGE } from '../src/core/knowledge-targets.mjs';
+import { FORMAT_KNOWLEDGE, ANALYSIS_KNOWLEDGE } from '../src/core/knowledge-targets.mjs';
 
 // Explicit inputs keep local/ and unrelated documents outside the build.
 export const knowledgeFiles = [
@@ -21,10 +21,23 @@ export const knowledgeFiles = [
   'docs/knowledge/concepts/bit-depth.md',
   'docs/knowledge/concepts/alpha.md',
   'docs/knowledge/concepts/color-profile.md',
-  'docs/knowledge/concepts/metrics.md'
+  'docs/knowledge/concepts/metrics.md',
+  'docs/knowledge/analysis/histograms.md',
+  'docs/knowledge/analysis/spatial.md',
+  'docs/knowledge/analysis/color.md',
+  'docs/knowledge/analysis/differences.md',
+  'docs/knowledge/analysis/tradeoff.md',
+  'docs/knowledge/workflow/start.md',
+  'docs/knowledge/workflow/comparison.md',
+  'docs/knowledge/workflow/inspection.md',
+  'docs/knowledge/workflow/experiments.md',
+  'docs/knowledge/workflow/batch.md'
 ];
 
 export const formatKnowledge = FORMAT_KNOWLEDGE;
+export const analysisKnowledge = ANALYSIS_KNOWLEDGE;
+
+const diagramIds = new Set(['chroma', 'histogram-waveform', 'analysis-area']);
 
 const fileById = new Map(knowledgeFiles.map(file => [file.slice('docs/knowledge/'.length, -3), file]));
 const idByFile = new Map([...fileById].map(([id, file]) => [file, id]));
@@ -61,7 +74,9 @@ function inline(text, source, targets) {
 function parsePage(source, markdown, targets) {
   const id = idByFile.get(source), lines = markdown.replace(/\r\n?/g, '\n').trim().split('\n');
   if (!id || !/^# [^#]/.test(lines[0])) throw new Error(`Missing knowledge title: ${source}`);
-  const page = { id, title: lines[0].slice(2).trim(), group: id.startsWith('formats/') ? 'Форматы' : 'Понятия', sections: [] };
+  const group = id.startsWith('formats/') ? 'Форматы' : id.startsWith('concepts/') ? 'Понятия'
+    : id.startsWith('analysis/') ? 'Анализ' : 'Работа в программе';
+  const page = { id, title: lines[0].slice(2).trim(), group, sections: [] };
   let section = null, paragraph = [], list = [];
   function flush() {
     if (paragraph.length) { section.blocks.push({ type: 'paragraph', parts: inline(paragraph.join(' '), source, targets) }); paragraph = []; }
@@ -77,10 +92,16 @@ function parsePage(source, markdown, targets) {
     } else if (!line.trim()) {
       if (section) flush();
     } else if (!section) throw new Error(`Knowledge text before first section: ${source}`);
+    else if (line.startsWith('::diagram ')) {
+      flush();
+      const diagram = line.slice('::diagram '.length);
+      if (!diagramIds.has(diagram)) throw new Error(`Unknown knowledge diagram in ${source}: ${diagram}`);
+      section.blocks.push({ type: 'diagram', id: diagram });
+    }
     else if (line.startsWith('- ')) {
       if (paragraph.length) flush();
       list.push(line.slice(2));
-    } else if (/^#|^\s|<|>/.test(line)) throw new Error(`Unsupported Markdown syntax in ${source}: ${line}`);
+    } else if (/^#|^\s|<|>|^::/.test(line)) throw new Error(`Unsupported Markdown syntax in ${source}: ${line}`);
     else {
       if (list.length) flush();
       paragraph.push(line);
@@ -101,7 +122,11 @@ export function buildKnowledge(root) {
   for (const [format, id] of Object.entries(formatKnowledge)) {
     if (!pageById.has(id)) throw new Error(`Missing format knowledge for ${format}`);
   }
-  return { pages, formatKnowledge };
+  const topics = new Set(pages.flatMap(page => page.sections.map(section => `${page.id}#${section.id}`)));
+  for (const [mode, target] of Object.entries(analysisKnowledge)) {
+    if (!topics.has(target)) throw new Error(`Missing analysis knowledge for ${mode}: ${target}`);
+  }
+  return { pages, formatKnowledge, analysisKnowledge };
 }
 
 export function validateKnowledgeTargets(data, sources) {
@@ -109,7 +134,7 @@ export function validateKnowledgeTargets(data, sources) {
   for (const [name, source] of Object.entries(sources)) {
     const targets = [
       ...[...source.matchAll(/data-knowledge-target="([^"]+)"/g)].map(match => match[1]),
-      ...[...source.matchAll(/['"]((?:formats|concepts)\/[a-z0-9/-]+#[a-z0-9-]+)['"]/g)].map(match => match[1])
+      ...[...source.matchAll(/['"]((?:formats|concepts|analysis|workflow)\/[a-z0-9/-]+#[a-z0-9-]+)['"]/g)].map(match => match[1])
     ];
     for (const target of targets) if (!topics.has(target)) throw new Error(`Broken context help target in ${name}: ${target}`);
   }

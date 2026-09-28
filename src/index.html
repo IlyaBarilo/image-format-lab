@@ -33,13 +33,13 @@
       <div class="toolbar-group">
         <span class="toolbar-label">Вид</span>
         <div class="segmented" role="group" aria-label="Режим сравнения">
-          <button id="wipeMode" type="button" aria-pressed="false" title="Совместить варианты 1 и 2 в одном окне с подвижной границей">Совмещение</button>
-          <button id="layout2" class="active" type="button" aria-pressed="true">2</button>
-          <button id="layout4" type="button" aria-pressed="false">4</button>
+          <button id="wipeMode" type="button" aria-pressed="false" data-knowledge-target="workflow/comparison#wipe" data-knowledge-keyboard-only title="Совместить варианты 1 и 2 в одном окне с подвижной границей">Совмещение</button>
+          <button id="layout2" class="active" type="button" aria-pressed="true" data-knowledge-target="workflow/comparison#layout" data-knowledge-keyboard-only>2</button>
+          <button id="layout4" type="button" aria-pressed="false" data-knowledge-target="workflow/comparison#layout" data-knowledge-keyboard-only>4</button>
         </div>
         <div class="grid-switch">
-          <button class="text-btn" id="pixelGrid" type="button" aria-pressed="false" title="Включить или выключить выбранную сетку">Сетка</button>
-          <button class="text-btn grid-mode-toggle" id="gridModeToggle" type="button" aria-label="Выбрать вид сетки" aria-haspopup="menu" aria-expanded="false" aria-controls="gridModeMenu" title="Выбрать вид сетки">▾</button>
+          <button class="text-btn" id="pixelGrid" type="button" aria-pressed="false" data-knowledge-target="workflow/inspection#grid" data-knowledge-keyboard-only title="Включить или выключить выбранную сетку">Сетка</button>
+          <button class="text-btn grid-mode-toggle" id="gridModeToggle" type="button" data-knowledge-target="workflow/inspection#grid" data-knowledge-keyboard-only aria-label="Выбрать вид сетки" aria-haspopup="menu" aria-expanded="false" aria-controls="gridModeMenu" title="Выбрать вид сетки">▾</button>
           <div class="grid-mode-menu" id="gridModeMenu" role="menu" aria-label="Вид сетки" hidden>
             <button id="gridModePixels" type="button" role="menuitemradio" aria-checked="true">Пиксели</button>
             <button id="gridModeCodec" type="button" role="menuitemradio" aria-checked="false" aria-describedby="gridModeHint">Блоки формата</button>
@@ -103,7 +103,7 @@
 
       <div class="toolbar-group" title="При перекодировании EXIF и прочие метаданные удаляются. Данные панорамы GPano можно сохранить только в JPEG. Исходный файл скачивается без изменений.">
         <label class="toolbar-label" for="metadataPolicy">Метаданные</label>
-        <select class="select" id="metadataPolicy" aria-label="Метаданные при перекодировании">
+        <select class="select" id="metadataPolicy" data-knowledge-target="workflow/batch#metadata" aria-label="Метаданные при перекодировании">
           <option value="panorama">GPano в JPEG</option>
           <option value="none">Удалять</option>
         </select>
@@ -111,7 +111,7 @@
 
       <div class="toolbar-group">
         <button class="text-btn" id="studyOpen" type="button" aria-haspopup="dialog">Эксперименты</button>
-        <button class="text-btn" id="knowledgeOpen" type="button" aria-haspopup="dialog" aria-controls="knowledgeDialog" data-knowledge-target="concepts/compression#overview">Справка</button>
+        <button class="text-btn" id="knowledgeOpen" type="button" aria-haspopup="dialog" aria-controls="knowledgeDialog" data-knowledge-target="workflow/start#overview">Справка</button>
         <button class="text-btn" id="licensesOpen" type="button" aria-haspopup="dialog" aria-controls="licensesDialog">Лицензии</button>
       </div>
       <div class="toolbar-preferences">
@@ -243,6 +243,7 @@
       <div class="analysis-toolbar">
         <div class="analysis-tools">
           <select class="select" id="analysisType" aria-label="Вид графика"><option value="histogram">Гистограмма</option><option value="floatSource">Гистограмма · точный исходник</option><option value="signalHistogram" hidden>Гистограмма</option><option value="errorHistogram">Гистограмма ошибок</option><option value="waveform">Waveform</option><option value="rgbWaveform" hidden>Waveform</option><option value="ycbcrWaveform" hidden>Waveform</option><option value="parade">Parade</option><option value="ycbcrParade" hidden>Parade</option><option value="difference">Различия с исходником</option><option value="boundaryMap">Границы диапазона</option><option value="vectorscope">Вектороскоп</option><option value="cieXy">CIE xy</option><option value="profile">Профиль по линии</option><option value="errorProfile">Профиль ошибки</option><option value="ssim">SSIM</option><option value="deltaE">Цветовая разница ΔE00</option><option value="tradeoff">Размер и метрика</option></select>
+          <button class="knowledge-jump" id="analysisTypeHelp" type="button" data-knowledge-analysis-select="analysisType" aria-label="Справка о выбранном режиме анализа" title="Справка о выбранном режиме анализа">?</button>
           <label id="analysisVariantField">Модель <select class="select" id="analysisVariant" aria-label="Модель или каналы графика"></select></label>
           <label id="analysisCieViewField" hidden>Цвета <select class="select" id="analysisCieView" aria-label="Источник цветов CIE xy"><option value="displayed">Показанные SDR</option><option value="icc">+ Исходник ICC</option></select></label>
           <div class="toolbar-group analysis-display-field" id="analysisDisplayField">
@@ -255,7 +256,7 @@
           </div>
           <label id="analysisPairField" hidden>Ячейки <select class="select" id="analysisPair" aria-label="Пара ячеек для сравнения графиков"><option value="1,2">1 + 2</option></select></label>
           <label id="analysisMetricField" hidden>Метрика <select class="select" id="analysisMetric"><option value="psnrRGB">PSNR RGB</option><option value="alphaErrorPercent">Ошибка α</option><option value="processingMs">Время обработки</option></select></label>
-          <select class="select" id="analysisScope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport" selected>Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
+          <select class="select" id="analysisScope" data-knowledge-target="workflow/comparison#scope" aria-label="Область анализа" aria-controls="analysisRegionEditor" title="Видимая часть следует масштабу и перемещению каждой ячейки"><option value="full">Всё изображение</option><option value="viewport" selected>Видимая часть</option><option value="region">Заданная область</option><option value="region" id="analysisRegionCurrent" hidden>Заданная область</option></select>
           <button class="text-btn" id="analysisCropSource" type="button" title="Добавить применённую область как новый исходный PNG; поддерживаемый ICC сохраняется, остальные метаданные не переносятся" hidden>Создать исходник</button>
           <label id="analysisChannelField">Каналы <select class="select" id="analysisChannel"><option value="rgb">RGB</option><option value="r">R — красный</option><option value="g">G — зелёный</option><option value="b">B — синий</option><option value="alpha">α — прозрачность</option></select></label>
           <label id="analysisFloatRangeField" hidden>Диапазон <select class="select" id="analysisFloatRange"><option value="unit">0–1</option><option value="auto">Авто по исходнику</option><option value="manual">Вручную</option></select></label>
@@ -273,6 +274,7 @@
       </div>
       <section class="analysis-region" id="analysisRegionEditor" aria-label="Общая область анализа" hidden>
         <p class="analysis-note" id="analysisGeometryHint">Выделите область на исходнике или задайте её в процентах. Графики используют область без кадрирования файла; после применения отдельный исходник можно создать кнопкой рядом со списком областей.</p>
+        <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/comparison#scope">Как работает область</button>
         <div class="analysis-region-body">
           <canvas id="analysisRegionCanvas" width="1" height="1" role="img" aria-label="Область на исходном изображении; координаты доступны в полях рядом"></canvas>
           <div>
@@ -308,10 +310,10 @@
             <tbody id="pixelRows"></tbody>
           </table>
         </div>
-        <p class="analysis-note">Значения рабочих пикселей без подложки и округления до 8 бит. RGB виден даже при α = 0. Координаты от левого верхнего угла полного кадра; область графиков их не меняет. Δ сравнивает коды каналов без преобразования цветового пространства.</p>
+        <p class="analysis-note">Значения рабочих пикселей без подложки и округления до 8 бит. RGB виден даже при α = 0. Координаты от левого верхнего угла полного кадра; область графиков их не меняет. Δ сравнивает коды каналов без преобразования цветового пространства. <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/inspection#pixel">Как читать значения</button></p>
       </details>
       <div class="analysis-help-content" id="analysisHelpContent" hidden>
-        <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/metrics#overview">Подробнее о метриках и графиках</button>
+        <button class="knowledge-text-link" type="button" data-knowledge-analysis-select="analysisType">Подробнее о выбранном режиме</button>
         <p id="analysisMethod">Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни 0–255, по вертикали — доля пикселей канала в процентах. Шкала общая для всех видимых графиков. Считаются все пиксели кадра RGBA 8 бит. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.</p>
         <p id="analysisCaveat">Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:</p>
         <p id="analysisDetails"></p>
@@ -377,6 +379,7 @@
       </div>
       <div class="batch-dialog-body">
       <div class="batch-settings">
+      <p class="batch-note"><button class="knowledge-text-link" type="button" data-knowledge-target="workflow/batch#overview">Как работает пакетное сохранение</button></p>
       <div class="batch-dialog-fields">
         <label class="batch-field" for="batchFormat">Выходной формат
           <select class="select" id="batchFormat" autofocus></select>
@@ -512,7 +515,7 @@
     <section id="filePassportTimingSection" hidden><h3>Время обработки</h3><dl class="passport-fields" id="filePassportTiming"></dl><p class="batch-note">До кодирования включены ожидание очереди и проверка доступности. Подготовка и кодирование включают загрузку кодека и изменение размера. «Прочее» включает дополнительные шаги; числа округлены до 0,01 мс. Общее время на основной панели округлено до целых миллисекунд.</p></section>
     <h3>Рабочие пиксели</h3><dl class="passport-fields" id="filePassportRaster"></dl>
     <p class="batch-note">bpp = полный размер файла в битах / число пикселей; это не оценка качества. Объём RGBA относится к одному рабочему буферу, а не ко всей памяти приложения. Декодер может изменить ориентацию, цветовое представление и разрядность.</p>
-    <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла. <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/color-profile#overview">О цветовых профилях</button></p>
+    <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла. <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/inspection#passport">Как читать паспорт</button> · <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/color-profile#overview">О цветовых профилях</button></p>
   </dialog>
   <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
     <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
@@ -521,11 +524,12 @@
       <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option><option value="packbits">PackBits</option></select></label>
       <label class="batch-field" id="tiffLevelField" for="tiffLevel">Уровень Deflate <output id="tiffLevelValue" for="tiffLevel">6</output><input id="tiffLevel" type="range" min="1" max="9" value="6"></label>
       <label class="switch" id="tiffPredictorField"><input id="tiffPredictor" type="checkbox" checked>Предиктор по соседним пикселям</label>
-      <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; просмотр остаётся 8-битным. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически. <button class="knowledge-text-link" type="button" data-knowledge-target="formats/tiff#parameters">Подробнее о настройках TIFF</button></p>
+      <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; точность экранного SDR-просмотра зависит от браузера. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически. <button class="knowledge-text-link" type="button" data-knowledge-target="formats/tiff#parameters">Подробнее о настройках TIFF</button></p>
     </div>
   </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
     <h2 id="studyTitle">Эксперименты</h2>
+    <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#overview">Как пользоваться экспериментами</button>
     <section>
       <label for="referenceSampleSelect">Контрольный образец</label>
       <div class="study-tools"><select class="select" id="referenceSampleSelect"><option value="gradient">Градиенты и резкие границы</option><option value="alpha">Прозрачность и цвет</option><option value="palette">Палитра и дизеринг</option></select><button class="text-btn" id="referenceSampleCreate" type="button">Открыть и применить</button></div>
@@ -562,7 +566,7 @@
     </section>
     <section>
       <h3>Отчёт текущего сравнения</h3>
-      <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/metrics#overview">Как читать показатели сравнения</button>
+      <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#reports">Как читать и сохранять отчёты</button>
       <h4>Краткая сводка готовых ячеек</h4>
       <p class="batch-note" id="comparisonSummarySource">Сначала откройте изображение.</p>
       <div class="comparison-summary-wrap"><table id="comparisonSummaryTable" aria-label="Краткая сводка текущего сравнения"><thead><tr><th>№</th><th>Формат и режим</th><th>Размер</th><th>Файл</th><th>bpp</th><th>Q</th><th>PSNR RGB</th><th>Δα, %</th><th>Бит/канал</th><th>Примечание</th></tr></thead><tbody id="comparisonSummaryRows"></tbody></table></div>
@@ -576,7 +580,7 @@
     <section><details><summary>Форматы и ограничения</summary>
       <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/compression#overview">Открыть справку по форматам</button>
       <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>
-      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16, поддерживаемый TIFF16 и JPEG 2000 без потерь сохраняют точные 16-битные отсчёты и alpha без изменения размера. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC, JPEG XL и JPEG 2000 не гарантируется.</p>
+      <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16, поддерживаемый TIFF16 и JPEG 2000 без потерь сохраняют точные 16-битные отсчёты и alpha без изменения размера. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий учитывают доступные точные целые RGBA8/16 отсчёты; экранное представление может быть менее точным. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC, JPEG XL и JPEG 2000 не гарантируется.</p>
       <p class="batch-note">Режим «GPano в JPEG» переносит поддерживаемые данные панорамы из исходного JPEG только в JPEG. Прочие исходные метаданные не копируются; поддерживаемый ICC сохраняется при записи полноцветного PNG, точного TIFF16 или JP2 без изменения размера. «Исходный файл» скачивается без изменения байтов и сохраняет все метаданные.</p>
       <p class="batch-note">Все дополнительные библиотеки находятся внутри HTML и запускаются автоматически, без обращения к интернету. AVIF, JPEG XL, JPEG 2000 и WebP lossless кодируются встроенными библиотеками. Обычный WebP зависит от возможностей браузера. JPEG, PNG и другие базовые операции доступны также при ошибке запуска дополнительных кодеков.</p>
       <p class="batch-note">HEIC сохраняет неподвижное изображение с HEVC: SDR 8-bit, 4:2:0, качество 1–100. Качество 100 не означает отсутствие потерь; прозрачность также может сжиматься с потерями. HDR, Live Photos и метаданные камеры не сохраняются.</p>
@@ -598,7 +602,7 @@
       </nav>
       <article class="knowledge-article" id="knowledgeContent" aria-label="Статья справки"></article>
     </div>
-    <p class="knowledge-offline-note">Статьи доступны без интернета. Ссылки на официальные материалы открывают внешние сайты.</p>
+    <p class="knowledge-offline-note">Статьи и схемы доступны без интернета. Ссылки на дополнительные материалы открывают внешние сайты.</p>
   </dialog>
   <dialog class="study-dialog licenses-dialog" id="licensesDialog" aria-labelledby="licensesTitle" aria-describedby="licensesSummary">
     <div class="licenses-heading"><h2 id="licensesTitle">Лицензии и исходники</h2><form method="dialog"><button class="text-btn" aria-label="Закрыть лицензии" autofocus>Закрыть</button></form></div>

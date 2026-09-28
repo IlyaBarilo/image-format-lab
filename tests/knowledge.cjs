@@ -8,15 +8,25 @@ const path = require('node:path');
   const { FORMAT_DEFS } = await import('../src/core/config.mjs');
   const data = buildKnowledge(root);
   const topics = new Set(data.pages.flatMap(page => page.sections.map(section => page.id + '#' + section.id)));
-  assert.equal(data.pages.length, 18);
+  assert.equal(data.pages.length, 28);
   assert.deepEqual(new Set(Object.keys(FORMAT_DEFS)).difference(new Set(Object.keys(data.formatKnowledge))), new Set());
   for (const [format, page] of Object.entries(data.formatKnowledge)) assert.ok(topics.has(page + '#overview'), format);
+  const viewer = fs.readFileSync(path.join(root, 'src/index.html'), 'utf8');
+  const analysisOptions = [...viewer.match(/<select[^>]*id="analysisType"[^>]*>([\s\S]*?)<\/select>/)[1]
+    .matchAll(/<option value="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(new Set(analysisOptions).difference(new Set(Object.keys(data.analysisKnowledge))), new Set());
+  for (const [mode, target] of Object.entries(data.analysisKnowledge)) assert.ok(topics.has(target), mode);
+  const diagrams = [];
   for (const page of data.pages) {
     assert.ok(page.sections.length >= 2, page.id);
-    const parts = page.sections.flatMap(section => section.blocks.flatMap(block => block.type === 'paragraph' ? block.parts : block.items.flat()));
-    assert.ok(parts.some(part => part.url), page.id + ' needs a primary source');
+    const blocks = page.sections.flatMap(section => section.blocks);
+    diagrams.push(...blocks.filter(block => block.type === 'diagram').map(block => block.id));
+    const parts = blocks.flatMap(block => block.type === 'paragraph' ? block.parts : block.type === 'list' ? block.items.flat() : []);
+    if (!page.id.startsWith('workflow/') && page.id !== 'analysis/tradeoff')
+      assert.ok(parts.some(part => part.url), page.id + ' needs an external source');
     assert.ok(parts.every(part => !part.url || part.url.startsWith('https://')));
   }
+  assert.deepEqual(new Set(diagrams), new Set(['chroma', 'histogram-waveform', 'analysis-area']));
   const sources = Object.fromEntries(['src/index.html', 'src/ui/controls.mjs', 'src/ui/knowledge.mjs'].map(name => [name, fs.readFileSync(path.join(root, name), 'utf8')]));
   validateKnowledgeTargets(data, sources);
   assert.throws(() => validateKnowledgeTargets(data, { sample: '<button data-knowledge-target="formats/jpeg#missing">' }), /Broken context help target/);
@@ -25,5 +35,5 @@ const path = require('node:path');
   const embedded = JSON.parse(html.match(/id="embedded-knowledge">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(embedded, data);
   assert.ok(html.includes('id="knowledgeDialog"') && html.includes('id="knowledgeSearch"'));
-  console.log('PASS 18 offline knowledge pages, format coverage, official links and validated context targets');
+  console.log('PASS 28 offline knowledge pages, format and analysis coverage, diagrams and context targets');
 })().catch(error => { console.error(error); process.exitCode = 1; });
