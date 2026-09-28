@@ -91,7 +91,8 @@ for name, factory, inputs, exports, runtime in [
      ['decode', 'clear', 'pixels', 'width', 'height'], ['HEAPU8']),
     ('tiff-codec', 'ViewerTiffModule', [source / 'tiff-bridge.c', work / 'build-tiff/libtiff/libtiff.a',
       work / 'build-zlib/libz.a', '-I' + str(roots['libtiff'] / 'libtiff'), '-I' + str(work / 'build-tiff/libtiff')],
-     ['decode', 'encode', 'clear', 'pixels', 'bytes', 'width', 'height', 'pages', 'error'], ['HEAPU8', 'UTF8ToString'])]:
+     ['decode', 'encode', 'encode_cmyk', 'clear', 'pixels', 'bytes', 'cmyk_pixels', 'cmyk_bytes',
+      'icc_pixels', 'icc_bytes', 'width', 'height', 'pages', 'error'], ['HEAPU8', 'UTF8ToString'])]:
     prefix = 'bmp' if name == 'bmp-decoder' else 'tiff'
     symbols = ['_malloc', '_free'] + ['_viewer_' + prefix + '_' + symbol for symbol in exports]
     run([sys.executable, em / 'emcc.py', *inputs, *flags, '-sEXPORT_NAME=' + factory,

@@ -7,10 +7,14 @@
 #include <stdarg.h>
 #define LIMIT 268435456u
 typedef struct {uint8_t *data;size_t size,pos,capacity;int writable;} memory_file;
-static uint8_t *output;static size_t output_size;static uint32_t width,height,pages;static char error[512];
-void viewer_tiff_clear(void){free(output);output=NULL;output_size=0;width=height=pages=0;error[0]=0;}
+static uint8_t *output,*cmyk_output,*icc_output;static size_t output_size,cmyk_size,icc_size;static uint32_t width,height,pages;static char error[512];
+void viewer_tiff_clear(void){free(output);free(cmyk_output);free(icc_output);output=cmyk_output=icc_output=NULL;output_size=cmyk_size=icc_size=0;width=height=pages=0;error[0]=0;}
 uint8_t *viewer_tiff_pixels(void){return output;}
 size_t viewer_tiff_bytes(void){return output_size;}
+uint8_t *viewer_tiff_cmyk_pixels(void){return cmyk_output;}
+size_t viewer_tiff_cmyk_bytes(void){return cmyk_size;}
+uint8_t *viewer_tiff_icc_pixels(void){return icc_output;}
+size_t viewer_tiff_icc_bytes(void){return icc_size;}
 int viewer_tiff_width(void){return width;}
 int viewer_tiff_height(void){return height;}
 int viewer_tiff_pages(void){return pages;}
@@ -47,6 +51,37 @@ int viewer_tiff_decode(uint8_t *input,size_t length,unsigned page){
  TIFFGetFieldDefaulted(t,TIFFTAG_BITSPERSAMPLE,&bits);TIFFGetFieldDefaulted(t,TIFFTAG_SAMPLESPERPIXEL,&spp);TIFFGetFieldDefaulted(t,TIFFTAG_PHOTOMETRIC,&photo);TIFFGetFieldDefaulted(t,TIFFTAG_PLANARCONFIG,&planar);TIFFGetFieldDefaulted(t,TIFFTAG_ORIENTATION,&orientation);TIFFGetFieldDefaulted(t,TIFFTAG_SAMPLEFORMAT,&format);TIFFGetField(t,TIFFTAG_EXTRASAMPLES,&extraCount,&extras);
  if(orientation<1||orientation>8){fail("Invalid TIFF orientation");goto done;}
  output_size=(size_t)width*height*4;output=calloc(1,output_size);if(!output){fail("Cannot allocate TIFF pixels");goto done;}
+ if(photo==PHOTOMETRIC_SEPARATED && bits==8 && spp==4 && format==SAMPLEFORMAT_UINT &&
+    (planar==PLANARCONFIG_CONTIG||planar==PLANARCONFIG_SEPARATE) && extraCount==0){
+  uint16_t inkset=0;TIFFGetFieldDefaulted(t,TIFFTAG_INKSET,&inkset);
+  if(inkset!=INKSET_CMYK){fail("Unsupported separated TIFF inkset");goto done;}
+  cmyk_size=output_size;cmyk_output=malloc(cmyk_size);
+  if(!cmyk_output){fail("Cannot allocate CMYK pixels");goto done;}
+  int tiled=TIFFIsTiled(t);uint32_t blockWidth=width,blockHeight=1;
+  if(tiled){TIFFGetField(t,TIFFTAG_TILEWIDTH,&blockWidth);TIFFGetField(t,TIFFTAG_TILELENGTH,&blockHeight);}
+  uint64_t rowBytes=(uint64_t)blockWidth*(planar==PLANARCONFIG_SEPARATE?1:4);
+  uint64_t blockBytes=tiled?TIFFTileSize64(t):TIFFScanlineSize64(t);
+  if(!blockWidth||!blockHeight||!rowBytes||rowBytes>160000000||blockHeight>160000000/rowBytes||
+     blockBytes<rowBytes*blockHeight||blockBytes>160000000){fail("Invalid CMYK TIFF block size");goto done;}
+  scan=malloc(blockBytes);if(!scan){fail("Cannot allocate CMYK TIFF block");goto done;}
+  for(unsigned plane=0;plane<(planar==PLANARCONFIG_SEPARATE?4:1);plane++)
+   for(uint32_t by=0;by<height;by+=blockHeight)for(uint32_t bx=0;bx<width;bx+=blockWidth){
+    if(tiled){if(TIFFReadEncodedTile(t,TIFFComputeTile(t,bx,by,0,plane),scan,blockBytes)<(tmsize_t)(rowBytes*blockHeight))goto done;}
+    else if(TIFFReadScanline(t,scan,by,plane)<0)goto done;
+    for(uint32_t y=0;y<blockHeight&&y<height-by;y++)for(uint32_t x=0;x<blockWidth&&x<width-bx;x++){
+     size_t from=(size_t)y*rowBytes+x*(planar==PLANARCONFIG_SEPARATE?1:4);
+     size_t to=((size_t)(by+y)*width+bx+x)*4;
+     if(planar==PLANARCONFIG_SEPARATE)cmyk_output[to+plane]=scan[from];
+     else memcpy(cmyk_output+to,scan+from,4);
+    }
+   }
+  uint32_t profileLength=0;void *profile=NULL;
+  if(TIFFGetField(t,TIFFTAG_ICCPROFILE,&profileLength,&profile)){
+   if(profileLength<132||profileLength>1048576||!profile){fail("Invalid CMYK ICC profile size");goto done;}
+   icc_output=malloc(profileLength);if(!icc_output){fail("Cannot allocate CMYK ICC profile");goto done;}
+   memcpy(icc_output,profile,profileLength);icc_size=profileLength;
+  }
+ }
  unsigned colors=photo==PHOTOMETRIC_RGB?3:1;
  int direct=format==SAMPLEFORMAT_UINT&&(bits==8||bits==16)&&(photo==PHOTOMETRIC_RGB||photo==PHOTOMETRIC_MINISBLACK||photo==PHOTOMETRIC_MINISWHITE)&&(spp==colors||spp==colors+1);
  if(direct){
@@ -81,10 +116,43 @@ int viewer_tiff_decode(uint8_t *input,size_t length,unsigned page){
    uint32_t dx=x,dy=y;
    switch(orientation){case 2:dx=width-1-x;break;case 3:dx=width-1-x;dy=height-1-y;break;case 4:dy=height-1-y;break;case 5:dx=y;dy=x;break;case 6:dx=height-1-y;dy=x;break;case 7:dx=height-1-y;dy=width-1-x;break;case 8:dx=y;dy=width-1-x;break;}
    memcpy(oriented+((size_t)dy*ow+dx)*4,output+((size_t)y*width+x)*4,4);
-  }free(output);output=oriented;width=ow;height=oh;
+  }
+  if(cmyk_output){
+   uint8_t*orientedCmyk=malloc(cmyk_size);if(!orientedCmyk){free(oriented);fail("Cannot orient CMYK TIFF");goto done;}
+   for(uint32_t y=0;y<height;y++)for(uint32_t x=0;x<width;x++){
+    uint32_t dx=x,dy=y;
+    switch(orientation){case 2:dx=width-1-x;break;case 3:dx=width-1-x;dy=height-1-y;break;case 4:dy=height-1-y;break;case 5:dx=y;dy=x;break;case 6:dx=height-1-y;dy=x;break;case 7:dx=height-1-y;dy=width-1-x;break;case 8:dx=y;dy=width-1-x;break;}
+    memcpy(orientedCmyk+((size_t)dy*ow+dx)*4,cmyk_output+((size_t)y*width+x)*4,4);
+   }free(cmyk_output);cmyk_output=orientedCmyk;
+  }
+  free(output);output=oriented;width=ow;height=oh;
  }
  result=0;
- done: free(scan);free(raster);TIFFClose(t);if(result){free(output);output=NULL;output_size=0;if(!error[0])fail("Unsupported or damaged TIFF");}return result;
+ done: free(scan);free(raster);TIFFClose(t);if(result){free(output);free(cmyk_output);free(icc_output);output=cmyk_output=icc_output=NULL;output_size=cmyk_size=icc_size=0;if(!error[0])fail("Unsupported or damaged TIFF");}return result;
+}
+int viewer_tiff_encode_cmyk(uint8_t *input,int w,int h,int compression,int level,int predictor,
+                            const uint8_t *icc,size_t icc_length){
+ viewer_tiff_clear();
+ if(!input||w<=0||h<=0||(uint64_t)w*h>40000000||
+    (compression!=1&&compression!=5&&compression!=8&&compression!=32773)||
+    level<1||level>9||(predictor!=1&&predictor!=2)||icc_length>1048576||
+    (icc_length&&(!icc||icc_length<132)))return fail("Invalid CMYK TIFF settings");
+ memory_file file={0};file.writable=1;TIFF*t=open_mem(&file,"w");if(!t)return 1;
+ int result=1;
+ if(!TIFFSetField(t,TIFFTAG_IMAGEWIDTH,w)||!TIFFSetField(t,TIFFTAG_IMAGELENGTH,h)||
+    !TIFFSetField(t,TIFFTAG_BITSPERSAMPLE,8)||!TIFFSetField(t,TIFFTAG_SAMPLESPERPIXEL,4)||
+    !TIFFSetField(t,TIFFTAG_PHOTOMETRIC,PHOTOMETRIC_SEPARATED)||
+    !TIFFSetField(t,TIFFTAG_INKSET,INKSET_CMYK)||
+    !TIFFSetField(t,TIFFTAG_PLANARCONFIG,PLANARCONFIG_CONTIG)||
+    !TIFFSetField(t,TIFFTAG_COMPRESSION,compression)||
+    !TIFFSetField(t,TIFFTAG_ROWSPERSTRIP,TIFFDefaultStripSize(t,0)))goto done;
+ if((compression==5||compression==8)&&!TIFFSetField(t,TIFFTAG_PREDICTOR,predictor))goto done;
+ if(compression==8&&!TIFFSetField(t,TIFFTAG_ZIPQUALITY,level))goto done;
+ if(icc_length&&!TIFFSetField(t,TIFFTAG_ICCPROFILE,(uint32_t)icc_length,icc))goto done;
+ for(int y=0;y<h;y++)if(TIFFWriteScanline(t,input+(size_t)y*w*4,y,0)<0)goto done;
+ if(!TIFFWriteDirectory(t))goto done;result=0;
+ done:TIFFClose(t);if(result){free(file.data);if(!error[0])fail("CMYK TIFF encoding failed");}
+ else{output=file.data;output_size=file.size;width=w;height=h;}return result;
 }
 int viewer_tiff_encode(uint8_t *input,int w,int h,int compression,int level,int predictor){
  viewer_tiff_clear();if(!input||w<=0||h<=0||(uint64_t)w*h>40000000||(compression!=1&&compression!=5&&compression!=8)||level<1||level>9||(predictor!=1&&predictor!=2))return fail("Invalid TIFF encoding settings");

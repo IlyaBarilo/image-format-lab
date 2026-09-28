@@ -94,7 +94,7 @@ SVG-схемы отрисовываются кодом интерфейса по
 | `core/vectorscope.mjs`, `core/line-profile.mjs`, `ui/scope-plots.mjs` | Собственные Cb/Cr-счётчики, точный целочисленный профиль RGBA8/16 для RGB/alpha/Y′ с минимумами/максимумами и Canvas-отрисовка; область и линия редактируются в `ui/analysis-region.mjs`, связи задаёт application |
 | `core/analysis-output.mjs`, `ui/analysis-combined.mjs`, `ui/analysis-output.mjs` | Нормировка наложения, валидация точек размера/метрики, сериализация массивов/Infinity, общий Canvas и PNG/JSON текущего анализа; снимок состояния и проверка его актуальности связаны через application |
 | `workers/heic.worker.mjs` | Запуск собственной WASM-сборки HEIC и выдача RGBA8 |
-| `workers/tiff.worker.mjs`, `core/tiff16.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF8, точные целочисленные TIFF16 на pako; UTIF / libjpeg-turbo для совместимости |
+| `workers/tiff.worker.mjs`, `core/tiff16.mjs`, `core/cmyk.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF8 и CMYK8, точные целочисленные TIFF16 на pako; отдельный CMYK-растр и численная диагностика без RGB-промежуточного шага; UTIF / libjpeg-turbo для совместимости |
 | `core/jpeg.mjs`, `core/jpeg-encode.mjs`, `core/tiff-jpeg.mjs`, `core/tiff.mjs` | Связь с libjpeg-turbo для чтения и сохранения JPEG, JPEG-таблицы/полосы/плитки и проверки TIFF |
 
 Расширение `.mjs` явно обозначает ES-модуль. Сборщик и проверки используют Node.js.
@@ -388,6 +388,12 @@ ICC. [Исходники и сборка](../vendor/sources/jpeg2000/README.md).
 TIFF Worker использует
 `core/raster-codecs.mjs` и libtiff с zlib: без сжатия, Deflate или LZW;
 PackBits записывается собственным кодировщиком RGBA8 в том же модуле.
+Входной CMYK TIFF/JPEG8 сохраняет C/M/Y/K отдельно от экранного RGB-растра.
+`core/cmyk.mjs` проверяет размеры, ICC и JPEG-заголовок, считает распределения
+каналов, разницу и сумму красок. Новый CMYK TIFF создаёт libtiff, CMYK JPEG —
+libjpeg-turbo; оба пути переносят встроенный CMYK ICC. Сравнение выполняется по
+повторно прочитанному файлу, а карта CMYK относится к кодовым значениям, не к
+экранному RGB. Изменение размеров и бюджет файла для CMYK отклоняются явно.
 `core/tiff16.mjs` читает ограниченный набор целых TIFF16 без понижения разрядности:
 смежные серые/RGB/RGBA-каналы, независимый alpha, ориентация 1, полосы без
 сжатия, Deflate или PackBits. Запись RGBA16 поддерживает отсутствие сжатия и

@@ -30,7 +30,14 @@ export function decodeLegacyTiff(UTIF, buffer, page=0) {
     const tw = ifd.t322?.[0], th = ifd.t323?.[0];
     if ((tw !== undefined || th !== undefined) && (!tw || !th || tw * th > 40000000)) throw new Error('Некорректный размер плитки TIFF');
     UTIF.decodeImage(buffer, ifd, ifds);
+    const nativeCmyk=ifd.t262?.[0]===5&&samples===4&&ifd.t258?.every(bits=>bits===8);
+    if(nativeCmyk&&(ifd.t274?.[0]??1)!==1)
+      throw new Error('Ориентация CMYK JPEG-in-TIFF пока не поддерживается без потери соответствия каналов.');
+    const cmyk=nativeCmyk&&ifd.data?.length===width*height*4?new Uint8Array(ifd.data):null;
+    if(nativeCmyk&&!cmyk)throw new Error('Не удалось сохранить исходные каналы CMYK TIFF.');
+    const icc=cmyk&&ifd.t34675?Uint8Array.from(ifd.t34675):null;
     const rgba = tiffRgba(ifd, UTIF.toRGBA8);
     if (rgba.length !== width * height * 4) throw new Error('Некорректный результат TIFF');
-    return {width,height,buffer:rgba.buffer,pages:images.length};
+    return {width,height,buffer:rgba.buffer,pages:images.length,
+      cmykBuffer:cmyk?.buffer??null,iccProfileBuffer:icc?.buffer??null};
 }

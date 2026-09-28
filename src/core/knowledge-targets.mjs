@@ -14,6 +14,7 @@ export const ANALYSIS_KNOWLEDGE = Object.freeze({
   histogram: 'analysis/histograms#rgb',
   signalHistogram: 'analysis/histograms#signal',
   floatSource: 'analysis/histograms#precise',
+  cmyk: 'analysis/color#cmyk',
   errorHistogram: 'analysis/histograms#error',
   waveform: 'analysis/spatial#waveform',
   rgbWaveform: 'analysis/spatial#waveform',

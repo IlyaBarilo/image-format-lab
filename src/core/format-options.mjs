@@ -9,6 +9,14 @@ export const FORMAT_OPTIONS = Object.entries(FORMAT_DEFS)
   .filter(([format]) => format !== 'bmp24' && format !== 'bmp32' && format !== 'pngIndexed' && format !== 'pngUpng')
   .map(([format, def]) => ({format, value: formatOptionValue(format), label: isBmpFormat(format) ? 'BMP' : def.label}));
 
+export function resolveCmykMode(config, source) {
+  if(!['jpeg','tiff'].includes(config.format))return false;
+  if(!['source','rgb','cmyk'].includes(config.colorMode??'source'))throw new Error('Неизвестный режим цвета.');
+  if(config.colorMode==='rgb')return false;
+  if(config.colorMode==='cmyk'&&!source?.cmyk)throw new Error('Для записи CMYK нужен исходный CMYK TIFF или JPEG.');
+  return Boolean(source?.cmyk);
+}
+
 // Reports describe the file format separately from its encoding mode.
 export function reportFormatConfig(config) {
   const result={...config};
@@ -21,6 +29,7 @@ export function reportFormatConfig(config) {
   else if(format==='gif') result.formatMode='built-in';
   else if(format==='webpLossless') { result.format='webp'; result.formatMode='lossless'; }
   else if(format==='webp') result.formatMode='lossy';
+  else if((format==='jpeg'||format==='tiff')&&config.colorMode==='cmyk')result.formatMode='cmyk';
   else if(format==='jxlLossless') { result.format='jxl'; result.formatMode='lossless'; }
   else if(format==='jxl') result.formatMode='lossy';
   else if(format==='jp2'||format==='j2k') result.formatMode=config.quality===100?'lossless':'lossy';

@@ -3,6 +3,7 @@ import { encodeIco, ICO_SIZES } from '../core/ico.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { resolvedPngDepth } from '../core/png.mjs';
 import { resolvedJxlDepth } from '../core/modern-options.mjs';
+import { resolveCmykMode } from '../core/format-options.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createEncode({}, deps) {
@@ -24,7 +25,7 @@ export function createEncode({}, deps) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return { ...source, width: canvas.width, height: canvas.height, canvas, ctx, imageData,
       precisionNote: source.pixelBuffer?.bitDepth>8 ? `Уменьшение и кодирование по 8 бит/канал (исходник ${source.pixelBuffer.bitDepth} бит)` : source.precisionNote,
-      pixelBuffer: pixelBufferFromImageData(imageData), nativePixelBuffer: null, iccProfile: null,
+      pixelBuffer: pixelBufferFromImageData(imageData), nativePixelBuffer: null, iccProfile: null,cmyk:null,
       hasAlpha: deps.detectAlpha(imageData.data) };
   }
   
@@ -33,6 +34,17 @@ export function createEncode({}, deps) {
     const format = config.format;
     if (format === "original") return deps.withEncodedMeta({ blob: source.file,
       previewImageData: deps.cloneImageData(source.imageData), previewOnly: true, panoramaPreserved: Boolean(source.panorama) }, source);
+    if(resolveCmykMode(config,source)){
+      const dims=deps.outputDimensionsForConfig(config,source);
+      if(dims.width!==source.width||dims.height!==source.height)
+        throw new Error('Сохранение CMYK доступно только в исходном размере. Уберите изменение размеров или выберите RGB.');
+      if(config.targetKB)throw new Error('Подбор размера CMYK пока недоступен. Уберите бюджет файла или выберите RGB.');
+      if(format==='tiff'&&config.tiffDepth==='16')throw new Error('Для CMYK TIFF доступно 8 бит/канал.');
+      const codec=await deps.loadOptionalCodec('utif');
+      const blob=await codec.encodeCmyk(source.cmyk,format,config);
+      return deps.withEncodedMeta({blob,previewImageData:null,panoramaPreserved:false,
+        precisionNote:`CMYK8 · ICC ${source.cmyk.iccProfile?'сохранён':'отсутствует'} · экранный RGB не является цветопробой`},source);
+    }
     const pixels=source.pixelBuffer ?? pixelBufferFromImageData(source.imageData);
     const highDepth=pixels.bitDepth>8;
     if(format==='png') {
@@ -147,8 +159,13 @@ export function createEncode({}, deps) {
     const baseNote=encoded.precisionNote || (source.pixelBuffer?.bitDepth>8 ? encoded.previewOnly
       ? `${source.pixelBuffer.bitDepth} бит/канал · показ 8 бит` : `8 бит/канал · из ${source.pixelBuffer.bitDepth} бит`
       : source.precisionNote || '');
+    const colorNote=source.cmyk
+      ? encoded.previewOnly?'исходный CMYK8 · экранный RGB не является цветопробой'
+        : encoded.precisionNote?.startsWith('CMYK8')?'':'из CMYK-исходника через RGB-предпросмотр; это не цветопроба'
+      : source.colorManagementNote?'сравнение '+source.colorManagementNote:'';
     return { ...encoded, sourceImageData: source.imageData, sourcePixelBuffer: source.pixelBuffer ?? pixelBufferFromImageData(source.imageData),
-      precisionNote:[baseNote,source.colorManagementNote ? 'сравнение ' + source.colorManagementNote : ''].filter(Boolean).join(' · '),
+      sourceCmyk:source.cmyk||null,
+      precisionNote:[baseNote,colorNote].filter(Boolean).join(' · '),
       width: source.width, height: source.height };
   }
   
@@ -254,6 +271,8 @@ export function createEncode({}, deps) {
       if(timing)timing.encodeStart=performance.now();
       try {
       if(!current())throw deps.staleRequest();
+      if(snapshot.targetKB&&resolveCmykMode(snapshot,source))
+        throw new Error('Подбор размера CMYK пока недоступен. Уберите бюджет файла или выберите RGB.');
       if(!snapshot.targetKB) return await deps.encodeOne(snapshot,source);
       deps.validateExportConfig(snapshot);
       // Resize once; each probe starts with this same raster, never with a previous result.

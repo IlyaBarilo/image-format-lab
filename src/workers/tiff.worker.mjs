@@ -1,8 +1,9 @@
 import { createJpegDecoder } from '../core/jpeg.mjs';
-import { encodeJpegPixels } from '../core/jpeg-encode.mjs';
+import { encodeJpegPixels, encodeCmykJpegPixels } from '../core/jpeg-encode.mjs';
+import { readCmykJpegHeader, createCmykRaster, cmykPreview, orientCmyk } from '../core/cmyk.mjs';
 import { installTiffJpeg } from '../core/tiff-jpeg.mjs';
 import { decodeLegacyTiff } from '../core/tiff-legacy.mjs';
-import { decodeBmpPixels, decodeTiffPixels, encodeTiffPixels } from '../core/raster-codecs.mjs';
+import { decodeBmpPixels, decodeTiffPixels, encodeTiffPixels, encodeCmykTiffPixels } from '../core/raster-codecs.mjs';
 import { decodeTiff16, encodeTiff16 } from '../core/tiff16.mjs';
 import { decodeTiffFloat } from '../core/tiff-float.mjs';
 import { pngPreview } from '../core/png.mjs';
@@ -29,6 +30,27 @@ self.onmessage=async({data:request})=>{
     if(type==='encode-jpeg'){
       const buffer=encodeJpegPixels(codec.jpeg,{width:request.width,height:request.height,data:new Uint8ClampedArray(request.buffer)},request.options);
       self.postMessage({type:'encoded',id,buffer},[buffer]);return;
+    }
+    if(type==='encode-cmyk-tiff'||type==='encode-cmyk-jpeg'){
+      const raster=createCmykRaster(request.width,request.height,new Uint8Array(request.buffer),
+        request.iccProfile?new Uint8Array(request.iccProfile):null);
+      const buffer=type==='encode-cmyk-tiff'?encodeCmykTiffPixels(codec.tiff,raster,request.options)
+        :encodeCmykJpegPixels(codec.jpeg,raster,request.options);
+      self.postMessage({type:'encoded',id,buffer},[buffer]);return;
+    }
+    if(type==='decode-jpeg-cmyk'){
+      const bytes=new Uint8Array(request.buffer),header=readCmykJpegHeader(bytes);
+      if(!header)throw new Error('JPEG не содержит четыре CMYK-канала');
+      const decoded=createJpegDecoder(codec.jpeg)(bytes);
+      if(decoded.components!==4||decoded.precision!==8)throw new Error('Поддерживается только 8-битный CMYK JPEG.');
+      const channels=new Uint8Array(decoded.samples);
+      if(decoded.adobe)for(let i=0;i<channels.length;i++)channels[i]=255-channels[i];
+      const raster=orientCmyk(createCmykRaster(decoded.width,decoded.height,channels,header.iccProfile),header.orientation);
+      const preview=cmykPreview(raster);
+      self.postMessage({type:'decoded',id,width:raster.width,height:raster.height,
+        buffer:preview.data.buffer,cmykBuffer:raster.data.buffer,
+        iccProfileBuffer:header.iccProfile?.buffer??null},
+        [preview.data.buffer,raster.data.buffer,...(header.iccProfile?[header.iccProfile.buffer]:[])]);return;
     }
     let result;
     if(type==='decode-bmp')result=decodeBmpPixels(codec.bmp,request.buffer,request.ico);
@@ -58,6 +80,8 @@ self.onmessage=async({data:request})=>{
       }
       if(exact?.fallback)result.precisionNote=exact.precisionNote;
     }else throw new Error('Unknown raster operation');
-    self.postMessage({type:'decoded',id,...result},[result.buffer]);
+    self.postMessage({type:'decoded',id,...result},[result.buffer,
+      ...(result.cmykBuffer?[result.cmykBuffer]:[]),
+      ...(result.iccProfileBuffer?[result.iccProfileBuffer]:[])]);
   }catch(error){self.postMessage({type:'error',id,message:error?.message||String(error)});}
 };

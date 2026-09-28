@@ -59,7 +59,7 @@ run([args.cmake, '-S', work / prefix, '-B', build, '-G', 'Ninja',
      '-DWITH_SIMD=OFF', '-DWITH_TURBOJPEG=OFF', '-DWITH_TOOLS=OFF', '-DWITH_TESTS=OFF',
      '-DCMAKE_C_FLAGS=-ffile-prefix-map=' + work.as_posix() + '=.'])
 run([args.cmake, '--build', build, '--target', 'jpeg-static', '--clean-first', '--parallel', args.jobs])
-exports = ['malloc', 'free', 'viewer_jpeg_decode', 'viewer_jpeg_encode', 'viewer_jpeg_encoded',
+exports = ['malloc', 'free', 'viewer_jpeg_decode', 'viewer_jpeg_encode', 'viewer_jpeg_encode_cmyk', 'viewer_jpeg_encoded',
            'viewer_jpeg_encoded_bytes', 'viewer_jpeg_clear', 'viewer_jpeg_error',
            'viewer_jpeg_version', 'viewer_jpeg_width', 'viewer_jpeg_height', 'viewer_jpeg_components',
            'viewer_jpeg_precision', 'viewer_jpeg_lossless', 'viewer_jpeg_adobe', 'viewer_jpeg_pixels', 'viewer_jpeg_bytes']

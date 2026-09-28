@@ -45,6 +45,7 @@ export function createBatchSettings({app}, deps) {
     const unavailable = deps.formatUnavailableReason(config.format);
     if (unavailable) throw new Error(unavailable);
     const def = FORMAT_DEFS[config.format];
+    if(!['source','rgb','cmyk'].includes(config.colorMode??'source'))throw new Error('Выберите модель цвета.');
     if (config.format === "tiff") normalizeTiffOptions(config);
     if (config.format === 'jpeg') normalizeJpegOptions(config);
     if (['webpLossless','jxl','jxlLossless'].includes(config.format)) normalizeModernOptions(config);
@@ -81,14 +82,16 @@ export function createBatchSettings({app}, deps) {
     const modern=['webpLossless','jxl','jxlLossless'].includes(config.format)?normalizeModernOptions(config):null;
     const modernText=config.format==='webpLossless'?`, метод ${modern.webpMethod}`:modern?`, усилие ${modern.jxlEffort}${config.format==='jxlLossless'?`, ${modern.jxlDepth==='auto'?'разрядность исходника':modern.jxlDepth+' бит/канал'}`:''}`:'';
     const avifText=config.format==='avif'?`, скорость ${normalizeAvifOptions(config).avifSpeed}`:'';
-    const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
+    const cmyk=['jpeg','tiff'].includes(config.format)&&Boolean(app.source?.cmyk)&&config.colorMode!=='rgb';
+    const details = def.lossy ? `, качество ${config.quality}${jpeg?`, ${cmyk?'CMYK':`${jpeg.jpegSubsampling[0]}:${jpeg.jpegSubsampling[1]}:${jpeg.jpegSubsampling[2]}`}, ${jpeg.jpegProgressive?'прогрессивный':'обычный'}`:''}`
       : config.format === 'png' ? `, ${pngDepth(config.pngDepth)==='auto'?'разрядность исходника':config.pngDepth+' бит/канал'}${pngCompression}`
-      : tiff ? `, ${tiff.tiffDepth==='auto'?'разрядность исходника':tiff.tiffDepth+' бит/канал'}, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
+      : tiff ? `, ${cmyk?'8 бит/канал':tiff.tiffDepth==='auto'?'разрядность исходника':tiff.tiffDepth+' бит/канал'}, ${tiff.tiffCompression === 'none' ? 'без сжатия' : tiff.tiffCompression === 'packbits' ? 'PackBits' : tiff.tiffCompression.toUpperCase() + (tiff.tiffCompression === 'deflate' ? ' ' + tiff.tiffLevel : '') + (tiff.tiffPredictor ? ', предиктор' : ', без предиктора')}`
       : ["gif", "gifenc", "pngIndexed"].includes(config.format) ? `, до ${config.gifColors} цветов${config.format === 'gifenc' ? '' : config.gifDither ? ', с дизерингом' : ', без дизеринга'}${config.format==='pngIndexed'?pngCompression:''}`
       : config.format === 'bmp8' ? `, до ${config.bmpColors} цветов, ${config.bmpCompression === 'rle8' ? 'RLE8' : 'без сжатия'}` : "";
     const matteNames = { white: "белая", black: "чёрная", gray: "серая", red: "красная", green: "зелёная", blue: "синяя" };
-    const matte = def.alpha === "none" ? `; заливка ${matteNames[config.matte]}` : "";
-    return `${def.label}${details}${modernText}${avifText}; ${size}${matte}; ${config.format === "jpeg" && config.metadataPolicy !== "none" ? "GPano сохраняется в JPEG" : config.format==='png' ? "исходные метаданные удаляются; точный PNG сохраняет известную метку sRGB" : "метаданные удаляются"}` + (config.targetKB ? `; до ${config.targetKB} КБ, качество ${config.minQuality}–${config.quality}` : "");
+    const matte = def.alpha === "none"&&!cmyk ? `; заливка ${matteNames[config.matte]}` : "";
+    const model=['jpeg','tiff'].includes(config.format)?`, модель ${config.colorMode==='rgb'?'RGB':config.colorMode==='cmyk'?'CMYK':'как в исходнике'}`:'';
+    return `${def.label}${model}${details}${modernText}${avifText}; ${size}${matte}; ${cmyk?'встроенный CMYK ICC сохраняется; прочие метаданные удаляются':config.format === "jpeg" && config.metadataPolicy !== "none" ? "GPano сохраняется в JPEG" : config.format==='png' ? "исходные метаданные удаляются; точный PNG сохраняет известную метку sRGB" : "метаданные удаляются"}` + (config.targetKB ? `; до ${config.targetKB} КБ, качество ${config.minQuality}–${config.quality}` : "");
   }
 
   return { restoreBatchSettings, persistBatchSettings, formatUnavailableReason, validateExportConfig, exportConfigDescription };

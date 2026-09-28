@@ -1,6 +1,7 @@
 import { largestIcoPng } from '../core/ico.mjs';
 import { pixelBufferByteLength, createPixelBuffer } from '../core/pixel-buffer.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
+import { isFourChannelJpegPrefix } from '../core/cmyk.mjs';
 
 function validateDecodedRaster(decoded) {
   if (decoded.pixelBuffer) {
@@ -34,6 +35,7 @@ export function createDecode({}, deps) {
       return { ...metadata, file, name: file.name || "image", size: file.size || 0, type: file.type || "unknown",
         width: canvas.width, height: canvas.height, canvas, ctx, imageData, pixelBuffer: decoded.pixelBuffer || pixelBufferFromImageData(imageData),
         nativePixelBuffer: decoded.nativePixelBuffer || null,
+        cmyk: decoded.cmyk || null,
         iccProfile: decoded.iccProfile || null,
         floatStats: decoded.floatStats || null,
         colorManagementNote: decoded.colorManagementNote || '',
@@ -48,6 +50,16 @@ export function createDecode({}, deps) {
     const kind = deps.fileKind(file);
     if (kind === 'bmp') return (await deps.loadOptionalCodec('utif')).decodeBmp(file);
     if (kind === 'tiff') return deps.decodeTiffFile(file);
+    if (kind === 'jpeg' && isFourChannelJpegPrefix(new Uint8Array(await file.slice(0, 1024 * 1024).arrayBuffer()))) {
+      const decoded=await (await deps.loadOptionalCodec('utif')).decodeCmykJpeg(file);
+      try {
+        const preview=await deps.decodeImageBlob(file);
+        if(preview.width===decoded.width&&preview.height===decoded.height)
+          return {...decoded,imageData:null,image:preview.image,close:preview.close};
+        preview.close?.();
+      } catch { /* Use a clearly labelled approximate preview when the browser rejects CMYK JPEG. */ }
+      return decoded;
+    }
     if (kind === 'jp2' || kind === 'j2k') return (await deps.loadOptionalCodec('jpeg2000')).decode(file, kind);
     if (kind === 'jxl' || kind === 'avif') {
       const codec = await deps.loadOptionalCodec(kind === 'avif' ? 'heic' : 'modern');
@@ -75,6 +87,7 @@ export function createDecode({}, deps) {
     const type = (file.type || "").toLowerCase();
     if (/\.bmp$/.test(name) || type === 'image/bmp' || type === 'image/x-ms-bmp') return 'bmp';
     if (/\.(tif|tiff)$/.test(name) || type === "image/tiff") return "tiff";
+    if (/\.(jpe?g)$/.test(name) || type === 'image/jpeg' || type === 'image/jpg') return 'jpeg';
     if (/\.jp2$/.test(name) || type === 'image/jp2') return 'jp2';
     if (/\.(j2k|j2c)$/.test(name) || type === 'image/j2k' || type === 'image/j2c') return 'j2k';
     if (/\.(heic|heif)$/.test(name) || type === "image/heic" || type === "image/heif") return "heic";
@@ -145,14 +158,15 @@ export function createDecode({}, deps) {
     const decoded = exactPng ? await deps.decodePngFile(blob,true) : await deps.decodeImageBlobOrOptional(blob);
     try {
       validateDecodedRaster(decoded);
-      if (decoded.imageData) return { ...await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer), blockGrid: decoded.blockGrid || null };
+      if (decoded.imageData) return { ...await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer),
+        cmyk:decoded.cmyk||null,blockGrid: decoded.blockGrid || null };
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
       canvas.height = decoded.height;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.drawImage(decoded.image, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      return await deps.imageDataToPreview(imageData);
+      return {...await deps.imageDataToPreview(imageData),cmyk:decoded.cmyk||null};
     } finally { if (decoded.close) decoded.close(); }
   }
 

@@ -3,7 +3,7 @@ import { normalizeJpegOptions } from '../core/jpeg-encode.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
 import { normalizeAvifOptions } from '../core/avif-options.mjs';
 import { FORMAT_DEFS } from "./../core/config.mjs";
-import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
+import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption, resolveCmykMode } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createBatchDialog({els, app}, deps) {
@@ -36,6 +36,7 @@ export function createBatchDialog({els, app}, deps) {
     const jpeg=normalizeJpegOptions(config);
     document.getElementById('batchJpegSubsampling').value=jpeg.jpegSubsampling;
     document.getElementById('batchJpegProgressive').checked=jpeg.jpegProgressive;
+    document.getElementById('batchColorMode').value=config.colorMode||'source';
     const modern=normalizeModernOptions(config);
     document.getElementById('batchWebpMethod').value=String(modern.webpMethod);
     document.getElementById('batchJxlEffort').value=String(modern.jxlEffort);
@@ -78,6 +79,7 @@ export function createBatchDialog({els, app}, deps) {
       ...normalizeTiffOptions(app.batchTiffDraft || app.exportConfig),
       jpegSubsampling:document.getElementById('batchJpegSubsampling').value,
       jpegProgressive:document.getElementById('batchJpegProgressive').checked,
+      colorMode:document.getElementById('batchColorMode').value,
       webpMethod:Number(document.getElementById('batchWebpMethod').value),
       jxlEffort:Number(document.getElementById('batchJxlEffort').value),
       jxlDepth:document.getElementById('batchJxlDepth').value,
@@ -101,6 +103,9 @@ export function createBatchDialog({els, app}, deps) {
   function batchDialogError(config) {
     try {
       deps.validateExportConfig(config);
+      if(app.source?.cmyk&&resolveCmykMode(config,app.source)&&
+        (config.resizeWidth||config.resizeHeight||config.targetKB))
+        return 'Для CMYK доступны исходные размеры без подбора бюджета файла. Уберите ограничение или выберите RGB.';
       if (els.batchResizeMode.value === "limit" && !config.resizeWidth && !config.resizeHeight) return "Укажите максимальную ширину или высоту.";
       if (els.batchResizeMode.value === "limit" && (!els.batchDialogWidth.validity.valid || !els.batchDialogHeight.validity.valid)) return "Размеры должны быть целыми числами от 1 до 32768 пикселей.";
       if (!deps.selectedBatchFiles().length) return "Отметьте файлы для пакета в общем списке.";
@@ -118,7 +123,9 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById('batchBmpColorsField').hidden = config.format !== 'bmp8';
     document.getElementById('batchBmpCompressionField').hidden = config.format !== 'bmp8';
     document.getElementById("batchTiffField").hidden = config.format !== "tiff";
-    document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg';
+    const cmyk=Boolean(app.source?.cmyk&&['jpeg','tiff'].includes(config.format)&&config.colorMode!=='rgb');
+    document.getElementById('batchColorModeField').hidden=!['jpeg','tiff'].includes(config.format)||(!app.source?.cmyk&&config.colorMode!=='cmyk');
+    document.getElementById('batchJpegSubsamplingField').hidden=config.format!=='jpeg'||cmyk;
     document.getElementById('batchJpegProgressiveField').hidden=config.format!=='jpeg';
     document.getElementById('batchWebpMethodField').hidden=config.format!=='webpLossless';
     document.getElementById('batchJxlEffortField').hidden=!['jxl','jxlLossless'].includes(config.format);
@@ -136,9 +143,11 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;
     els.batchDitherField.hidden = config.format !== "gif" && config.format !== "pngIndexed";
-    els.batchMatteField.hidden = def?.alpha !== "none";
+    els.batchMatteField.hidden = def?.alpha !== "none"||cmyk;
     els.batchDimensions.hidden = els.batchResizeMode.value !== "limit";
-    els.batchMetadataHint.textContent = config.format === "jpeg"
+    els.batchMetadataHint.textContent = cmyk
+      ? 'В CMYK TIFF/JPEG сохраняются четыре исходных канала и встроенный ICC без преобразования. EXIF и GPano не переносятся; экранный RGB-показ не является цветопробой.'
+      : config.format === "jpeg"
       ? "В JPEG можно сохранить только GPano. EXIF и остальные метаданные удаляются."
       : config.format === 'png' ? 'Исходные метаданные удаляются. Точный PNG записывает известную метку sRGB; GPano применяется только к JPEG.'
       : config.format === 'jp2' ? 'При повторной записи JP2 без изменения размеров сохраняется ICC-профиль исходного JP2. EXIF и GPano не переносятся. Q100 — без потерь.'

@@ -34,6 +34,7 @@ export function createAnalysis({ app }, deps) {
   const profileChannel = get('analysisProfileChannel'), position = get('analysisPosition');
   const level = get('analysisLevel'), status = get('analysisStatus');
   const floatRange = get('analysisFloatRange'), floatMin = get('analysisFloatMin'), floatMax = get('analysisFloatMax');
+  const cmykView=get('analysisCmykView'),inkLimit=get('analysisInkLimit');
   const help = get('analysisHelp'), helpContent = get('analysisHelpContent'), details = get('analysisDetails');
   const cards = [...panel.querySelectorAll('.analysis-card')].map(element => ({
     element, info: element.querySelector('.analysis-info'), canvas: element.querySelector('canvas'),
@@ -49,6 +50,11 @@ export function createAnalysis({ app }, deps) {
   const readViewports = () => cards.slice(0, app.layout).map((_, side) => deps.getAnalysisViewport(side));
 
   function syncControls() {
+    const cmykOption=type.querySelector?.('option[value="cmyk"]');
+    if(cmykOption)cmykOption.hidden=cmykOption.disabled=!app.source?.cmyk;
+    if(type.value==='cmyk'&&!app.source?.cmyk)type.value='histogram';
+    get('analysisCmykViewField').hidden=type.value!=='cmyk';
+    get('analysisInkLimitField').hidden=type.value!=='cmyk';
     cieViewField.hidden = type.value !== 'cieXy';
     const variants = GRAPH_VARIANTS.find(group => group.some(([kind]) => kind === type.value));
     variantField.hidden = !variants;
@@ -67,7 +73,7 @@ export function createAnalysis({ app }, deps) {
     const tradeoff=type.value==='tradeoff',output=deps.getAnalysisOutputSettings();
     const exactFloat=type.value==='floatSource';
     get('analysisScope').hidden=tradeoff||exactFloat;
-    get('analysisMatteField').hidden=tradeoff||exactFloat;
+    get('analysisMatteField').hidden=tradeoff||exactFloat||type.value==='cmyk';
     get('analysisFloatRangeField').hidden=!exactFloat;
     get('analysisFloatMinField').hidden=!exactFloat||floatRange.value!=='manual';
     get('analysisFloatMaxField').hidden=!exactFloat||floatRange.value!=='manual';
@@ -87,7 +93,9 @@ export function createAnalysis({ app }, deps) {
     get('analysisDifferenceLimit').textContent = `≥ ${number(255/Number(gain.value))}`;
     matte.disabled = boundary ? boundaryChannel.value === 'alpha' : profile ? profileChannel.value === 'alpha' : vector || signalHistogram || ['ssim','cieXy','deltaE'].includes(type.value) ? false : difference || errorHistogram || errorProfile ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
     panel.dataset.type = type.value;
-    help.title = spatial
+    help.title = type.value==='cmyk'
+      ? 'Каналы C/M/Y/K, отклонение от исходника и сумма красок. Числа относятся к файлу, а RGB-показ не является цветопробой. Нажмите для подробностей.'
+      : spatial
       ? 'По горизонтали — положение в кадре, по вертикали — кодовый уровень RGBA8/16. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
       : 'По горизонтали — уровни или интервалы подписанной шкалы, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
     get('analysisMethod').textContent = spatial
@@ -165,6 +173,10 @@ export function createAnalysis({ app }, deps) {
     const notice=get('analysisPrecision');if(notice){notice.hidden=!precision;notice.textContent=precision;}
     if(precision)get('analysisMethod').textContent+=' '+precision;
     if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=['cieXy','deltaE'].includes(type.value)?' Цветовое описание исходника неизвестно: для этого цветового анализа предполагается sRGB.':' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
+    if(type.value==='cmyk'){
+      if(notice)notice.hidden=true;
+      get('analysisMethod').textContent='Точные 8-битные каналы C/M/Y/K исходного CMYK TIFF или JPEG, без преобразования через RGB. Гистограмма показывает долю пикселей по уровню каждого канала. Карта отклонений показывает наибольшую абсолютную разницу одного канала с исходником при одинаковых размерах. Сумма красок C+M+Y+K выражена в процентах от 0 до 400; порог предупреждения задаётся пользователем и не является пределом конкретной печатной машины. Карты объединяют пиксели при уменьшении, сохраняя максимум группы. Встроенный ICC сохраняется при записи CMYK, но этот анализ не выполняет цветопробу или оценку охвата.';
+    }
   }
 
   function syncLayout() {
@@ -198,11 +210,12 @@ export function createAnalysis({ app }, deps) {
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
     if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
+    if(type.value==='cmyk'&&!variant.cmyk)return {label,message:'Результат записан в RGB. Для сравнения каналов выберите CMYK в настройке модели JPEG или TIFF.'};
     if(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(type.value) && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
       return {label,message:`${type.value==='difference'?'Карта':type.value==='errorProfile'?'Профиль ошибки':type.value==='ssim'?'SSIM':type.value==='deltaE'?'ΔE00':'Гистограмма ошибок'} требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;
     if (followsViewport() && !viewport?.region) return { label, message: viewport?.message || 'Определяю видимую часть…' };
-    return { label, imageData: variant.imageData, pixelBuffer: variant.pixelBuffer, histogramOptions: variant.histogramOptions ? { ...variant.histogramOptions, ...(variant.histogramOptions.range ? { range: [...variant.histogramOptions.range] } : {}) } : undefined, region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
+    return { label, imageData: variant.imageData, pixelBuffer: variant.pixelBuffer,cmyk:variant.cmyk||null, histogramOptions: variant.histogramOptions ? { ...variant.histogramOptions, ...(variant.histogramOptions.range ? { range: [...variant.histogramOptions.range] } : {}) } : undefined, region:viewport?.region || deps.getAnalysisRegion(),config:{...variant.resultConfig},measurement:{...variant.measurement} };
   }
 
   function clearPlots() {
@@ -279,14 +292,14 @@ export function createAnalysis({ app }, deps) {
 
   async function compute(input, background, kind, reference, line) {
     const { imageData, pixelBuffer, histogramOptions, region } = input;
-    const owner = ['histogram','signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference','boundaryMap'].includes(kind) ? pixelBuffer || imageData : imageData;
+    const owner = kind==='cmyk'?input.cmyk.data:['histogram','signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference','boundaryMap'].includes(kind) ? pixelBuffer || imageData : imageData;
     const activeCache = cache;
     let entry = cache.get(owner);
-    const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : ''}`;
+    const key = `${kind}:${background}:${JSON.stringify(region)}:${kind === 'histogram' ? JSON.stringify(histogramOptions) : kind==='cmyk'?inkLimit.value:''}`;
     if (entry?.has(key)) return entry.get(key);
     if (typeof Worker === 'undefined') throw new Error('Для анализа нужен браузер с поддержкой Worker.');
     // workerCompute clones the payload: the viewer retains ownership of its pixels.
-    const result = await deps.workerCompute(kind, { ...(kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference','boundaryMap'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
+    const result = await deps.workerCompute(kind, { ...(kind==='cmyk'?{cmyk:input.cmyk,reference:app.source.cmyk,threshold:Number(inkLimit.value)}:kind === 'histogram' ? { pixelBuffer: pixelBuffer || pixelBufferFromImageData(imageData), options: histogramOptions } : ['signalHistogram','profile','errorHistogram','errorProfile','ssim','cieXy','deltaE','waveform','vectorscope','difference','boundaryMap'].includes(kind) ? {pixelBuffer:pixelBuffer || pixelBufferFromImageData(imageData)} : { imageData }), matte: background, region, ...(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(kind) ? {reference} : {}), ...(['profile','errorProfile'].includes(kind) ? {line} : {}) });
     entry ??= new Map();
     entry.set(key, result);
     if(cache === activeCache) cache.set(owner, entry);
@@ -343,13 +356,14 @@ export function createAnalysis({ app }, deps) {
 
   function getAnalysisSnapshot(){
     const output=deps.getAnalysisOutputSettings(),kind=type.value;
-    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:kind==='floatSource'?{type:kind,display:'separate',channel:channel.value,level:Number(level.value),scope:'full',rangeMode:floatRange.value,range:results[0]?.data?.scale?[results[0].data.scale.min,results[0].data.scale.max]:null,bins:256,rawRgb:true}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
+    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:kind==='floatSource'?{type:kind,display:'separate',channel:channel.value,level:Number(level.value),scope:'full',rangeMode:floatRange.value,range:results[0]?.data?.scale?[results[0].data.scale.min,results[0].data.scale.max]:null,bins:256,rawRgb:true}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cmyk'?{cmykView:cmykView.value,inkLimit:Number(inkLimit.value)}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
     return {version:1,revision:generation,source:app.source?{name:app.source.name,width:app.source.width,height:app.source.height,bytes:app.source.size}:null,settings,method:get('analysisMethod').textContent,
       items:cards.slice(0,kind==='floatSource'?1:app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
   }
 
   function drawIndividualAnalysis() {
     if (body.hidden || !results.length) return;
+    if(type.value==='cmyk'){drawCmyk();return;}
     if (type.value === 'difference') { drawDifference(); return; }
     if (type.value === 'boundaryMap') { drawBoundaryMap(); return; }
     if (type.value === 'errorHistogram') { drawErrorHistogram(); return; }
@@ -415,6 +429,72 @@ export function createAnalysis({ app }, deps) {
     const sizes = [...new Set(results.filter(item => item.data).map(({ data: h }) => `${h.width}×${h.height}`))];
     status.textContent = sizes.length > 1
       ? `Размеры различаются: ${sizes.join(', ')}. ${['histogram','signalHistogram','vectorscope','cieXy'].includes(type.value) ? 'Сравниваются распределения выбранной области кадра.' : type.value === 'profile' ? 'Линия задана относительно области; координаты пикселей и число отсчётов различаются.' : 'Горизонталь нормирована по ширине выбранной области каждого кадра.'}` : '';
+  }
+
+  function drawCmyk(){
+    const lines=[];
+    cards.forEach((card,side)=>{
+      if(card.element.hidden)return;
+      const item=results[side],data=item?.data;
+      if(!data){card.element.dataset.state='unavailable';card.info.textContent=item?.message||'CMYK недоступен.';
+        card.info.hidden=false;card.canvas.hidden=true;card.values.textContent='';return;}
+      card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
+      const means=data.means.map((value,i)=>`${'CMYK'[i]} ${number(value)}%`).join(' · ');
+      const deviation=data.difference?` · среднее отклонение K ${number(data.difference.meanAbsolute[3])}%`:' · исходные каналы';
+      const ink=`сумма красок до ${number(data.tacMaximum)}%; выше ${data.threshold}% — ${number(data.tacOverPercent)}% пикселей`;
+      card.values.textContent=cmykView.value==='ink'?ink:means;
+      card.values.title=`${means}. ${ink}${deviation}.`;
+      card.canvas.dataset.kind='cmyk';
+      const description=`${item.label}: ${means}; ${ink}${deviation}. ICC ${app.source?.cmyk?.iccProfile?'встроен':'отсутствует'}.`;
+      card.badge.title=description;
+      card.canvas.setAttribute('aria-label',description+' '+cmykView.selectedOptions[0].textContent+'.');
+      plotCmyk(card.canvas,data,cmykView.value);
+      lines.push(description);
+    });
+    details.textContent=lines.join('\n');
+    status.textContent='CMYK: сравниваются численные значения каналов; экранный RGB-показ не является цветопробой.';
+  }
+
+  function plotCmyk(canvas,data,view,outputSize){
+    const rect=outputSize||canvas.getBoundingClientRect(),width=Math.max(120,rect.width),height=Math.max(100,rect.height);
+    const dpr=outputSize?1:Math.max(1,Math.min(2.5,devicePixelRatio||1));
+    canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#101923';ctx.fillRect(0,0,width,height);
+    if(view==='histogram'){
+      const colors=['#42d9ed','#f472ce','#facc15','#e2e8f0'];
+      const left=42,right=width-14,top=24,bottom=height-25;
+      let maximum=1;
+      for(const channel of data.histograms)for(const value of channel)maximum=Math.max(maximum,value/data.pixelCount*100);
+      ctx.font='11px "Segoe UI",sans-serif';ctx.textBaseline='middle';
+      for(const ratio of [0,.5,1]){
+        const y=bottom-(bottom-top)*ratio;ctx.strokeStyle='#334155';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+        ctx.fillStyle='#cbd5e1';ctx.textAlign='right';ctx.fillText(`${number(maximum*ratio)}%`,left-5,y);
+      }
+      data.histograms.forEach((channel,index)=>{
+        ctx.strokeStyle=colors[index];ctx.lineWidth=1.5;ctx.beginPath();
+        channel.forEach((count,level)=>{const x=left+(right-left)*level/255,y=bottom-(bottom-top)*(count/data.pixelCount*100)/maximum;
+          if(level===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+        ctx.fillStyle=colors[index];ctx.textAlign='right';ctx.fillText('CMYK'[index],right-index*19,11);
+      });
+      ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText('0',left,height-10);ctx.textAlign='right';ctx.fillText('255',right,height-10);
+      return;
+    }
+    const values=view==='difference'?data.maps.difference:data.maps.tac;
+    if(!values){ctx.fillStyle='#cbd5e1';ctx.font='13px "Segoe UI",sans-serif';
+      ctx.fillText('Для карты отклонений нужен результат CMYK того же размера.',16,32);return;}
+    const map=document.createElement('canvas');map.width=data.maps.width;map.height=data.maps.height;
+    const mapCtx=map.getContext('2d'),pixels=mapCtx.createImageData(map.width,map.height);
+    const limit=data.threshold/400*255;
+    for(let i=0;i<values.length;i++){
+      const value=values[i],at=i*4,over=view==='ink'&&value>limit;
+      pixels.data[at]=view==='difference'?Math.min(255,value*2):over?255:Math.round(value*.7);
+      pixels.data[at+1]=view==='difference'?Math.max(0,180-value):over?Math.max(30,255-value):Math.min(210,80+value);
+      pixels.data[at+2]=view==='difference'?Math.max(0,210-value):over?30:210;
+      pixels.data[at+3]=255;
+    }
+    mapCtx.putImageData(pixels,0,0);ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(map,0,0,width,height);
   }
 
   function drawErrorHistogram() {
@@ -795,6 +875,7 @@ export function createAnalysis({ app }, deps) {
   // It does not resize live canvases or recalculate the viewport/codec results.
   function renderAnalysisChart(canvas, item, settings, maximum, outputSize) {
     const data = item.data;
+    if(settings.type==='cmyk'){plotCmyk(canvas,data,settings.cmykView,outputSize);return;}
     if (settings.type === 'histogram' || settings.type === 'signalHistogram' || settings.type === 'floatSource') {
       const prepared = data.viewScale ? data : histogramView([item], settings.channel, Math.max(256, (outputSize || canvas.getBoundingClientRect()).width - 72), { allowUnknownColorSpace: true }).items[0].data;
        plot(canvas, prepared, CHANNELS[settings.channel], data.viewScale ? maximum : Math.max(maximum || 0, analysisMaximum(settings.type, [{data:prepared}], settings.channel)), settings.level, outputSize, settings.type==='signalHistogram');
@@ -854,6 +935,8 @@ export function createAnalysis({ app }, deps) {
     });
     matte.addEventListener('change', updateAnalysis);
     type.addEventListener('change',()=>{deps.closeAnalysisRegion();updateAnalysis();});
+    cmykView.addEventListener('change',drawAnalysis);
+    inkLimit.addEventListener('change',()=>{inkLimit.value=String(Math.max(0,Math.min(400,Math.round(Number(inkLimit.value)||0))));updateAnalysis();});
     floatRange.addEventListener('change',updateAnalysis);
     for(const field of [floatMin,floatMax])field.addEventListener('input',updateAnalysis);
     cieView.addEventListener('change',updateAnalysis);

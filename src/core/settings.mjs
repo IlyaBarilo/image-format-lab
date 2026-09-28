@@ -12,6 +12,7 @@ export function normalizeBatchSettings(value) {
   if (Number.isInteger(value.quality) && value.quality >= 1 && value.quality <= 100) config.quality = value.quality;
   if (Number.isInteger(value.gifColors) && value.gifColors >= 2 && value.gifColors <= 256) config.gifColors = value.gifColors;
   if (typeof value.gifDither === "boolean") config.gifDither = value.gifDither;
+  if(['source','rgb','cmyk'].includes(value.colorMode))config.colorMode=value.colorMode;
   if (Number.isInteger(value.bmpColors) && value.bmpColors >= 2 && value.bmpColors <= 256) config.bmpColors = value.bmpColors;
   if (['none','rle8'].includes(value.bmpCompression)) config.bmpCompression = value.bmpCompression;
   if (["auto","8","16"].includes(value.pngDepth)) config.pngDepth=value.pngDepth;
@@ -51,7 +52,9 @@ export function validateComparison(value) {
     const bmpCompression = Object.hasOwn(v,'bmpCompression') ? v.bmpCompression : 'none';
     if (!Number.isInteger(bmpColors) || bmpColors < 2 || bmpColors > 256 || !['none','rle8'].includes(bmpCompression))
       throw new Error('Некорректные параметры BMP.');
-    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === 'png' || v.format === 'pngIndexed' || ['pngFilter','pngLevel'].some(key => Object.hasOwn(v,key)) ? normalizePngOptions(v) : {}), ...(v.format === "tiff" || ["tiffDepth", "tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), ...normalizeModernOptions(v), ...normalizeAvifOptions(v), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, matte:v.matte };
+    if(v.colorMode!==undefined&&!['source','rgb','cmyk'].includes(v.colorMode))
+      throw new Error('Некорректная модель цвета.');
+    return { ...(Object.hasOwn(v,'pngDepth')?{pngDepth:pngDepth(v.pngDepth)}:{}), ...(v.format === 'png' || v.format === 'pngIndexed' || ['pngFilter','pngLevel'].some(key => Object.hasOwn(v,key)) ? normalizePngOptions(v) : {}), ...(v.format === "tiff" || ["tiffDepth", "tiffCompression", "tiffLevel", "tiffPredictor"].some(key => Object.hasOwn(v, key)) ? normalizeTiffOptions(v) : {}), ...(v.format === 'jpeg' || ['jpegSubsampling','jpegProgressive'].some(key => Object.hasOwn(v,key)) ? normalizeJpegOptions(v) : {}), ...normalizeModernOptions(v), ...normalizeAvifOptions(v), format:v.format, quality:v.quality, gifColors:v.gifColors, gifDither:v.gifDither, bmpColors, bmpCompression, colorMode:v.colorMode||'source', matte:v.matte };
   });
   // Keep the legacy field compatible with saved/exported profiles; rendering is always automatic.
   return {layout:value.layout, background:value.background, autoApply:true, metadataPolicy:value.metadataPolicy, variants};

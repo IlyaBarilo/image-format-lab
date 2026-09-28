@@ -32,6 +32,7 @@ tests.push('jxl16');
 tests.push('jxl-icc');
 tests.push('display-sdr');
 tests.push('jpeg2000');
+tests.push('cmyk');
 tests.push('icc-sdr');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');

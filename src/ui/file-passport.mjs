@@ -14,11 +14,11 @@ export function createFilePassport({ app }, deps) {
     const source = app.source;
     if (!source) return { target, source: null, message: 'Откройте изображение.' };
     const common = { target, source, sourceGeneration: app.sourceGeneration };
-    if (target === 'source') return { ...common, blob: source.file, pixels: source.nativePixelBuffer?.sampleType === 'float32' ? source.nativePixelBuffer : source.pixelBuffer, floatStats:source.floatStats, label: source.name };
+    if (target === 'source') return { ...common, blob: source.file, pixels: source.nativePixelBuffer?.sampleType === 'float32' ? source.nativePixelBuffer : source.pixelBuffer, cmyk:source.cmyk, floatStats:source.floatStats, label: source.name };
     const variant = app.variants[Number(target)];
     if (!variant || !deps.isVariantReady(variant)) return { ...common, generation: variant?.generation,
       message: variant?.error ? 'Ошибка обработки. Паспорт результата недоступен.' : 'Дождитесь пересчёта результата.' };
-    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer, paletteInfo:variant.paletteInfo, measurement:variant.measurement, generation: variant.generation,
+    return { ...common, blob: variant.blob, pixels: variant.pixelBuffer,cmyk:variant.cmyk, paletteInfo:variant.paletteInfo, measurement:variant.measurement, generation: variant.generation,
       label: variant.resultConfig.format === 'original' ? source.name : `Ячейка ${variant.index + 1} · ${deps.outputFormatLabel(variant.resultConfig.format)}` };
   }
   function fields(element, pairs) {
@@ -105,6 +105,9 @@ export function createFilePassport({ app }, deps) {
       ['Цветовая метка растра', { srgb: 'sRGB', 'display-p3': 'Display P3', unknown: 'Неизвестна' }[info.colorSpace]],
       ['Хранение alpha', info.alphaMode === 'straight' ? 'Независимый канал' : 'RGB умножен на alpha']
     ] : [['Рабочий растр', 'Недоступен']];
+    if(snapshot.cmyk)rows.push(['Исходные каналы','CMYK · 8 бит/канал · без промежуточного RGB'],
+      ['Встроенный профиль CMYK',snapshot.cmyk.iccProfile?'Есть; сохраняется при записи CMYK TIFF/JPEG':'Отсутствует; профиль не подставляется'],
+      ['Экранный просмотр','RGB-показ не является цветопробой. CMYK-графики считают исходные каналы.']);
     if (snapshot.floatStats) {
       const stats=snapshot.floatStats;
       rows.push(['Диапазон float32 (R, G, B, α)', stats.min.map((value,i)=>`${String(value).replace('.', ',')}…${String(stats.max[i]).replace('.', ',')}`).join(' · ')],

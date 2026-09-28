@@ -550,14 +550,14 @@
     {
       "file": "sources/jpeg/bridge.c",
       "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
-      "bytes": 7157,
-      "sha256": "4a16b541e1ddbcf534632bb968531d6f26308212b103d2f4e951172649056cdf"
+      "bytes": 9822,
+      "sha256": "0a5052e4c8172b62c7cd060b5b6c54c51224abd0d100f029273150732b7c2e6f"
     },
     {
       "file": "sources/jpeg/build.py",
       "url": "Pinned JPEG source / adapted UTIF source; see sources/jpeg/README.md and sources/utif/README.md",
-      "bytes": 4614,
-      "sha256": "f14cf3d6cdadc0c1573287a3cec53892cb997b9f4a378edeb58ed3134af0e4e4"
+      "bytes": 4641,
+      "sha256": "a000d757b8aac421eba458b63addb76f4106474a2d3a3c4f765ba9526434eb7a"
     },
     {
       "file": "sources/jpeg/sources.lock.json",
@@ -610,8 +610,8 @@
     {
       "file": "jpeg-decoder.js",
       "url": "Built from sources/jpeg/ using Emscripten 6.0.9; libjpeg-turbo 3.2.0",
-      "bytes": 694851,
-      "sha256": "b4feda2d9b5a3857c8d763eb045039ce0ed02e41b3aac45f69313f01c580d5d2"
+      "bytes": 701232,
+      "sha256": "d751cd089870911cc3b5aa8b2bd09e4163899589ab1371ba4c8bd25feb861df0"
     },
     {
       "file": "sources/modern/README.md",
@@ -808,14 +808,14 @@
     {
       "file": "sources/raster/tiff-bridge.c",
       "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
-      "bytes": 9276,
-      "sha256": "82c8983fd0a40764aa04c5d938a348f5660631c4813e5686fe0ce49d1d63ae56"
+      "bytes": 14073,
+      "sha256": "b356ef7dc4378d34c663a80a72d1b4f915705e7cffa89bf67d2a83f703a6f636"
     },
     {
       "file": "sources/raster/build.py",
       "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
-      "bytes": 7496,
-      "sha256": "cd7dfd26486aae9a26d01b7682c4deef53863f8bd95a03889d094f16b4f9600b"
+      "bytes": 7573,
+      "sha256": "7f0bd1005d18bab93862738af652b96caa2dee4a246b0085fa2acb0e4afdeb6e"
     },
     {
       "file": "sources/raster/sources.lock.json",
@@ -892,8 +892,8 @@
     {
       "file": "tiff-codec.js",
       "url": "Pinned BMP/TIFF libraries and source build; see sources/raster/README.md and RASTER-NOTICE",
-      "bytes": 615888,
-      "sha256": "3d8f498bf52d309a4ab8fcdcf52190253a0d580d29175545404ea296cf2a3edd"
+      "bytes": 620610,
+      "sha256": "b2958a81ea702b16a7e588dcaf1a1a24b08bdf839cbd801d0f9343e9b1935d96"
     },
     {
       "file": "sources/jpeg2000/bridge.c",

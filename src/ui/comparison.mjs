@@ -2,6 +2,7 @@ import { FORMAT_DEFS } from "./../core/config.mjs";
 import { webpBlockGrid } from '../core/webp-blocks.mjs';
 import { heifBlockGrid } from '../core/heif-blocks.mjs';
 import { processingStages } from '../core/processing-timing.mjs';
+import { resolveCmykMode } from '../core/format-options.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createComparison({app, els}, deps) {
@@ -12,6 +13,7 @@ export function createComparison({app, els}, deps) {
     variant.bitmap = null;
     variant.imageData = null;
     variant.pixelBuffer = null;
+    variant.cmyk = null;
     variant.blob = null;
     variant.paletteInfo = null;
     variant.resultConfig = null;
@@ -35,6 +37,8 @@ export function createComparison({app, els}, deps) {
     const sourceGeneration = app.sourceGeneration;
     const source = app.source;
     const config = { ...variant.config, metadataPolicy: els.metadataPolicy.value };
+    if(['jpeg','tiff'].includes(config.format)&&source.cmyk)
+      config.colorMode=resolveCmykMode(config,source)?'cmyk':'rgb';
     const format = config.format;
     const def = FORMAT_DEFS[format];
     const current = () => generation === variant.generation && sourceGeneration === app.sourceGeneration && source === app.source;
@@ -60,6 +64,7 @@ export function createComparison({app, els}, deps) {
       const decoded = encoded.previewOnly
         ? await deps.imageDataToPreview(encoded.previewImageData, encoded.sourcePixelBuffer?.bitDepth>8?encoded.sourcePixelBuffer:undefined)
         : await deps.decodeVariantForPreview(encoded.blob, encoded.exactPng);
+      if(encoded.previewOnly)decoded.cmyk=encoded.sourceCmyk;
       const decodeFinished=performance.now();
       pendingBitmap = decoded.bitmap;
       if (!current()) return;
@@ -79,6 +84,7 @@ export function createComparison({app, els}, deps) {
       pendingBitmap = null;
       variant.imageData = decoded.imageData;
       variant.pixelBuffer = decoded.pixelBuffer;
+      variant.cmyk = decoded.cmyk || null;
       variant.resultConfig = config;
       variant.resultSource = source;
       variant.blockGrid = format === 'jxl' || format === 'jxlLossless' ? decoded.blockGrid || null : blockGrid;

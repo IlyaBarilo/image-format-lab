@@ -19,6 +19,7 @@ export function createSource({app, els}, deps) {
       if (generation !== app.sourceGeneration) return false;
       app.source = source;
       source.fileId = fileId;
+      deps.updateFormatOptions?.();
       deps.syncDisplayControls();
       
       els.emptyState.style.display = "none";
@@ -49,6 +50,7 @@ export function createSource({app, els}, deps) {
     app.sourceLoading = false;
     app.source = null;
     app.sourceError = "";
+    deps.updateFormatOptions?.();
     deps.syncDisplayControls();
     for (const variant of app.variants) {
       clearTimeout(variant.debounce);

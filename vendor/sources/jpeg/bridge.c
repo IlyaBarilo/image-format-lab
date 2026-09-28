@@ -145,6 +145,62 @@ int viewer_jpeg_encode(const unsigned char *rgba, unsigned image_width, unsigned
     return reject("JPEG result is empty or too large");
   return 0;
 }
+int viewer_jpeg_encode_cmyk(const unsigned char *cmyk, unsigned image_width, unsigned image_height,
+                            int quality, int progressive, const unsigned char *icc, size_t icc_length) {
+  viewer_jpeg_clear(); message[0] = 0;
+  if (!cmyk || !image_width || !image_height ||
+      (uint64_t)image_width * image_height > 40000000 || quality < 1 || quality > 100 ||
+      (progressive != 0 && progressive != 1) || icc_length > 1048576 ||
+      (icc_length && (!icc || icc_length < 132)))
+    return reject("Invalid CMYK JPEG encoding options");
+  memset(&encoder, 0, sizeof(encoder));
+  encoder.err = jpeg_std_error(&errors.base);
+  errors.base.error_exit = failed;
+  errors.base.emit_message = warning;
+  if (setjmp(errors.jump)) { viewer_jpeg_clear(); return 1; }
+  encode_created = 1;
+  jpeg_create_compress(&encoder);
+  jpeg_mem_dest(&encoder, &encoded, &encoded_length);
+  encoder.image_width = image_width;
+  encoder.image_height = image_height;
+  encoder.input_components = 4;
+  encoder.in_color_space = JCS_CMYK;
+  encoder.mem->max_memory_to_use = 268435456;
+  jpeg_set_defaults(&encoder);
+  jpeg_set_colorspace(&encoder, JCS_CMYK);
+  encoder.write_Adobe_marker = TRUE;
+  jpeg_set_quality(&encoder, quality, TRUE);
+  if (progressive) jpeg_simple_progression(&encoder);
+  rgb_row = malloc((size_t)image_width * 4);
+  if (!rgb_row) return reject("Not enough memory for CMYK JPEG scanline");
+  jpeg_start_compress(&encoder, TRUE);
+  if (icc_length) {
+    const size_t part_size = 65519;
+    unsigned parts = (unsigned)((icc_length + part_size - 1) / part_size);
+    for (unsigned part = 0; part < parts; part++) {
+      size_t offset = (size_t)part * part_size;
+      size_t length = icc_length - offset;
+      if (length > part_size) length = part_size;
+      unsigned char marker[65533];
+      memcpy(marker, "ICC_PROFILE\0", 12);
+      marker[12] = (unsigned char)(part + 1);
+      marker[13] = (unsigned char)parts;
+      memcpy(marker + 14, icc + offset, length);
+      jpeg_write_marker(&encoder, JPEG_APP0 + 2, marker, (unsigned)(14 + length));
+    }
+  }
+  while (encoder.next_scanline < image_height) {
+    const unsigned char *source = cmyk + (size_t)encoder.next_scanline * image_width * 4;
+    for (unsigned x = 0; x < image_width * 4; x++) rgb_row[x] = 255 - source[x];
+    JSAMPROW row = rgb_row;
+    if (jpeg_write_scanlines(&encoder, &row, 1) != 1) return reject("Incomplete CMYK JPEG scanline");
+  }
+  jpeg_finish_compress(&encoder);
+  jpeg_destroy_compress(&encoder); encode_created = 0;
+  if (!encoded || !encoded_length || encoded_length > 268435456)
+    return reject("CMYK JPEG result is empty or too large");
+  return 0;
+}
 const void *viewer_jpeg_encoded(void) { return encoded; }
 size_t viewer_jpeg_encoded_bytes(void) { return encoded_length; }
 const char *viewer_jpeg_error(void) { return message; }

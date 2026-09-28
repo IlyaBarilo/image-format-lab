@@ -144,6 +144,16 @@ export function createControls({els, app}, deps) {
     const pngLevelValue=document.createElement('span');pngLevelValue.className='quality-value';pngLevelValue.textContent=pngLevel.value;
     pngLevelWrap.append(document.createTextNode('Уровень'),pngLevel,pngLevelValue);
     head.append(pngFilterWrap,pngLevelWrap);
+    const colorModeWrap=document.createElement('label');
+    colorModeWrap.className='color-mode-wrap';
+    colorModeWrap.title='CMYK сохраняет исходные четыре канала и встроенный ICC без цветового преобразования. RGB использует экранный результат; экран не является цветопробой.';
+    const colorMode=document.createElement('select');colorMode.className='select color-mode';
+    for(const [value,label] of [['source','Как исходник'],['cmyk','CMYK'],['rgb','RGB']]){
+      const option=document.createElement('option');option.value=value;option.textContent=label;colorMode.append(option);
+    }
+    colorMode.value=variant.config.colorMode||'source';
+    colorModeWrap.append(document.createTextNode('Модель'),colorMode);
+    head.append(colorModeWrap);
     pngFilter.addEventListener('change',()=>{variant.config.pngFilter=pngFilter.value;deps.syncControlsVisibility(variant);deps.markDirty(variant);});
     pngLevel.addEventListener('input',()=>{variant.config.pngLevel=Number(pngLevel.value);pngLevelValue.textContent=pngLevel.value;deps.markDirty(variant);});
   
@@ -341,6 +351,8 @@ export function createControls({els, app}, deps) {
     variant.headContent = content;
     if (headSizeObserver) headSizeObserver.observe(content);
     variant.controls = {
+      colorModeWrap,
+      colorMode,
       pngModeWrap,
       pngMode,
       pngDepthWrap,
@@ -401,6 +413,12 @@ export function createControls({els, app}, deps) {
     tiffDepth.addEventListener('change',updateTiffSettings);
     tiffLevel.addEventListener("input", updateTiffSettings);
     tiffPredictor.addEventListener("change", updateTiffSettings);
+    colorMode.addEventListener('change',()=>{
+      variant.config.colorMode=colorMode.value;
+      if(variant.config.format==='tiff'&&colorMode.value!=='rgb'&&variant.config.tiffDepth==='16')variant.config.tiffDepth='auto';
+      deps.syncControlsVisibility(variant);
+      deps.markDirty(variant);
+    });
     jpegSubsampling.addEventListener('change',()=>{
       variant.config.jpegSubsampling=jpegSubsampling.value;
       deps.markDirty(variant);
@@ -509,7 +527,12 @@ export function createControls({els, app}, deps) {
     const def = FORMAT_DEFS[format];
     const isQuality = Boolean(def.lossy);
     const isGif = format === "gif" || format === "gifenc" || format === "pngIndexed";
-    const needsMatte = def.alpha === "none";
+    const cmykOutput=Boolean(app.source?.cmyk&&['jpeg','tiff'].includes(format)&&variant.config.colorMode!=='rgb');
+    const needsMatte = def.alpha === "none"&&!cmykOutput;
+    if(variant.controls.colorModeWrap){
+      variant.controls.colorModeWrap.hidden=!['jpeg','tiff'].includes(format)||(!app.source?.cmyk&&variant.config.colorMode!=='cmyk');
+      variant.controls.colorMode.value=variant.config.colorMode||'source';
+    }
 
     if (variant.controls.bmpDepthWrap) {
       variant.controls.bmpDepthWrap.hidden = !isBmpFormat(format);
@@ -534,7 +557,7 @@ export function createControls({els, app}, deps) {
     }
     if(variant.controls.jpegSubsamplingWrap){
       const options=normalizeJpegOptions(variant.config);
-      variant.controls.jpegSubsamplingWrap.hidden=format!=='jpeg';
+      variant.controls.jpegSubsamplingWrap.hidden=format!=='jpeg'||cmykOutput;
       variant.controls.jpegProgressiveWrap.hidden=format!=='jpeg';
       variant.controls.jpegSubsampling.value=options.jpegSubsampling;
       variant.controls.jpegProgressive.checked=options.jpegProgressive;
@@ -563,7 +586,7 @@ export function createControls({els, app}, deps) {
   
     if (variant.controls.tiffCompressionWrap) {
       const options = normalizeTiffOptions(variant.config);
-      variant.controls.tiffDepthWrap.hidden=format!=='tiff';
+      variant.controls.tiffDepthWrap.hidden=format!=='tiff'||cmykOutput;
       variant.controls.tiffDepth.value=options.tiffDepth;
       variant.controls.tiffCompressionWrap.hidden = format !== "tiff";
       variant.controls.tiffLevelWrap.hidden = format !== "tiff" || options.tiffCompression !== "deflate";
@@ -618,7 +641,7 @@ export function createControls({els, app}, deps) {
         help.className = "help-dot";
         help.textContent = "?";
         help.title = title;
-        help.dataset.knowledgeTarget = 'concepts/metrics#psnr';
+        help.setAttribute('data-knowledge-target', 'concepts/metrics#psnr');
         help.setAttribute("aria-label", 'Справка о PSNR RGB и Δα');
         labelEl.append(help);
       }
@@ -702,18 +725,19 @@ export function createControls({els, app}, deps) {
     const read = {
       png: "PNG16: точные серые/RGB/RGBA, Adam7; PNG8 с RGB ICC — точное чтение. Точный путь: до 12 Мп / 128 МиБ. PNG8 без ICC, палитровый PNG и PNG opt — браузер",
       original: "По правилам формата исходника",
+      jpeg: "Браузер для RGB; встроенный libjpeg-turbo для четырёхканального CMYK8 с сохранением численных каналов",
       webp: webpRead, webpLossless: webpRead,
       heic: "Браузер; при отказе — libheif / libde265, основное изображение HEVC",
       avif: "Встроенные libheif / libaom",
       jxl: "Встроенный libjxl, показ 8 бит/канал", jxlLossless: "Встроенный libjxl; целочисленный RGBA16 читается точно, экранный SDR-показ настраивается отдельно; иной цветовой профиль 16-битного JXL не преобразуется",
       jp2: "Встроенный OpenJPEG · контейнер JP2", j2k: "Встроенный OpenJPEG · поток J2K",
       bmp8: "Встроенный libnsbmp: палитры, RGB, RLE4/8 и битовые маски в пределах поддержки",
-      tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; точный целочисленный TIFF16 для серого/RGB/RGBA без сжатия, с Deflate или PackBits; RGB ICC для классического TIFF16; первая страница",
+      tiff: "Встроенные libtiff / UTIF / libjpeg-turbo; отдельные каналы CMYK8; точный целочисленный TIFF16 для серого/RGB/RGBA без сжатия, с Deflate или PackBits; RGB ICC для классического TIFF16; первая страница",
       ico: "Наибольший PNG внутри ICO — браузер; BMP внутри ICO — встроенный libnsbmp"
     };
     const write = {
       original: "Исходные байты без перекодирования; все метаданные сохраняются",
-      jpeg: "Встроенный libjpeg-turbo; качество 1–100, 4:4:4 / 4:2:2 / 4:2:0, обычный или прогрессивный JPEG; прозрачность заменяется заливкой",
+      jpeg: "Встроенный libjpeg-turbo; RGB: качество 1–100, цветность 4:4:4 / 4:2:2 / 4:2:0, заливка прозрачности. Из CMYK-исходника — CMYK8 со встроенным ICC без RGB-преобразования; обычный или прогрессивный JPEG",
       png: "Полные цвета: Авто / 8 / 16 бит на канал, точный PNG до 12 Мп; обычный PNG8 — браузер. Поддерживаемый ICC переносится при записи без изменения размера. Палитра: 2–256 цветов, дизеринг, двоичная прозрачность. PNG opt: UPNG / pako, 8 бит/канал",
       webp: "Браузер; качество 1–100, с потерями; поддерживает прозрачность",
       webpLossless: "Встроенный libwebp; без потерь, полная прозрачность; метод 0–6 меняет усилие сжатия",
@@ -722,7 +746,7 @@ export function createControls({els, app}, deps) {
       jxlLossless: "Встроенный libjxl; без потерь, полная прозрачность; Авто / 8 / 16 бит на канал, 16 бит в исходном размере; усилие 1–10",
       jp2: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — приблизительная степень сжатия; поддерживаются точные 8/16 бит и прозрачность; ICC сохраняется при повторной записи JP2 без изменения размера",
       j2k: "Встроенный OpenJPEG; качество 100 — без потерь, ниже — с потерями; J2K не содержит контейнерных метаданных JP2",
-      tiff: "RGBA8 без потерь: без сжатия, Deflate, LZW или PackBits. RGBA16 в исходном размере: без сжатия или Deflate, предиктор по выбору; поддерживаемый ICC переносится из точного источника; просмотр 8-битный",
+      tiff: "RGBA8 без потерь: без сжатия, Deflate, LZW или PackBits. RGBA16 в исходном размере: без сжатия или Deflate. Из CMYK-исходника — CMYK8 с отдельными каналами и ICC; размер сохраняется; экранный RGB не является цветопробой",
       ico: "7 PNG-размеров: 16, 24, 32, 48, 64, 128, 256 px; пропорции сохраняются, поля прозрачные; маленький исходник не растягивается",
       heic: "Встроенные libheif / Kvazaar; HEVC, SDR 8 бит, 4:2:0; качество 1–100, даже 100 не lossless; прозрачность может сжиматься с потерями",
       gif: "Собственный кодировщик; один кадр, 2–256 цветов, переключаемый дизеринг, двоичная прозрачность",

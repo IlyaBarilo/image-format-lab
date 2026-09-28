@@ -28,7 +28,15 @@ export function decodeTiffPixels(codec, buffer, page=0) {
   try {
     codec.HEAPU8.set(bytes,at);
     if(codec._viewer_tiff_decode(at,bytes.length,page))throw new Error(codec.UTF8ToString(codec._viewer_tiff_error()));
-    return {...copyPixels(codec,'viewer_tiff'),pages:codec._viewer_tiff_pages()};
+    const pixels=copyPixels(codec,'viewer_tiff'), cmykSize=codec._viewer_tiff_cmyk_bytes();
+    const cmykAt=codec._viewer_tiff_cmyk_pixels(),iccSize=codec._viewer_tiff_icc_bytes(),iccAt=codec._viewer_tiff_icc_pixels();
+    if(cmykSize && (cmykSize!==pixels.width*pixels.height*4 || !cmykAt || cmykAt+cmykSize>codec.HEAPU8.length))
+      throw new Error('Некорректный CMYK TIFF');
+    if(iccSize && (iccSize>1048576 || !iccAt || iccAt+iccSize>codec.HEAPU8.length))
+      throw new Error('Некорректный ICC TIFF');
+    return {...pixels,pages:codec._viewer_tiff_pages(),
+      cmykBuffer:cmykSize?codec.HEAPU8.slice(cmykAt,cmykAt+cmykSize).buffer:null,
+      iccProfileBuffer:iccSize?codec.HEAPU8.slice(iccAt,iccAt+iccSize).buffer:null};
   } finally {codec._free(at);codec._viewer_tiff_clear();}
 }
 export function normalizeTiffOptions(value={}) {
@@ -96,4 +104,30 @@ export function encodeTiffPixels(codec, image, options={}) {
     if(!pointer||!size||size>MAX_FILE||pointer+size>codec.HEAPU8.length)throw new Error('Некорректный результат TIFF');
     return codec.HEAPU8.slice(pointer,pointer+size).buffer;
   } finally {codec._free(at);codec._viewer_tiff_clear();}
+}
+
+export function encodeCmykTiffPixels(codec, image, options={}) {
+  const {width,height,data,iccProfile=null}=image;
+  if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width*height>40000000||
+    !(data instanceof Uint8Array)||data.length!==width*height*4||
+    (iccProfile!==null&&(!(iccProfile instanceof Uint8Array)||iccProfile.length<132||iccProfile.length>1048576)))
+    throw new Error('Некорректные каналы CMYK TIFF');
+  const settings=normalizeTiffOptions(options);
+  const pixelsAt=codec._malloc(data.length),iccAt=iccProfile?codec._malloc(iccProfile.length):0;
+  if(!pixelsAt||(iccProfile&&!iccAt)){
+    if(pixelsAt)codec._free(pixelsAt);
+    if(iccAt)codec._free(iccAt);
+    throw new Error('Недостаточно памяти для CMYK TIFF');
+  }
+  try{
+    codec.HEAPU8.set(data,pixelsAt);
+    if(iccProfile)codec.HEAPU8.set(iccProfile,iccAt);
+    const compression={none:1,lzw:5,deflate:8,packbits:32773}[settings.tiffCompression];
+    if(codec._viewer_tiff_encode_cmyk(pixelsAt,width,height,compression,settings.tiffLevel,
+      settings.tiffPredictor?2:1,iccAt,iccProfile?.length??0))
+      throw new Error(codec.UTF8ToString(codec._viewer_tiff_error()));
+    const pointer=codec._viewer_tiff_pixels(),size=codec._viewer_tiff_bytes();
+    if(!pointer||!size||size>MAX_FILE||pointer+size>codec.HEAPU8.length)throw new Error('Некорректный результат CMYK TIFF');
+    return codec.HEAPU8.slice(pointer,pointer+size).buffer;
+  }finally{codec._viewer_tiff_clear();codec._free(pixelsAt);if(iccAt)codec._free(iccAt);}
 }
