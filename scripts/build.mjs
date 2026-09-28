@@ -8,6 +8,7 @@ import vendorFiles from './vendor-files.cjs';
 import { sourcePackages, githubSourceConfig } from './source-release.mjs';
 import { releaseVersion, verifyReleaseCheckout } from './build-version.mjs';
 import sourceZipTools from './source-zip.cjs';
+import { buildKnowledge, knowledgeFiles, validateKnowledgeTargets } from './knowledge.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { rasterSourceNames, modernSourceNames, codecNames, licenseNames, sourceNames, heicSourceNames, jpegSourceNames, jpeg2000SourceNames, binaryNames } = vendorFiles;
@@ -84,6 +85,7 @@ export async function buildViewer({ test = false, debug = false, release = false
   const payload = codecs(sourceConfig, release, compressCodecs);
   payload.releaseTag = releaseTag;
   const notices = Object.fromEntries(noticeNames.map(name => [name, readProjectText(name)]));
+  const knowledge = buildKnowledge(root);
   const common = { absWorkingDir: root, bundle: true, write: false, format: 'iife', platform: 'browser', target: 'es2022', charset: 'utf8', legalComments: 'inline', metafile: true, logLevel: 'silent' };
   const theme = await bundle({ ...common, entryPoints: ['src/theme-startup.mjs'], minify: true });
   const worker = await bundle({ ...common, entryPoints: ['src/workers/compute.worker.mjs'] });
@@ -105,18 +107,24 @@ export async function buildViewer({ test = false, debug = false, release = false
   const css = readProjectText('src/styles.css');
   if (/<\/style/i.test(css)) throw new Error('Unexpected closing style tag in CSS');
   let html = readProjectText('src/index.html');
+  validateKnowledgeTargets(knowledge, {
+    'src/index.html': html,
+    'src/ui/controls.mjs': readProjectText('src/ui/controls.mjs'),
+    'src/ui/knowledge.mjs': readProjectText('src/ui/knowledge.mjs')
+  });
   html = replaceOnce(html, '<!-- VIEWER_FAVICON -->', '<link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,' + Buffer.from(readProjectText('src/favicon.svg'), 'utf8').toString('base64') + '">');
   if (/<\/script/i.test(theme.outputFiles[0].text)) throw new Error('Unexpected closing script tag in theme startup');
   html = replaceOnce(html, '<!-- VIEWER_THEME -->', '<script id="viewer-theme">' + theme.outputFiles[0].text + '</script>');
   html = replaceOnce(html, '<!-- VIEWER_ICONS -->', readProjectText('src/icons.svg'));
   html = replaceOnce(html, '<!-- VIEWER_NOTICES -->', '<script type="application/json" id="embedded-notices">' + jsonForHtml(notices) + '</script>');
+  html = replaceOnce(html, '<!-- VIEWER_KNOWLEDGE -->', '<script type="application/json" id="embedded-knowledge">' + jsonForHtml(knowledge) + '</script>');
   html = replaceOnce(html, '<!-- VIEWER_STYLES -->', '<style>\n' + css + '</style>');
   html = replaceOnce(html, '<!-- VIEWER_CODECS -->', '<script type="application/json" id="embedded-codecs">' + jsonForHtml(payload) + '</script>');
   // esbuild escapes inline-script sequences in its JavaScript output by default.
   if (/<\/script/i.test(app.outputFiles[0].text)) throw new Error('Unexpected closing script tag in bundle');
   html = replaceOnce(html, '<!-- VIEWER_SCRIPT -->', '<script>\n' + app.outputFiles[0].text + '</script>');
   html = html.replace(/<!doctype html>/i, match => match + '\n<!-- Generated from src/ by npm --prefix scripts run build. Edit the sources; this file is rebuilt. -->');
-  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
+  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, ...knowledgeFiles, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/knowledge.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
 }
 
 function writeOutput(html, destination) {

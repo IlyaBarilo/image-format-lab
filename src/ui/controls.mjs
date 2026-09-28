@@ -4,6 +4,7 @@ import { normalizeJpegOptions } from './../core/jpeg-encode.mjs';
 import { normalizeModernOptions } from '../core/modern-options.mjs';
 import { normalizeAvifOptions } from '../core/avif-options.mjs';
 import { FORMAT_OPTIONS, isBmpFormat, isPngFormat, formatOptionValue, formatFromOption } from "./../core/format-options.mjs";
+import { FORMAT_KNOWLEDGE } from '../core/knowledge-targets.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createControls({els, app}, deps) {
@@ -65,6 +66,13 @@ export function createControls({els, app}, deps) {
     select.className = "select format-select";
     select.title = "Формат варианта";
     head.append(select);
+    const formatHelp = document.createElement('button');
+    formatHelp.type = 'button'; formatHelp.className = 'knowledge-jump';
+    formatHelp.textContent = '?'; formatHelp.title = 'Справка о выбранном формате';
+    formatHelp.setAttribute('aria-label', 'Справка о выбранном формате');
+    formatHelp.dataset.knowledgeTarget = FORMAT_KNOWLEDGE[variant.config.format] + '#overview';
+    select.dataset.knowledgeTarget = formatHelp.dataset.knowledgeTarget;
+    head.append(formatHelp);
 
     const bmpDepthWrap = document.createElement("label");
     bmpDepthWrap.className = "bmp-depth-wrap";
@@ -305,6 +313,27 @@ export function createControls({els, app}, deps) {
     tiffPredictor.checked = tiffOptions.tiffPredictor;
     tiffPredictorWrap.append(tiffPredictor, document.createTextNode("Предиктор"));
     head.append(tiffDepthWrap,tiffCompressionWrap, tiffLevelWrap, tiffPredictorWrap);
+    const helpFields = [];
+    function fieldHelp(label, field, topic, name) {
+      const wrap = document.createElement('span'), button = document.createElement('button');
+      wrap.className = 'knowledge-field';
+      button.type = 'button'; button.className = 'knowledge-jump'; button.textContent = '?';
+      button.dataset.knowledgeTarget = topic;
+      button.title = 'Справка: ' + name;
+      button.setAttribute('aria-label', 'Справка: ' + name);
+      field.dataset.knowledgeTarget = topic;
+      label.replaceWith(wrap); wrap.append(label, button);
+      helpFields.push({ label, wrap });
+    }
+    fieldHelp(qualityWrap, quality, 'concepts/quality#overview', 'качество кодирования');
+    fieldHelp(jpegSubsamplingWrap, jpegSubsampling, 'concepts/chroma#overview', 'цветность JPEG');
+    fieldHelp(pngModeWrap, pngMode, 'formats/png#parameters', 'режим PNG');
+    fieldHelp(pngDepthWrap, pngDepth, 'concepts/bit-depth#overview', 'разрядность PNG');
+    fieldHelp(bmpDepthWrap, bmpDepth, 'formats/bmp#parameters', 'разрядность BMP');
+    fieldHelp(jxlDepthWrap, jxlDepth, 'concepts/bit-depth#overview', 'разрядность JPEG XL');
+    fieldHelp(tiffDepthWrap, tiffDepth, 'concepts/bit-depth#overview', 'разрядность TIFF');
+    fieldHelp(tiffCompressionWrap, tiffCompression, 'formats/tiff#parameters', 'сжатие TIFF');
+    fieldHelp(matteWrap, matte, 'concepts/alpha#matte', 'подложка для прозрачности');
     const content = document.createElement("div");
     content.className = "cell-head-content";
     content.append(...head.childNodes);
@@ -349,6 +378,8 @@ export function createControls({els, app}, deps) {
       avifSpeed,
       avifSpeedValue,
       select,
+      formatHelp,
+      helpFields,
       qualityWrap,
       quality,
       qualityValue,
@@ -549,6 +580,10 @@ export function createControls({els, app}, deps) {
     variant.controls.gifWrap.style.display = isGif ? "" : "none";
     variant.controls.ditherLabel.style.display = format === "gif" || format === "pngIndexed" ? "" : "none";
     variant.controls.matteWrap.style.display = needsMatte ? "" : "none";
+    const formatTopic = FORMAT_KNOWLEDGE[format];
+    if (formatTopic && variant.controls.formatHelp) variant.controls.formatHelp.dataset.knowledgeTarget = formatTopic + '#overview';
+    if (formatTopic && variant.controls.select) variant.controls.select.dataset.knowledgeTarget = formatTopic + '#overview';
+    for (const { label, wrap } of variant.controls.helpFields || []) wrap.hidden = label.hidden || label.style.display === 'none';
   }
   
   function buildMetrics(variant) {
@@ -578,11 +613,13 @@ export function createControls({els, app}, deps) {
         variant.controls.fileInfo = labelEl;
       }
       if (title) {
-        const help = document.createElement("abbr");
+        const help = document.createElement("button");
+        help.type = 'button';
         help.className = "help-dot";
         help.textContent = "?";
         help.title = title;
-        help.setAttribute("aria-label", title);
+        help.dataset.knowledgeTarget = 'concepts/metrics#psnr';
+        help.setAttribute("aria-label", 'Справка о PSNR RGB и Δα');
         labelEl.append(help);
       }
       const valueEl = document.createElement("span");
@@ -694,9 +731,9 @@ export function createControls({els, app}, deps) {
     };
     const rows = FORMAT_OPTIONS.map(({format, label}) => {
       const unavailable = format === "original" ? "" : deps.formatUnavailableReason(format);
-      return [label, read[format] || "Через браузер", (unavailable ? unavailable + " · " : "") + write[format]];
+      return { format, cells: [label, read[format] || "Через браузер", (unavailable ? unavailable + " · " : "") + write[format]] };
     });
-    document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");for(const text of row){const td=document.createElement("td");td.textContent=text;tr.append(td);}return tr;}));
+    document.getElementById("formatHelp").replaceChildren(...rows.map(row=>{const tr=document.createElement("tr");row.cells.forEach((text,index)=>{const td=document.createElement("td");td.textContent=text;if(index===0){const link=document.createElement('button');link.type='button';link.className='knowledge-text-link';link.textContent='О формате';link.dataset.knowledgeTarget=FORMAT_KNOWLEDGE[row.format]+'#overview';link.setAttribute('aria-label','Справка: '+row.cells[0]);td.append(document.createElement('br'),link);}tr.append(td);});return tr;}));
   }
 
   return { setEmptyState, observeCanvasSizes, syncCellHeadSizes, buildCellControls, updateFormatOptions, syncControlsVisibility, buildMetrics, markDirty, isVariantReady, updateMetrics, alphaLabel, updateFormatHelp };

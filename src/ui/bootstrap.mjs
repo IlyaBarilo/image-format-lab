@@ -42,6 +42,7 @@ export function createBootstrap({app, els}, deps) {
     deps.attachBatchPreviewEvents();
     deps.attachStudyEvents();
     deps.attachLicenseEvents();
+    deps.attachKnowledgeEvents();
     deps.attachAnalysisEvents();
     deps.attachPixelInspectorEvents();
     deps.updateFileList();

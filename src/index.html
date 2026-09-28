@@ -111,6 +111,7 @@
 
       <div class="toolbar-group">
         <button class="text-btn" id="studyOpen" type="button" aria-haspopup="dialog">Эксперименты</button>
+        <button class="text-btn" id="knowledgeOpen" type="button" aria-haspopup="dialog" aria-controls="knowledgeDialog" data-knowledge-target="concepts/compression#overview">Справка</button>
         <button class="text-btn" id="licensesOpen" type="button" aria-haspopup="dialog" aria-controls="licensesDialog">Лицензии</button>
       </div>
       <div class="toolbar-preferences">
@@ -310,6 +311,7 @@
         <p class="analysis-note">Значения рабочих пикселей без подложки и округления до 8 бит. RGB виден даже при α = 0. Координаты от левого верхнего угла полного кадра; область графиков их не меняет. Δ сравнивает коды каналов без преобразования цветового пространства.</p>
       </details>
       <div class="analysis-help-content" id="analysisHelpContent" hidden>
+        <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/metrics#overview">Подробнее о метриках и графиках</button>
         <p id="analysisMethod">Графики 1–4 автоматически показывают результаты соответствующих ячеек сравнения с их форматами и настройками. По горизонтали — уровни 0–255, по вертикали — доля пикселей канала в процентах. Шкала общая для всех видимых графиков. Считаются все пиксели кадра RGBA 8 бит. RGB учитывает выбранную подложку, α измеряется отдельно. Фон и масштаб просмотра не влияют на анализ.</p>
         <p id="analysisCaveat">Одинаковые графики не гарантируют совпадения изображений. При разных размерах сравниваются распределения выбранной области без выравнивания, а не только потери кодека. Подробности по текущим ячейкам:</p>
         <p id="analysisDetails"></p>
@@ -370,6 +372,7 @@
           <h2 id="batchDialogTitle">Пакетное конвертирование</h2>
           <p class="batch-note" id="batchDialogCount"></p>
         </div>
+        <button class="text-btn" id="batchFormatHelp" type="button" data-knowledge-format-select="batchFormat" aria-haspopup="dialog" aria-controls="knowledgeDialog">О формате</button>
         <button class="icon-btn" id="batchDialogClose" type="button" aria-label="Закрыть окно настроек">×</button>
       </div>
       <div class="batch-dialog-body">
@@ -509,7 +512,7 @@
     <section id="filePassportTimingSection" hidden><h3>Время обработки</h3><dl class="passport-fields" id="filePassportTiming"></dl><p class="batch-note">До кодирования включены ожидание очереди и проверка доступности. Подготовка и кодирование включают загрузку кодека и изменение размера. «Прочее» включает дополнительные шаги; числа округлены до 0,01 мс. Общее время на основной панели округлено до целых миллисекунд.</p></section>
     <h3>Рабочие пиксели</h3><dl class="passport-fields" id="filePassportRaster"></dl>
     <p class="batch-note">bpp = полный размер файла в битах / число пикселей; это не оценка качества. Объём RGBA относится к одному рабочему буферу, а не ко всей памяти приложения. Декодер может изменить ориентацию, цветовое представление и разрядность.</p>
-    <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла.</p>
+    <p class="batch-note">Свойства JPEG/PNG прочитаны из заголовков. Наличие блока ICC, EXIF или XMP не подтверждает корректность его содержимого. Паспорт не заменяет проверку целостности файла. <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/color-profile#overview">О цветовых профилях</button></p>
   </dialog>
   <dialog id="tiffSettingsDialog" class="batch-dialog tiff-settings-dialog" aria-labelledby="tiffSettingsTitle" aria-describedby="tiffSettingsHint">
     <div class="batch-dialog-head"><h2 id="tiffSettingsTitle">Настройки TIFF</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
@@ -518,7 +521,7 @@
       <label class="batch-field" for="tiffCompression">Сжатие<select id="tiffCompression" class="select"><option value="none">Без сжатия</option><option value="deflate">Deflate</option><option value="lzw">LZW</option><option value="packbits">PackBits</option></select></label>
       <label class="batch-field" id="tiffLevelField" for="tiffLevel">Уровень Deflate <output id="tiffLevelValue" for="tiffLevel">6</output><input id="tiffLevel" type="range" min="1" max="9" value="6"></label>
       <label class="switch" id="tiffPredictorField"><input id="tiffPredictor" type="checkbox" checked>Предиктор по соседним пикселям</label>
-      <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; просмотр остаётся 8-битным. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически.</p>
+      <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; просмотр остаётся 8-битным. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически. <button class="knowledge-text-link" type="button" data-knowledge-target="formats/tiff#parameters">Подробнее о настройках TIFF</button></p>
     </div>
   </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
@@ -559,6 +562,7 @@
     </section>
     <section>
       <h3>Отчёт текущего сравнения</h3>
+      <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/metrics#overview">Как читать показатели сравнения</button>
       <h4>Краткая сводка готовых ячеек</h4>
       <p class="batch-note" id="comparisonSummarySource">Сначала откройте изображение.</p>
       <div class="comparison-summary-wrap"><table id="comparisonSummaryTable" aria-label="Краткая сводка текущего сравнения"><thead><tr><th>№</th><th>Формат и режим</th><th>Размер</th><th>Файл</th><th>bpp</th><th>Q</th><th>PSNR RGB</th><th>Δα, %</th><th>Бит/канал</th><th>Примечание</th></tr></thead><tbody id="comparisonSummaryRows"></tbody></table></div>
@@ -570,6 +574,7 @@
       <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>
     </section>
     <section><details><summary>Форматы и ограничения</summary>
+      <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/compression#overview">Открыть справку по форматам</button>
       <table><thead><tr><th>Формат</th><th>Открытие</th><th>Сохранение</th></tr></thead><tbody id="formatHelp"></tbody></table>
       <p class="batch-note">Таблица описывает возможности этой программы. При перекодировании сохраняется один кадр/страница; анимация и остальные страницы теряются. PNG16, поддерживаемый TIFF16 и JPEG 2000 без потерь сохраняют точные 16-битные отсчёты и alpha без изменения размера. Другие lossless-режимы сохраняют поступившие RGBA8, без обещания исходной разрядности или HDR. Waveform, Parade, профиль, вектороскоп и карта различий используют 8-битное представление. Ограниченная палитра GIF и PNG может изменить цвета. Поддержка всех разновидностей TIFF, HEIC, JPEG XL и JPEG 2000 не гарантируется.</p>
       <p class="batch-note">Режим «GPano в JPEG» переносит поддерживаемые данные панорамы из исходного JPEG только в JPEG. Прочие исходные метаданные не копируются; поддерживаемый ICC сохраняется при записи полноцветного PNG, точного TIFF16 или JP2 без изменения размера. «Исходный файл» скачивается без изменения байтов и сохраняет все метаданные.</p>
@@ -578,6 +583,22 @@
     </details></section>
     <p id="studyNotice" role="status" aria-live="polite"></p>
     <form method="dialog"><button class="text-btn primary">Закрыть</button></form>
+  </dialog>
+  <dialog class="knowledge-dialog" id="knowledgeDialog" aria-labelledby="knowledgeTitle">
+    <div class="knowledge-heading">
+      <div><h2 id="knowledgeTitle">Справка</h2><p id="knowledgeCurrent" tabindex="-1"></p></div>
+      <div class="knowledge-heading-actions"><button class="text-btn" id="knowledgeBack" type="button" disabled>Назад</button><form method="dialog"><button class="text-btn" type="submit" aria-label="Закрыть справку">Закрыть</button></form></div>
+    </div>
+    <div class="knowledge-layout">
+      <nav class="knowledge-nav" aria-label="Темы справки">
+        <label for="knowledgeSearch">Поиск по справке</label>
+        <input id="knowledgeSearch" type="search" autocomplete="off" placeholder="Формат или понятие">
+        <p id="knowledgeSearchStatus" role="status" aria-live="polite"></p>
+        <ul id="knowledgeIndex"></ul>
+      </nav>
+      <article class="knowledge-article" id="knowledgeContent" aria-label="Статья справки"></article>
+    </div>
+    <p class="knowledge-offline-note">Статьи доступны без интернета. Ссылки на официальные материалы открывают внешние сайты.</p>
   </dialog>
   <dialog class="study-dialog licenses-dialog" id="licensesDialog" aria-labelledby="licensesTitle" aria-describedby="licensesSummary">
     <div class="licenses-heading"><h2 id="licensesTitle">Лицензии и исходники</h2><form method="dialog"><button class="text-btn" aria-label="Закрыть лицензии" autofocus>Закрыть</button></form></div>
@@ -596,6 +617,7 @@
        MPL-2.0 (PnnQuant), LGPL-3.0 (libheif/libde265), BSD-3-Clause (Kvazaar) and IJG.
        Full project notices: embedded-notices; library texts: embedded-codecs. -->
   <!-- VIEWER_NOTICES -->
+  <!-- VIEWER_KNOWLEDGE -->
   <!-- VIEWER_CODECS -->
   <!-- VIEWER_SCRIPT -->
 </body>

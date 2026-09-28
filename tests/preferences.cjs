@@ -151,7 +151,7 @@ function events() {
   const timers=new Map(),renders=[],nodes=[];let timerId=0,hidden=false;
   global.setTimeout=(fn,delay)=>{assert.equal(delay,320);timers.set(++timerId,fn);return timerId;};
   global.clearTimeout=id=>timers.delete(id);
-  const node=tag=>{const n={...events(),tag,childNodes:[],append(...children){this.childNodes.push(...children);},setAttribute(){}};nodes.push(n);return n;};
+  const node=tag=>{const n={...events(),tag,dataset:{},childNodes:[],append(...children){this.childNodes.push(...children);},replaceWith(){},setAttribute(){}};nodes.push(n);return n;};
   global.document={createElement:node,createTextNode:()=>node('text')};
   const controlApp={source:{name:'source.png'}};
   const variant={index:1,head:node('head'),config:{...defaults.comparison.variants[1]},generation:0,

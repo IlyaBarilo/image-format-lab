@@ -28,6 +28,7 @@ import { createDisplay, probeFloat16Canvas } from './ui/display.mjs';
 import { createStudy } from './ui/study.mjs';
 import { createQualitySeries } from './ui/quality-series.mjs';
 import { createLicenses } from './ui/licenses.mjs';
+import { createKnowledge } from './ui/knowledge.mjs';
 import { createReports } from './ui/reports.mjs';
 import { createAnalysis } from './ui/analysis.mjs';
 import { createPixelInspector } from './ui/pixel-inspector.mjs';
@@ -65,6 +66,7 @@ export function createApplication() {
     "attachAnalysisEvents",
     "attachPixelInspectorEvents",
     "attachLicenseEvents",
+    "attachKnowledgeEvents",
     "addFiles",
     "attachBatchPreviewEvents",
     "attachCanvasEvents",
@@ -109,6 +111,7 @@ export function createApplication() {
     "isAnalysisResizing", "resetTheme", "showStatus", "updateBatchUI", "updateAnalysis", "drawAll", "syncGridModeUI", "clearDisplayCache", "syncDisplayControls"
   ])));
   Object.assign(actions, createLicenses(context, dependencies(["downloadBlob"])));
+  Object.assign(actions, createKnowledge());
   Object.assign(actions, createFileDrop(context, dependencies(["addFiles"])));
   Object.assign(actions, createFiles(context, dependencies([
     "batchStatusLabel",

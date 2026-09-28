@@ -1,10 +1,11 @@
 const assert=require('node:assert/strict');
 class Element {
-  constructor(){this.value='';this.checked=false;this.hidden=false;this.open=false;this.style={};this.listeners={};this.children=[];this.classList={contains:()=>false,toggle(){}};this.validity={valid:true};}
+  constructor(){this.value='';this.checked=false;this.hidden=false;this.open=false;this.style={};this.dataset={};this.listeners={};this.children=[];this.classList={contains:()=>false,toggle(){}};this.validity={valid:true};}
   get childNodes(){return this.children;}
   set innerHTML(value){this.children=[];}
   append(...items){this.children.push(...items);}
   replaceChildren(...items){this.children=items;}
+  replaceWith(){}
   setAttribute(name,value){this[name]=value;}
   addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
   emit(name){for(const fn of this.listeners[name]||[])fn({target:this});}

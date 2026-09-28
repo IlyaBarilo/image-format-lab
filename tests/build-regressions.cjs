@@ -58,7 +58,8 @@ const { assertEmbeddedPayload } = require('./support/embedded-payload.cjs');
   // Model Git/editor line-ending conversion only for the explicitly embedded
   // project texts. No files are changed, and vendor bytes are never converted.
   const embeddedTextPaths = new Set(['src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg',
-    'LICENSE', 'NOTICE.md', 'ASSETS.md', 'docs/licenses/acorn-LICENSE', 'docs/licenses/esbuild-LICENSE']
+    'LICENSE', 'NOTICE.md', 'ASSETS.md', 'docs/licenses/acorn-LICENSE', 'docs/licenses/esbuild-LICENSE',
+    ...(await import('../scripts/knowledge.mjs')).knowledgeFiles]
     .map(name => path.join(root, name)));
   const originalRead = fs.readFileSync;
   try {
