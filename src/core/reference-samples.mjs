@@ -1,5 +1,6 @@
 // Reproducible RGBA8 inputs made from integer pixel formulas; no Canvas or external images.
 import { createPixelBuffer } from './pixel-buffer.mjs';
+import { createCmykRaster } from './cmyk.mjs';
 
 export const REFERENCE_SAMPLES = Object.freeze({
   gradient: Object.freeze({label:'Градиенты и резкие границы',fileName:'ifl-gradient-v1.png',experiment:'photo',description:'Плавные переходы, контрастные границы и тонкие линии.'}),
@@ -16,8 +17,76 @@ export const SAMPLE_CATALOG = Object.freeze([
   Object.freeze({id:'iccP3',label:'PNG16 · цветовой профиль P3',fileName:'ifl-p3-icc16-v1.png',size:'256×128',
     description:'Градиент с синтетическим ICC Display P3: сравните исходные значения и sRGB-показ.'}),
   Object.freeze({id:'tiffFloat',label:'TIFF float32 · диапазон значений',fileName:'ifl-float32-v1.tif',size:'64×32',
-    description:'Дробные и отрицательные значения, участки выше 1 и полупрозрачность. Показ — условный SDR.'})
+    description:'Дробные и отрицательные значения, участки выше 1 и полупрозрачность. Показ — условный SDR.'}),
+  Object.freeze({id:'cmykPrint',label:'CMYK · учебная печать',fileName:'ifl-cmyk-print-v1.tif',size:'640×360',
+    description:'Только K, составной чёрный и участки с суммой красок от 0 до 400%. Без ICC; экранный цвет условный.'})
 ]);
+
+const CMYK_FONT={
+  ' ':['00000'],
+  '%':['11001','11010','00100','00100','01000','10110','00110'],
+  '0':['01110','10001','10011','10101','11001','10001','01110'],
+  '1':['00100','01100','00100','00100','00100','00100','01110'],
+  '2':['01110','10001','00001','00010','00100','01000','11111'],
+  '3':['11110','00001','00001','01110','00001','00001','11110'],
+  '4':['10010','10010','10010','11111','00010','00010','00010'],
+  '6':['01111','10000','10000','11110','10001','10001','01110'],
+  '8':['01110','10001','10001','01110','10001','10001','01110'],
+  'K':['10001','10010','10100','11000','10100','10010','10001'],
+  'O':['01110','10001','10001','10001','10001','10001','01110'],
+  'N':['10001','11001','10101','10011','10001','10001','10001'],
+  'L':['10000','10000','10000','10000','10000','10000','11111'],
+  'Y':['10001','10001','01010','00100','00100','00100','00100'],
+  'R':['11110','10001','10001','11110','10100','10010','10001'],
+  'I':['11111','00100','00100','00100','00100','00100','11111'],
+  'C':['01111','10000','10000','10000','10000','10000','01111'],
+  'H':['10001','10001','10001','11111','10001','10001','10001'],
+  'T':['11111','00100','00100','00100','00100','00100','00100'],
+  'A':['01110','10001','10001','11111','10001','10001','10001']
+};
+
+export function createCmykPrintSample() {
+  const width=640,height=360,data=new Uint8Array(width*height*4);
+  const ink=percent=>Math.round(percent*255/100);
+  const paint=(x,y,c,m,yy,k)=>{
+    if(x<0||x>=width||y<0||y>=height)return;
+    const at=(y*width+x)*4;
+    data[at]=ink(c);data[at+1]=ink(m);data[at+2]=ink(yy);data[at+3]=ink(k);
+  };
+  const box=(x,y,w,h,c,m,yy,k)=>{
+    for(let py=y;py<y+h;py++)for(let px=x;px<x+w;px++)paint(px,py,c,m,yy,k);
+  };
+  const label=(text,x,y,scale=2)=>{
+    for(const character of text){
+      const rows=CMYK_FONT[character];
+      if(!rows)throw new Error('Неизвестный символ учебного образца.');
+      for(let row=0;row<rows.length;row++)for(let col=0;col<5;col++)if(rows[row][col]==='1')
+        box(x+col*scale,y+row*scale,scale,scale,0,0,0,100);
+      x+=6*scale;
+    }
+  };
+  label('K ONLY',24,18,3);
+  for(let line=0;line<8;line++)box(24,65+line*3,220,1,0,0,0,100);
+  label('RICH',388,20,3);
+  box(388,60,220,28,60,50,40,100);
+  const patches=[
+    {x:24,text:'100%',c:0,m:0,y:0,k:100},
+    {x:146,text:'200%',c:40,m:30,y:30,k:100},
+    {x:268,text:'280%',c:70,m:60,y:50,k:100},
+    {x:390,text:'320%',c:90,m:70,y:60,k:100},
+    {x:512,text:'360%',c:90,m:90,y:80,k:100}
+  ];
+  for(const patch of patches){
+    box(patch.x,114,104,108,patch.c,patch.m,patch.y,patch.k);
+    label(patch.text,patch.x+12,230,2);
+  }
+  label('TAC 0 400%',24,272,2);
+  for(let x=24;x<616;x++){
+    const percent=100*(x-24)/591;
+    for(let y=294;y<338;y++)paint(x,y,percent,percent,percent,percent);
+  }
+  return createCmykRaster(width,height,data);
+}
 
 export function createReferenceSamplePixels(id) {
   if (!Object.hasOwn(REFERENCE_SAMPLES,id)) throw new Error('Неизвестный контрольный образец.');

@@ -3,10 +3,13 @@ import { DEFAULT_VARIANTS } from './config.mjs';
 import { validateComparison } from './settings.mjs';
 import { DEFAULT_ANALYSIS_LINE } from './line-profile.mjs';
 import { DEFAULT_DISPLAY, normalizeDisplay } from './display-sdr.mjs';
+import { DEFAULT_PRINT_CHECK_PROFILE, normalizePrintCheckProfile } from './print-check-profile.mjs';
 
 export const PREFERENCES_KEY = 'image-format-viewer.preferences.v1';
 export const ANALYSIS_PREFERENCE_FIELDS = Object.freeze({
-  type: ['analysisType', 'histogram', ['histogram','floatSource','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','boundaryMap','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
+  type: ['analysisType', 'histogram', ['histogram','floatSource','cmyk','signalHistogram','errorHistogram','waveform','parade','rgbWaveform','ycbcrWaveform','ycbcrParade','difference','boundaryMap','vectorscope','cieXy','profile','errorProfile','ssim','deltaE','tradeoff']],
+  cmykView: ['analysisCmykView', 'histogram', ['histogram','difference','ink','kOnly']],
+  inkLimit: ['analysisInkLimit', 300, [0,400]],
   floatRange: ['analysisFloatRange', 'unit', ['unit','auto','manual']],
   channel: ['analysisChannel', 'rgb', ['rgb','r','g','b','alpha']],
   matte: ['analysisMatte', 'white', ['white','black']],
@@ -28,7 +31,8 @@ export function defaultPreferences() {
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
        displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',cieXy:'overlay',profile:'overlay',errorProfile:'separate',ssim:'separate',deltaE:'separate'},
-      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE},floatMin:0,floatMax:1}
+      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE},floatMin:0,floatMax:1,
+      printName:DEFAULT_PRINT_CHECK_PROFILE.name,preserveKOnly:true}
   };
 }
 const record = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -65,7 +69,7 @@ export function normalizePreferences(value) {
   const a=value.analysis;
   if(record(a)){
     for(const [key,[,fallback,allowed]] of Object.entries(ANALYSIS_PREFERENCE_FIELDS)){
-      if((key==='level'||key==='position')?Number.isInteger(a[key])&&a[key]>=allowed[0]&&a[key]<=allowed[1]:typeof a[key]===typeof fallback&&allowed.includes(a[key]))result.analysis[key]=a[key];
+      if((key==='level'||key==='position'||key==='inkLimit')?Number.isInteger(a[key])&&a[key]>=allowed[0]&&a[key]<=allowed[1]:typeof a[key]===typeof fallback&&allowed.includes(a[key]))result.analysis[key]=a[key];
     }
     if(typeof a.floatMin==='number'&&typeof a.floatMax==='number'&&Number.isFinite(a.floatMin)&&Number.isFinite(a.floatMax)&&
       a.floatMin<a.floatMax&&Math.abs(a.floatMin)<=2**128&&Math.abs(a.floatMax)<=2**128&&Number.isFinite(a.floatMax-a.floatMin)){
@@ -80,6 +84,11 @@ export function normalizePreferences(value) {
     result.analysis.region=geometry(a.region,true);
     result.analysis.line=geometry(a.line,false)||result.analysis.line;
     if(['full','viewport'].includes(a.scope)||(a.scope==='region'&&result.analysis.region))result.analysis.scope=a.scope;
+    try{
+      const profile=normalizePrintCheckProfile({schema:DEFAULT_PRINT_CHECK_PROFILE.schema,version:1,
+        name:a.printName,tacLimit:result.analysis.inkLimit,preserveKOnly:a.preserveKOnly});
+      result.analysis.printName=profile.name;result.analysis.preserveKOnly=profile.preserveKOnly;
+    }catch{/* Keep the default teaching rules. */}
   }
   return result;
 }

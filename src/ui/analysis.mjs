@@ -9,6 +9,7 @@ import { errorBinInterval, errorHistogramSummary } from '../core/error-histogram
 import { renderCieXy } from './scope-plots.mjs';
 import { mapCieReferenceRegion } from '../core/color-sdr.mjs';
 import { floatHistogramRange } from '../core/float-histogram.mjs';
+import { DEFAULT_PRINT_CHECK_PROFILE, normalizePrintCheckProfile, parsePrintCheckProfile, printCheckProfileText, evaluatePrintCheck } from '../core/print-check-profile.mjs';
 const CHANNELS = { rgb: [0, 1, 2], r: [0], g: [1], b: [2], alpha: [3], y: [4] };
 const NAMES = ['R', 'G', 'B', 'α', 'Y′', 'Cb', 'Cr'];
 const COLORS = ['#fb7185', '#4ade80', '#60a5fa', '#e2e8f0', '#facc15', '#22d3ee', '#f472b6'];
@@ -35,10 +36,13 @@ export function createAnalysis({ app }, deps) {
   const level = get('analysisLevel'), status = get('analysisStatus');
   const floatRange = get('analysisFloatRange'), floatMin = get('analysisFloatMin'), floatMax = get('analysisFloatMax');
   const cmykView=get('analysisCmykView'),inkLimit=get('analysisInkLimit');
+  const printCheck=get('analysisPrintCheck'),printName=get('analysisPrintName'),printKOnly=get('analysisPrintKOnly');
+  const printSummary=get('analysisPrintCheckSummary'),printStatus=get('analysisPrintStatus');
   const help = get('analysisHelp'), helpContent = get('analysisHelpContent'), details = get('analysisDetails');
   const cards = [...panel.querySelectorAll('.analysis-card')].map(element => ({
     element, info: element.querySelector('.analysis-info'), canvas: element.querySelector('canvas'),
-    values: element.querySelector('.analysis-values'), badge: element.querySelector('.analysis-index')
+    values: element.querySelector('.analysis-values'), badge: element.querySelector('.analysis-index'),
+    peak: element.querySelector('.analysis-cmyk-peak')
   }));
   let redrawFrame = 0;
   let attached = false, generation = 0, queued = false, running = false;
@@ -55,6 +59,8 @@ export function createAnalysis({ app }, deps) {
     if(type.value==='cmyk'&&!app.source?.cmyk)type.value='histogram';
     get('analysisCmykViewField').hidden=type.value!=='cmyk';
     get('analysisInkLimitField').hidden=type.value!=='cmyk';
+    printCheck.hidden=type.value!=='cmyk';
+    printSummary.textContent=`${printName.value.trim()||'Без названия'} · ${inkLimit.value}%${printKOnly.checked?' · K-only':''}`;
     cieViewField.hidden = type.value !== 'cieXy';
     const variants = GRAPH_VARIANTS.find(group => group.some(([kind]) => kind === type.value));
     variantField.hidden = !variants;
@@ -94,7 +100,7 @@ export function createAnalysis({ app }, deps) {
     matte.disabled = boundary ? boundaryChannel.value === 'alpha' : profile ? profileChannel.value === 'alpha' : vector || signalHistogram || ['ssim','cieXy','deltaE'].includes(type.value) ? false : difference || errorHistogram || errorProfile ? differenceChannel.value === 'alpha' : !spatial && channel.value === 'alpha';
     panel.dataset.type = type.value;
     help.title = type.value==='cmyk'
-      ? 'Каналы C/M/Y/K, отклонение от исходника и сумма красок. Числа относятся к файлу, а RGB-показ не является цветопробой. Нажмите для подробностей.'
+      ? 'Каналы C/M/Y/K, K-only, отклонение от исходника и сумма красок. Тестовый профиль задаёт правила проверки, но не заменяет ICC. Нажмите для подробностей.'
       : spatial
       ? 'По горизонтали — положение в кадре, по вертикали — кодовый уровень RGBA8/16. Чем светлее след, тем больше пикселей. Нажмите для подробностей.'
       : 'По горизонтали — уровни или интервалы подписанной шкалы, по вертикали — доля пикселей. Шкала общая. Нажмите для подробностей.';
@@ -175,7 +181,7 @@ export function createAnalysis({ app }, deps) {
     if(high&&app.source?.pixelBuffer?.colorSpace==='unknown')get('analysisMethod').textContent+=['cieXy','deltaE'].includes(type.value)?' Цветовое описание исходника неизвестно: для этого цветового анализа предполагается sRGB.':' Цветовое описание исходника неизвестно: сравниваются кодовые значения без цветового преобразования; экранный показ использует приближение sRGB.';
     if(type.value==='cmyk'){
       if(notice)notice.hidden=true;
-      get('analysisMethod').textContent='Точные 8-битные каналы C/M/Y/K исходного CMYK TIFF или JPEG, без преобразования через RGB. Гистограмма показывает долю пикселей по уровню каждого канала. Карта отклонений показывает наибольшую абсолютную разницу одного канала с исходником при одинаковых размерах. Сумма красок C+M+Y+K выражена в процентах от 0 до 400; порог предупреждения задаётся пользователем и не является пределом конкретной печатной машины. Карты объединяют пиксели при уменьшении, сохраняя максимум группы. Встроенный ICC сохраняется при записи CMYK, но этот анализ не выполняет цветопробу или оценку охвата.';
+      get('analysisMethod').textContent='Точные 8-битные каналы C/M/Y/K исходного CMYK TIFF или JPEG, без преобразования через RGB. Гистограмма показывает долю пикселей по уровню каждого канала. Карта отклонений показывает наибольшую абсолютную разницу одного канала с исходником при одинаковых размерах. K-only означает точные C=M=Y=0 при K больше 0; карта показывает сохранение этого условия. Сумма красок C+M+Y+K выражена в процентах от 0 до 400; порог тестового профиля не является пределом конкретной печатной машины. Карты объединяют пиксели при уменьшении, сохраняя максимум группы. Встроенный ICC сохраняется при записи CMYK, но этот анализ не выполняет цветопробу или оценку охвата.';
     }
   }
 
@@ -210,7 +216,7 @@ export function createAnalysis({ app }, deps) {
     if (!variant || side >= app.layout) return { label, message: 'Вариант скрыт.' };
     if (variant.error) return { label, message: `Ошибка результата: ${variant.error}` };
     if (!deps.isVariantReady(variant)) return { label, message: variant.processing ? 'Результат пересчитывается…' : 'Параметры изменены. Ожидание пересчёта…' };
-    if(type.value==='cmyk'&&!variant.cmyk)return {label,message:'Результат записан в RGB. Для сравнения каналов выберите CMYK в настройке модели JPEG или TIFF.'};
+    if(type.value==='cmyk'&&!variant.cmyk)return {label,message:'Результат записан в RGB: разделение C/M/Y/K и K-only в файле отсутствует. Для сравнения каналов выберите CMYK в настройке модели JPEG или TIFF.'};
     if(['difference','errorHistogram','errorProfile','ssim','deltaE'].includes(type.value) && (variant.imageData.width !== app.source.width || variant.imageData.height !== app.source.height))
       return {label,message:`${type.value==='difference'?'Карта':type.value==='errorProfile'?'Профиль ошибки':type.value==='ssim'?'SSIM':type.value==='deltaE'?'ΔE00':'Гистограмма ошибок'} требует одинаковых размеров: ${variant.imageData.width}×${variant.imageData.height}, исходник ${app.source.width}×${app.source.height}.`};
     const viewport = followsViewport() ? viewportRegions[side] : null;
@@ -225,6 +231,7 @@ export function createAnalysis({ app }, deps) {
       card.canvas.hidden = true;
       card.canvas.getContext('2d').clearRect(0, 0, card.canvas.width, card.canvas.height);
       card.values.textContent = '';
+      card.peak.hidden = true;
       card.values.removeAttribute('title');
       card.info.hidden = true;
       card.badge.removeAttribute('title');
@@ -356,7 +363,7 @@ export function createAnalysis({ app }, deps) {
 
   function getAnalysisSnapshot(){
     const output=deps.getAnalysisOutputSettings(),kind=type.value;
-    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:kind==='floatSource'?{type:kind,display:'separate',channel:channel.value,level:Number(level.value),scope:'full',rangeMode:floatRange.value,range:results[0]?.data?.scale?[results[0].data.scale.min,results[0].data.scale.max]:null,bins:256,rawRgb:true}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cmyk'?{cmykView:cmykView.value,inkLimit:Number(inkLimit.value)}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
+    const settings=kind==='tradeoff'?{type:kind,display:'metrics',metric:output.metric}:kind==='floatSource'?{type:kind,display:'separate',channel:channel.value,level:Number(level.value),scope:'full',rangeMode:floatRange.value,range:results[0]?.data?.scale?[results[0].data.scale.min,results[0].data.scale.max]:null,bins:256,rawRgb:true}:{type:kind,display:output.display,...(['overlay','delta'].includes(output.display)?{pair:output.pair}:{}),matte:matte.value,scope:deps.getAnalysisScope(),region:deps.getAnalysisRegion(),...(followsViewport()?{viewports:viewportRegions.map((v,i)=>({cell:i+1,...v}))}:{}),...(kind==='cmyk'?{cmykView:cmykView.value,inkLimit:Number(inkLimit.value),printCheck:{name:printName.value.trim(),preserveKOnly:printKOnly.checked}}:{}),...(kind==='cieXy'?{cieView:cieView.value}:{}),...(kind==='histogram'||kind==='signalHistogram'?{channel:kind==='signalHistogram'?'rgb':channel.value,level:Number(level.value)}:kind==='errorHistogram'?{errorChannel:differenceChannel.value,level:Number(level.value)}:kind==='profile'?{profileChannel:profileChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='errorProfile'?{errorChannel:differenceChannel.value,position:Number(position.value),line:deps.getAnalysisLine()}:kind==='difference'?{differenceChannel:differenceChannel.value,gain:Number(gain.value)}:kind==='boundaryMap'?{boundaryChannel:boundaryChannel.value}:{})};
     return {version:1,revision:generation,source:app.source?{name:app.source.name,width:app.source.width,height:app.source.height,bytes:app.source.size}:null,settings,method:get('analysisMethod').textContent,
       items:cards.slice(0,kind==='floatSource'?1:app.layout).map((_,i)=>{const current=selected(i),item=results[i];return {cell:i+1,label:current.label,status:current.imageData&&item?.data?'ready':'unavailable',message:current.message||item?.message||(!item?'Расчёт…':null),config:item?.data&&current.imageData?item.config:null,measurement:item?.data&&current.imageData?item.measurement:null,data:current.imageData?item?.data||null:null};})};
   }
@@ -442,17 +449,23 @@ export function createAnalysis({ app }, deps) {
       const means=data.means.map((value,i)=>`${'CMYK'[i]} ${number(value)}%`).join(' · ');
       const deviation=data.difference?` · среднее отклонение K ${number(data.difference.meanAbsolute[3])}%`:' · исходные каналы';
       const ink=`сумма красок до ${number(data.tacMaximum)}%; выше ${data.threshold}% — ${number(data.tacOverPercent)}% пикселей`;
-      card.values.textContent=cmykView.value==='ink'?ink:means;
-      card.values.title=`${means}. ${ink}${deviation}.`;
+      const kOnly=`только K: ${data.kOnly.retainedPixels} из ${data.kOnly.sourcePixels} сохранено, ${data.kOnly.lostPixels} утрачено`;
+      const verdict=evaluatePrintCheck(data,{schema:DEFAULT_PRINT_CHECK_PROFILE.schema,version:1,
+        name:printName.value.trim()||DEFAULT_PRINT_CHECK_PROFILE.name,tacLimit:data.threshold,preserveKOnly:printKOnly.checked});
+      const conclusion=verdict.passed?'условия выполнены':`проверить: ${[verdict.tacExceeded?'сумму красок':null,verdict.kOnlyLost?'K-only':null].filter(Boolean).join(' и ')}`;
+      card.values.textContent=`${cmykView.value==='ink'?ink:cmykView.value==='kOnly'?kOnly:means} · ${conclusion}`;
+      card.values.title=`В выбранной области: ${conclusion}. ${means}. ${ink}. ${kOnly}${deviation}.`;
+      card.peak.hidden=!data.tacOverPixels||!data.firstOverPoint;
+      card.peak.title=card.peak.hidden?'':`Показать превышение в точке ${data.firstOverPoint.x}, ${data.firstOverPoint.y} этой ячейки`;
       card.canvas.dataset.kind='cmyk';
-      const description=`${item.label}: ${means}; ${ink}${deviation}. ICC ${app.source?.cmyk?.iccProfile?'встроен':'отсутствует'}.`;
+      const description=`${item.label}: ${means}; ${ink}; ${kOnly}${deviation}. ICC ${app.source?.cmyk?.iccProfile?'встроен':'отсутствует'}.`;
       card.badge.title=description;
       card.canvas.setAttribute('aria-label',description+' '+cmykView.selectedOptions[0].textContent+'.');
       plotCmyk(card.canvas,data,cmykView.value);
       lines.push(description);
     });
     details.textContent=lines.join('\n');
-    status.textContent='CMYK: сравниваются численные значения каналов; экранный RGB-показ не является цветопробой.';
+    status.textContent=`Тестовый профиль «${printName.value.trim()||'Без названия'}»: ${printKOnly.checked?'контроль K-only включён':'контроль K-only необязателен'}. Сравниваются численные каналы; RGB-показ не является цветопробой.`;
   }
 
   function plotCmyk(canvas,data,view,outputSize){
@@ -480,16 +493,21 @@ export function createAnalysis({ app }, deps) {
       ctx.fillStyle='#cbd5e1';ctx.textAlign='left';ctx.fillText('0',left,height-10);ctx.textAlign='right';ctx.fillText('255',right,height-10);
       return;
     }
-    const values=view==='difference'?data.maps.difference:data.maps.tac;
+    const values=view==='difference'?data.maps.difference:view==='kOnly'?data.maps.kOnly:data.maps.tac;
     if(!values){ctx.fillStyle='#cbd5e1';ctx.font='13px "Segoe UI",sans-serif';
       ctx.fillText('Для карты отклонений нужен результат CMYK того же размера.',16,32);return;}
     const map=document.createElement('canvas');map.width=data.maps.width;map.height=data.maps.height;
     const mapCtx=map.getContext('2d'),pixels=mapCtx.createImageData(map.width,map.height);
-    const limit=data.threshold/400*255;
+    const limit=data.threshold*255/100;
     for(let i=0;i<values.length;i++){
       const value=values[i],at=i*4,over=view==='ink'&&value>limit;
-      pixels.data[at]=view==='difference'?Math.min(255,value*2):over?255:Math.round(value*.7);
-      pixels.data[at+1]=view==='difference'?Math.max(0,180-value):over?Math.max(30,255-value):Math.min(210,80+value);
+      if(view==='kOnly'){
+        const color=value===2?[248,113,113]:value===1?[80,220,190]:[24,37,49];
+        pixels.data.set([...color,255],at);continue;
+      }
+      const display=view==='ink'?Math.round(value/4):value;
+      pixels.data[at]=view==='difference'?Math.min(255,display*2):over?255:Math.round(display*.7);
+      pixels.data[at+1]=view==='difference'?Math.max(0,180-display):over?Math.max(30,255-display):Math.min(210,80+display);
       pixels.data[at+2]=view==='difference'?Math.max(0,210-value):over?30:210;
       pixels.data[at+3]=255;
     }
@@ -937,6 +955,45 @@ export function createAnalysis({ app }, deps) {
     type.addEventListener('change',()=>{deps.closeAnalysisRegion();updateAnalysis();});
     cmykView.addEventListener('change',drawAnalysis);
     inkLimit.addEventListener('change',()=>{inkLimit.value=String(Math.max(0,Math.min(400,Math.round(Number(inkLimit.value)||0))));updateAnalysis();});
+    const currentPrintProfile=()=>normalizePrintCheckProfile({schema:DEFAULT_PRINT_CHECK_PROFILE.schema,version:1,
+      name:printName.value,tacLimit:Number(inkLimit.value),preserveKOnly:printKOnly.checked});
+    printName.addEventListener('input',()=>{printStatus.textContent='';syncControls();drawAnalysis();});
+    printKOnly.addEventListener('change',()=>{printStatus.textContent='';syncControls();drawAnalysis();});
+    get('analysisPrintExport').addEventListener('click',()=>{
+      try{
+        const profile=currentPrintProfile();
+        deps.downloadBlob(new Blob([printCheckProfileText(profile)],{type:'application/json'}),'image-format-lab-test-profile.json');
+        printStatus.textContent='Тестовый профиль сохранён в JSON. Это не ICC-файл.';
+      }catch(error){printStatus.textContent=error.message;}
+    });
+    const profileFile=get('analysisPrintFile');
+    get('analysisPrintImport').addEventListener('click',()=>profileFile.click());
+    profileFile.addEventListener('change',async()=>{
+      const file=profileFile.files?.[0];profileFile.value='';if(!file)return;
+      try{
+        if(file.size>4096)throw new Error('Файл тестового профиля слишком велик.');
+        const profile=parsePrintCheckProfile(await file.text());
+        printName.value=profile.name;inkLimit.value=String(profile.tacLimit);printKOnly.checked=profile.preserveKOnly;
+        printStatus.textContent=`Загружен тестовый профиль «${profile.name}». ICC файла не изменён.`;
+        updateAnalysis();
+      }catch(error){printStatus.textContent=error.message||String(error);}
+    });
+    get('analysisPrintReset').addEventListener('click',()=>{
+      printName.value=DEFAULT_PRINT_CHECK_PROFILE.name;
+      inkLimit.value=String(DEFAULT_PRINT_CHECK_PROFILE.tacLimit);
+      printKOnly.checked=DEFAULT_PRINT_CHECK_PROFILE.preserveKOnly;
+      printStatus.textContent='Начальный тестовый профиль восстановлен.';
+      updateAnalysis();
+    });
+    cards.forEach((card,side)=>card.peak.addEventListener('click',()=>{
+      const data=results[side]?.data,point=data?.firstOverPoint,input=selected(side);
+      if(type.value!=='cmyk'||!point||!input.cmyk||!app.source)return;
+      app.view.centerX=(point.x+.5)*app.source.width/input.cmyk.width;
+      app.view.centerY=(point.y+.5)*app.source.height/input.cmyk.height;
+      app.view.absoluteScale=Math.max(1,app.view.absoluteScale||0);
+      deps.drawAll();
+      printStatus.textContent=`Ячейка ${side+1}: участок превышения у пикселя (${point.x}, ${point.y}) выведен в центр просмотра.`;
+    }));
     floatRange.addEventListener('change',updateAnalysis);
     for(const field of [floatMin,floatMax])field.addEventListener('input',updateAnalysis);
     cieView.addEventListener('change',updateAnalysis);

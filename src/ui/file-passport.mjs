@@ -6,9 +6,29 @@ export function createFilePassport({ app }, deps) {
   const structureSection=get('filePassportStructureSection'),structureSummary=get('filePassportStructureSummary'),structureRows=get('filePassportStructure');
   const timingSection=get('filePassportTimingSection'),timingFields=get('filePassportTiming');
   const cache = new WeakMap();
+  const profileHashes=new WeakMap();
   let target = 'source', attached = false, request = 0, controller = null, current = null, optionsKey = '';
   const same = (a, b) => a && b && a.source === b.source && a.sourceGeneration === b.sourceGeneration && a.blob === b.blob && a.pixels === b.pixels && a.generation === b.generation && a.target === b.target && a.message === b.message;
   const number = value => value.toLocaleString('ru-RU', { maximumFractionDigits: 6 });
+  const sameBytes=(a,b)=>a===b||Boolean(a&&b&&a.length===b.length&&a.every((value,index)=>value===b[index]));
+  function profileIdentity(snapshot){
+    const profile=snapshot.cmyk?.iccProfile;
+    if(!profile)return null;
+    const id=profile.length>=100?Array.from(profile.subarray(84,100),byte=>byte.toString(16).padStart(2,'0')).join(''):'';
+    const parts=[`${number(profile.length)} байт`];
+    if(id&&!/^0+$/.test(id))parts.push(`ID ${id}`);
+    const cached=profileHashes.get(profile);
+    if(cached?.hash)parts.push(`SHA-256 ${cached.hash}`);
+    else if(!cached&&globalThis.crypto?.subtle){
+      profileHashes.set(profile,{pending:true});
+      globalThis.crypto.subtle.digest('SHA-256',profile.slice().buffer).then(bytes=>{
+        const hash=Array.from(new Uint8Array(bytes),byte=>byte.toString(16).padStart(2,'0')).join('');
+        profileHashes.set(profile,{hash});
+        if(dialog.open&&same(current,snapshot))raster(snapshot);
+      }).catch(()=>profileHashes.set(profile,{unavailable:true}));
+    }
+    return parts.join(' · ');
+  }
 
   function selected() {
     const source = app.source;
@@ -105,9 +125,16 @@ export function createFilePassport({ app }, deps) {
       ['Цветовая метка растра', { srgb: 'sRGB', 'display-p3': 'Display P3', unknown: 'Неизвестна' }[info.colorSpace]],
       ['Хранение alpha', info.alphaMode === 'straight' ? 'Независимый канал' : 'RGB умножен на alpha']
     ] : [['Рабочий растр', 'Недоступен']];
-    if(snapshot.cmyk)rows.push(['Исходные каналы','CMYK · 8 бит/канал · без промежуточного RGB'],
-      ['Встроенный профиль CMYK',snapshot.cmyk.iccProfile?'Есть; сохраняется при записи CMYK TIFF/JPEG':'Отсутствует; профиль не подставляется'],
-      ['Экранный просмотр','RGB-показ не является цветопробой. CMYK-графики считают исходные каналы.']);
+    if(snapshot.cmyk){
+      const embedded=snapshot.cmyk.iccProfile,original=snapshot.source?.cmyk?.iccProfile;
+      const relation=snapshot.target==='source'?'в исходном файле':original
+        ?embedded?(sameBytes(embedded,original)?'сохранён побайтово':'отличается от исходного'):'отсутствует в результате'
+        :embedded?'в результате; в исходнике отсутствует':'не задан';
+      rows.push(['Исходные каналы','CMYK · 8 бит/канал · без промежуточного RGB'],
+        ['Встроенный ICC',embedded?`${relation} · ${profileIdentity(snapshot)}`:`${relation}; профиль не подставляется`],
+        ['Тестовый профиль','Отдельные правила анализа; не встроен в файл и не является ICC.'],
+        ['Экранный просмотр','RGB-показ не является цветопробой. CMYK-графики считают исходные каналы.']);
+    }
     if (snapshot.floatStats) {
       const stats=snapshot.floatStats;
       rows.push(['Диапазон float32 (R, G, B, α)', stats.min.map((value,i)=>`${String(value).replace('.', ',')}…${String(stats.max[i]).replace('.', ',')}`).join(' · ')],

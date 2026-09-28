@@ -262,7 +262,7 @@
           <label id="analysisFloatRangeField" hidden>Диапазон <select class="select" id="analysisFloatRange"><option value="unit">0–1</option><option value="auto">Авто по исходнику</option><option value="manual">Вручную</option></select></label>
           <label id="analysisFloatMinField" hidden>От <input class="small-input" id="analysisFloatMin" type="number" step="any" value="0"></label>
           <label id="analysisFloatMaxField" hidden>До <input class="small-input" id="analysisFloatMax" type="number" step="any" value="1"></label>
-          <label id="analysisCmykViewField" hidden>CMYK <select class="select" id="analysisCmykView"><option value="histogram">Каналы C/M/Y/K</option><option value="difference">Отклонение каналов</option><option value="ink">Сумма красок</option></select></label>
+          <label id="analysisCmykViewField" hidden>CMYK <select class="select" id="analysisCmykView"><option value="histogram">Каналы C/M/Y/K</option><option value="difference">Отклонение каналов</option><option value="ink">Сумма красок</option><option value="kOnly">Только K</option></select></label>
           <label id="analysisInkLimitField" hidden>Порог красок, % <input class="small-input" id="analysisInkLimit" type="number" min="0" max="400" step="1" value="300"></label>
           <label id="analysisMatteField">Подложка <select class="select" id="analysisMatte" aria-label="Подложка RGB для анализа"><option value="white">Белая</option><option value="black">Чёрная</option></select></label>
           <label class="analysis-level" id="analysisLevelField"><span id="analysisLevelLabel">Уровень</span> <input id="analysisLevel" type="range" min="0" max="255" value="128"><output id="analysisLevelValue" for="analysisLevel">128</output></label>
@@ -274,6 +274,21 @@
           <button class="text-btn" id="analysisLineOpen" type="button" aria-expanded="false" aria-controls="analysisRegionEditor" hidden>Линия…</button>
         </div>
       </div>
+      <details class="analysis-print-check" id="analysisPrintCheck" hidden>
+        <summary>Тестовый профиль: <span id="analysisPrintCheckSummary">300% · K-only</span></summary>
+        <p class="analysis-note">Это собственные условия проверки численных CMYK-каналов, а не ICC-профиль или цветопроба типографии.</p>
+        <div class="analysis-print-check-fields">
+          <label>Название <input id="analysisPrintName" type="text" maxlength="80" value="Тестовый профиль · 300%"></label>
+          <label><input id="analysisPrintKOnly" type="checkbox" checked> Требовать сохранения пикселей только с K</label>
+        </div>
+        <div class="analysis-actions">
+          <button class="text-btn" id="analysisPrintExport" type="button">Сохранить JSON</button>
+          <button class="text-btn" id="analysisPrintImport" type="button">Загрузить JSON</button>
+          <button class="text-btn" id="analysisPrintReset" type="button">Начальные условия</button>
+          <input id="analysisPrintFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p class="analysis-note" id="analysisPrintStatus" role="status" aria-live="polite"></p>
+      </details>
       <section class="analysis-region" id="analysisRegionEditor" aria-label="Общая область анализа" hidden>
         <p class="analysis-note" id="analysisGeometryHint">Выделите область на исходнике или задайте её в процентах. Графики используют область без кадрирования файла; после применения отдельный исходник можно создать кнопкой рядом со списком областей.</p>
         <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/comparison#scope">Как работает область</button>
@@ -339,24 +354,28 @@
           <p class="analysis-info" hidden></p>
           <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 1" hidden></canvas>
           <p class="analysis-values"></p>
+          <button class="text-btn analysis-cmyk-peak" type="button" hidden>К превышению краски</button>
         </div>
         <div class="analysis-card" data-analysis-side="1">
           <span class="analysis-index" aria-hidden="true">2</span>
           <p class="analysis-info" hidden></p>
           <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 2" hidden></canvas>
           <p class="analysis-values"></p>
+          <button class="text-btn analysis-cmyk-peak" type="button" hidden>К превышению краски</button>
         </div>
         <div class="analysis-card" data-analysis-side="2" hidden>
           <span class="analysis-index" aria-hidden="true">3</span>
           <p class="analysis-info" hidden></p>
           <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 3" hidden></canvas>
           <p class="analysis-values"></p>
+          <button class="text-btn analysis-cmyk-peak" type="button" hidden>К превышению краски</button>
         </div>
         <div class="analysis-card" data-analysis-side="3" hidden>
           <span class="analysis-index" aria-hidden="true">4</span>
           <p class="analysis-info" hidden></p>
           <canvas class="analysis-chart" role="img" aria-label="Гистограмма ячейки 4" hidden></canvas>
           <p class="analysis-values"></p>
+          <button class="text-btn analysis-cmyk-peak" type="button" hidden>К превышению краски</button>
         </div>
       </div>
       <p class="analysis-note" id="analysisPrecision" hidden></p>

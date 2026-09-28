@@ -7,6 +7,7 @@ const tests = ['publication-policy', 'knowledge', 'knowledge-ui', 'build-regress
 tests.push('raster-worker', 'analysis-report', 'pixel-buffer', 'pixel-metrics', 'histogram-precision', 'float-source-histogram', 'error-histogram', 'viewer-error-histogram', 'reference-samples', 'experiment-protocol', 'viewer-experiment-protocol', 'quality-series', 'quality-series-controller', 'viewer-quality-series', 'png-precision', 'pixel-inspector', 'viewer-pixel-inspector', 'file-passport', 'viewer-file-passport', 'processing-timing');
 tests.push('wipe-view', 'viewer-wipe-view');
 tests.push('heif-blocks');
+tests.push('print-check');
 tests.push('jxl-blocks');
 tests.push('analysis-guides');
 tests.push('crop-source');

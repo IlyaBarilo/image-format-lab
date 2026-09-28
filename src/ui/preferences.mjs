@@ -8,7 +8,9 @@ export function createPreferences({app,els},deps){
   function captureUserPreferences(){
     const fields=Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[id,fallback]])=>[key,typeof fallback==='number'?Number(get(id).value):get(id).value]));
     return normalizePreferences({version:1,comparison:deps.captureComparison(),filesVisible:!els.workspace.classList.contains('files-hidden'),pixelGrid:app.pixelGrid,gridMode:app.gridMode,display:app.display,
-      panels:deps.captureAnalysisLayoutPreferences(),analysis:{...fields,floatMin:Number(get('analysisFloatMin').value),floatMax:Number(get('analysisFloatMax').value),...deps.captureAnalysisOutputPreferences(),...deps.captureAnalysisRegionPreferences()}});
+      panels:deps.captureAnalysisLayoutPreferences(),analysis:{...fields,floatMin:Number(get('analysisFloatMin').value),floatMax:Number(get('analysisFloatMax').value),
+        printName:get('analysisPrintName').value,preserveKOnly:get('analysisPrintKOnly').checked,
+        ...deps.captureAnalysisOutputPreferences(),...deps.captureAnalysisRegionPreferences()}});
   }
   function applyInterface(value){
     els.workspace.classList.toggle('files-hidden',!value.filesVisible);
@@ -22,6 +24,8 @@ export function createPreferences({app,els},deps){
     els.pixelGrid.classList.toggle('active',app.pixelGrid);
     deps.syncGridModeUI?.();
     for(const [key,[id]] of Object.entries(ANALYSIS_PREFERENCE_FIELDS))get(id).value=String(value.analysis[key]);
+    get('analysisPrintName').value=value.analysis.printName;
+    get('analysisPrintKOnly').checked=value.analysis.preserveKOnly;
     get('analysisFloatMin').value=String(value.analysis.floatMin);get('analysisFloatMax').value=String(value.analysis.floatMax);
     get('analysisLevelValue').textContent=String(value.analysis.level);
     get('analysisPositionValue').textContent=(value.analysis.position/10).toLocaleString('ru-RU')+'%';

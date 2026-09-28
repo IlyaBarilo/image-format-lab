@@ -1,6 +1,6 @@
 
 
-import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels, createTiffFloatSample, createIccP3Sample } from '../core/reference-samples.mjs';
+import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels, createTiffFloatSample, createIccP3Sample, createCmykPrintSample } from '../core/reference-samples.mjs';
 import { pngPreview } from '../core/png.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
@@ -77,6 +77,12 @@ export function createSource({app, els}, deps) {
       return new File([blob],sample.fileName,{type:'image/png'});
     }
     if(id==='tiffFloat')return new File([createTiffFloatSample().bytes],sample.fileName,{type:'image/tiff'});
+    if(id==='cmykPrint'){
+      const codec=await deps.loadTiffCodec();
+      const blob=await codec.encodeCmyk(createCmykPrintSample(),'tiff',
+        {tiffCompression:'deflate',tiffLevel:6,tiffPredictor:true});
+      return new File([blob],sample.fileName,{type:'image/tiff'});
+    }
     if(id==='tiff16'){
       const pixels=createTiff16SamplePixels(),preview=pngPreview(pixels);
       const codec=await deps.loadTiffCodec();

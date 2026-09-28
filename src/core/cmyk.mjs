@@ -155,7 +155,8 @@ export function cmykStatistics(cmyk, reference = null, threshold = 300, region =
   if(box.width<=0||box.height<=0)throw new Error('Пустая область CMYK-анализа.');
   const histograms=Array.from({length:4},()=>new Uint32Array(256));
   const sum=[0,0,0,0],absolute=[0,0,0,0];
-  let overLimit=0,peakTac=0,peakDifference=0;
+  let overLimit=0,peakTac=-1,peakTacPoint=null,firstOverPoint=null,peakDifference=0;
+  let kOnlyPixels=0,kOnlyRetained=0;
   for(let y=box.y;y<box.y+box.height;y++)for(let x=box.x;x<box.x+box.width;x++){
     const at=(y*width+x)*4;let total=0,pointDifference=0;
     for(let c=0;c<4;c++){
@@ -163,13 +164,20 @@ export function cmykStatistics(cmyk, reference = null, threshold = 300, region =
       if(reference){const delta=Math.abs(value-reference.data[at+c]);absolute[c]+=delta;pointDifference=Math.max(pointDifference,delta);}
     }
     const tac=total*100/255;
-    peakTac=Math.max(peakTac,tac);if(tac>threshold)overLimit++;
+    if(tac>peakTac){peakTac=tac;peakTacPoint={x,y};}
+    if(tac>threshold){overLimit++;firstOverPoint??={x,y};}
+    const expected=reference||raster,expectedData=expected.data;
+    if(expectedData[at]===0&&expectedData[at+1]===0&&expectedData[at+2]===0&&expectedData[at+3]>0){
+      kOnlyPixels++;
+      if(data[at]===0&&data[at+1]===0&&data[at+2]===0&&data[at+3]>0)kOnlyRetained++;
+    }
     peakDifference=Math.max(peakDifference,pointDifference);
   }
   const pixels=box.width*box.height;
   return {width:box.width,height:box.height,pixelCount:pixels,histograms,
     means:sum.map(n=>n/pixels/255*100),tacMaximum:peakTac,tacOverPixels:overLimit,
-    tacOverPercent:overLimit/pixels*100,threshold,
+    tacOverPercent:overLimit/pixels*100,threshold,peakTacPoint,firstOverPoint,
+    kOnly:{sourcePixels:kOnlyPixels,retainedPixels:kOnlyRetained,lostPixels:kOnlyPixels-kOnlyRetained},
     difference:reference?{meanAbsolute:absolute.map(n=>n/pixels/255*100),peak:peakDifference/255*100}:null};
 }
 
@@ -178,7 +186,10 @@ export function cmykDiagnostic(cmyk, reference = null, threshold = 300, region =
   const box=region?{x:Math.max(0,Math.floor(region.x)),y:Math.max(0,Math.floor(region.y))}:{x:0,y:0};
   const scale=Math.max(1,Math.ceil(Math.max(stats.width,stats.height)/512));
   const width=Math.ceil(stats.width/scale),height=Math.ceil(stats.height/scale);
-  const tac=new Uint8Array(width*height),difference=reference?new Uint8Array(width*height):null;
+  // Keep the exact 0..1020 sum so pixels close to the threshold are not
+  // misclassified by an 8-bit display map.
+  const tac=new Uint16Array(width*height),difference=reference?new Uint8Array(width*height):null;
+  const kOnly=new Uint8Array(width*height);
   for(let y=0;y<stats.height;y++)for(let x=0;x<stats.width;x++){
     const at=((box.y+y)*cmyk.width+box.x+x)*4,to=Math.floor(y/scale)*width+Math.floor(x/scale);
     let total=0,delta=0;
@@ -186,8 +197,13 @@ export function cmykDiagnostic(cmyk, reference = null, threshold = 300, region =
       total+=cmyk.data[at+c];
       if(reference)delta=Math.max(delta,Math.abs(cmyk.data[at+c]-reference.data[at+c]));
     }
-    tac[to]=Math.max(tac[to],Math.round(total/4));
+    tac[to]=Math.max(tac[to],total);
     if(difference)difference[to]=Math.max(difference[to],delta);
+    const expected=(reference||cmyk).data;
+    if(expected[at]===0&&expected[at+1]===0&&expected[at+2]===0&&expected[at+3]>0){
+      const retained=cmyk.data[at]===0&&cmyk.data[at+1]===0&&cmyk.data[at+2]===0&&cmyk.data[at+3]>0;
+      kOnly[to]=Math.max(kOnly[to],retained?1:2);
+    }
   }
-  return {...stats,maps:{width,height,scale,tac,difference}};
+  return {...stats,maps:{width,height,scale,tac,difference,kOnly}};
 }
