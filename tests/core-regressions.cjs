@@ -74,7 +74,9 @@ async function check(name, run) {
   console.log(`Node ${process.version}`);
   await check('comparison preserves ICO proportions and 100% pixel scale', async () => {
     const { createCanvas } = await import('../src/ui/canvas.mjs');
-    const app = { source: { width: 960, height: 640 }, view: { centerX: 480, centerY: 320 } };
+    const { DEFAULT_DISPLAY } = await import('../src/core/display-sdr.mjs');
+    const app = { source: { width: 960, height: 640 }, display: { ...DEFAULT_DISPLAY },
+      view: { centerX: 480, centerY: 320 } };
     const image = { width: 256, height: 256 }; let drawn;
     const actions = createCanvas({ app, els: {} }, { drawBackground() {}, drawImageFrame() {}, getDrawScale: () => 2 });
     actions.drawVariant({ canvas: { width: 1000, height: 800 }, bitmap: image, ctx: { drawImage: (...args) => { drawn = args; } } });

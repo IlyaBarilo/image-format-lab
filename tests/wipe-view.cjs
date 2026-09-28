@@ -57,6 +57,7 @@ const assert=require('node:assert/strict');
   new DataView(malformed.buffer).setUint32(16,999999,true);
   assert.equal(await webpBlockGrid(new Blob([malformed])),null,'out-of-bounds RIFF chunk is rejected');
   const {createCanvas}=await import('../src/ui/canvas.mjs');
+  const {DEFAULT_DISPLAY}=await import('../src/core/display-sdr.mjs');
   const strokes=[],segments=[];
   const context={save(){},restore(){},beginPath(){segments.length=0;},rect(){},clip(){},drawImage(){},
     setLineDash(value){this.dash=[...value];},
@@ -64,7 +65,8 @@ const assert=require('node:assert/strict');
     stroke(){strokes.push({width:this.lineWidth,dash:this.dash||[],segments:segments.map(part=>[...part])});}};
   const preview={width:256,height:256,getBoundingClientRect:()=>({width:256,height:256})};
   const result={index:1,canvas:preview,ctx:context,bitmap:{width:32,height:32},resultConfig:{format:'jpeg',jpegSubsampling:'422'}};
-  const gridApp={source:{width:32,height:32},view:{centerX:16,centerY:16},gridMode:'codec-blocks',pixelGrid:true};
+  const gridApp={source:{width:32,height:32},view:{centerX:16,centerY:16},gridMode:'codec-blocks',pixelGrid:true,
+    display:{...DEFAULT_DISPLAY}};
   const drawing=createCanvas({app:gridApp,els:{}},{drawBackground(){},drawImageFrame(){},getDrawScale:()=>4,isVariantReady:()=>true});
   drawing.drawVariant(result);
   assert.equal(strokes.length,2,'JPEG grid has fine DCT lines and stronger MCU lines');

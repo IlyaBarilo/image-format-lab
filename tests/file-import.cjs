@@ -37,7 +37,7 @@ const assert = require('node:assert/strict');
   const decode = file => ({ file, name: file.name, width: 8, height: 4, size: file.size });
   const actions = {
     showStatus: (...args) => statuses.push(args), updateFileList() {}, updateBatchUI() {},
-    updateAnalysis() {}, clearBatchPreview() {}, resetView() {}, drawAll() {},
+    updateAnalysis() {}, clearBatchPreview() {}, syncDisplayControls() {}, resetView() {}, drawAll() {},
     formatBytes: bytes => String(bytes), setEmptyState: () => { els.emptyState.style.display = 'grid'; },
     decodeSourceFile: async file => { opened.push(file.name); return decode(file); },
     renderVisibleVariants: async () => { rendered.push(app.source.name); }

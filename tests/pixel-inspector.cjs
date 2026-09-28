@@ -70,8 +70,10 @@ const assert = require('node:assert/strict');
   global.document = { getElementById: get, createElement: () => new Element() };
   global.window = { devicePixelRatio: 2 };
   const sourcePixels = createPixelBuffer({ ...reference, width: 4, height: 2, data: new Uint16Array(Array.from({ length: 32 }, (_, i) => i * 257 + (i % 4 === 0 ? 1 : 0))) });
+  const { DEFAULT_DISPLAY } = await import('../src/core/display-sdr.mjs');
   const app = { source: { width: 4, height: 2, pixelBuffer: sourcePixels, canvas: {} }, sourceGeneration: 1,
-    layout: 2, variants: [], pointer: {}, view: { centerX: 2, centerY: 1, absoluteScale: 20, zoom: 1 } };
+    display: { ...DEFAULT_DISPLAY }, layout: 2, variants: [], pointer: {},
+    view: { centerX: 2, centerY: 1, absoluteScale: 20, zoom: 1 } };
   let encodes = 0, computes = 0, paints = 0, strokes = 0;
   const { createCanvas } = await import('../src/ui/canvas.mjs');
   const { createPixelInspector } = await import('../src/ui/pixel-inspector.mjs');
