@@ -215,7 +215,7 @@ async function batch(page) {
         await page.setViewportSize({width,height:1000});
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'overflow at '+width);
         assert.ok((await page.locator('#batchPanel').boundingBox()).height>100);
-        assert.ok(await page.locator('.cell').nth(1).locator('canvas').evaluate(el=>el.height)>50);
+        await page.waitForFunction(()=>document.querySelectorAll('.cell')[1]?.querySelector('canvas')?.height>50);
       }
       await page.locator('.cell').nth(1).locator('.cell-foot').scrollIntoViewIfNeeded();
       const footer=await page.locator('.cell').nth(1).locator('.cell-foot').boundingBox();

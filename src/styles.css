@@ -466,6 +466,10 @@ select:disabled {
 @media (max-width: 480px) {
   .batch-dialog form { padding: 16px; }
   .batch-dialog h2 { font-size: 19px; }
+  #batchDialog .batch-dialog-head { flex-wrap: wrap; }
+  #batchDialog .batch-dialog-head > div { flex: 1 1 auto; min-width: 0; }
+  #batchDialogClose { order: 2; }
+  #batchFormatHelp { order: 3; margin-left: auto; }
   .batch-dialog-actions { flex-direction: column-reverse; }
   .batch-dialog-actions button { width: 100%; justify-content: center; }
   .batch-preview-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1011,7 +1015,7 @@ select:disabled {
 .stage.has-analysis .grid { position: relative; height: auto; min-height: min-content; }
 .stage.has-analysis .grid.two { grid-template-rows: minmax(min-content, 1fr); }
 .stage.has-analysis .grid.four { grid-template-rows: repeat(2, minmax(min-content, 1fr)); }
-.stage.has-analysis .cell { grid-template-rows: auto minmax(48px, 1fr) auto; }
+.stage.has-analysis .cell { grid-template-rows: auto minmax(80px, 1fr) auto; }
 .stage.has-analysis[data-analysis-size="max"] { grid-template-rows: auto 12px minmax(240px, 1fr); }
 .stage.has-batch.has-analysis[data-analysis-size="max"] { grid-template-rows: auto auto 12px minmax(240px, 1fr); }
 .stage.has-analysis[data-analysis-size="max"] .cell { grid-template-rows: auto auto; }

@@ -190,7 +190,7 @@ async function download(page, button) {
       if(format==='tiff') {
         await page.locator('#batchTiffSettings').click();
         await page.locator('#tiffCompression').selectOption('lzw');
-        await page.locator('#tiffSettingsDialog button').click();
+        await page.locator('#tiffSettingsDialog form[method="dialog"] button').click();
       }
       await page.waitForFunction(()=>isBatchPreviewReady()&&!app.batchPreview.busy);
       const dims=await page.evaluate(()=>[app.batchPreview.width,app.batchPreview.height]);
