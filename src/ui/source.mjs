@@ -67,6 +67,12 @@ export function createSource({app, els}, deps) {
   async function createSampleFile(id='canvas') {
     const sample=SAMPLE_CATALOG.find(item=>item.id===id);
     if(!sample)throw new Error('Неизвестный образец.');
+    if(id==='photo'){
+      const encoded=JSON.parse(document.getElementById('embedded-samples')?.textContent||'{}').photo;
+      if(typeof encoded!=='string'||!encoded.length)throw new Error('Встроенный образец отсутствует. Пересоберите приложение.');
+      const bytes=Uint8Array.from(atob(encoded),character=>character.charCodeAt(0));
+      return new File([bytes],sample.fileName,{type:'image/webp'});
+    }
     if(REFERENCE_SAMPLES[id]){
       const blob=await deps.encodeExactPng(createReferenceSamplePixels(id),8);
       return new File([blob],sample.fileName,{type:'image/png'});

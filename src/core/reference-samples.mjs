@@ -1,4 +1,4 @@
-// Reproducible RGBA8 inputs made from integer pixel formulas; no Canvas or external images.
+// Reproducible sample catalog and RGBA8 inputs made from integer pixel formulas.
 import { createPixelBuffer } from './pixel-buffer.mjs';
 import { createCmykRaster } from './cmyk.mjs';
 
@@ -11,6 +11,8 @@ export const REFERENCE_SAMPLES = Object.freeze({
 export const SAMPLE_CATALOG = Object.freeze([
   Object.freeze({id:'canvas',label:'Текст, линии и прозрачность',fileName:'sample-alpha-lines.png',size:'960×640',
     description:'Текст, тонкие линии, цветные переходы и прозрачные детали.'}),
+  Object.freeze({id:'photo',label:'Фотоиллюстрация · фактуры',fileName:'ifl-photo-still-life-v1.webp',size:'1536×1024',
+    description:'Натюрморт с тканью, листьями и мелкими деталями. WebP без потерь; подходит для сравнения сжатия и выбора фрагментов.'}),
   ...Object.entries(REFERENCE_SAMPLES).map(([id, sample]) => Object.freeze({id,...sample,size:'512×320'})),
   Object.freeze({id:'tiff16',label:'TIFF16 · точность градиента',fileName:'ifl-tiff16-v1.tif',size:'512×256',
     description:'Точный 16-битный градиент с различающимися младшими разрядами.'}),

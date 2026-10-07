@@ -13,6 +13,7 @@ import { buildKnowledge, knowledgeFiles, hintsFile, validateKnowledgeTargets } f
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { rasterSourceNames, modernSourceNames, codecNames, licenseNames, sourceNames, heicSourceNames, jpegSourceNames, jpeg2000SourceNames, binaryNames } = vendorFiles;
 const noticeNames = ['LICENSE', 'NOTICE.md', 'ASSETS.md', 'docs/licenses/esbuild-LICENSE', 'docs/licenses/acorn-LICENSE'];
+const samplePhotoPath = 'src/samples/ifl-photo-still-life-v1.webp';
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 // Git stores project text as LF. Keep the generated HTML independent of the
 // editor/checkout line endings; pinned vendor files continue to use raw bytes.
@@ -118,13 +119,14 @@ export async function buildViewer({ test = false, debug = false, release = false
   html = replaceOnce(html, '<!-- VIEWER_ICONS -->', readProjectText('src/icons.svg'));
   html = replaceOnce(html, '<!-- VIEWER_NOTICES -->', '<script type="application/json" id="embedded-notices">' + jsonForHtml(notices) + '</script>');
   html = replaceOnce(html, '<!-- VIEWER_KNOWLEDGE -->', '<script type="application/json" id="embedded-knowledge">' + jsonForHtml(knowledge) + '</script>');
+  html = replaceOnce(html, '<!-- VIEWER_SAMPLES -->', '<script type="application/json" id="embedded-samples">' + jsonForHtml({photo: fs.readFileSync(path.join(root, samplePhotoPath)).toString('base64')}) + '</script>');
   html = replaceOnce(html, '<!-- VIEWER_STYLES -->', '<style>\n' + css + '</style>');
   html = replaceOnce(html, '<!-- VIEWER_CODECS -->', '<script type="application/json" id="embedded-codecs">' + jsonForHtml(payload) + '</script>');
   // esbuild escapes inline-script sequences in its JavaScript output by default.
   if (/<\/script/i.test(app.outputFiles[0].text)) throw new Error('Unexpected closing script tag in bundle');
   html = replaceOnce(html, '<!-- VIEWER_SCRIPT -->', '<script>\n' + app.outputFiles[0].text + '</script>');
   html = html.replace(/<!doctype html>/i, match => match + '\n<!-- Generated from src/ by npm --prefix scripts run build. Edit the sources; this file is rebuilt. -->');
-  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, ...knowledgeFiles, hintsFile, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/knowledge.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
+  return { html, inputs, bytes: Buffer.byteLength(html), sha256: sha256(html), watchFiles: [...inputs, ...noticeNames, ...knowledgeFiles, hintsFile, samplePhotoPath, 'src/index.html', 'src/styles.css', 'src/icons.svg', 'src/favicon.svg', 'vendor/manifest.json', 'vendor/components.json', ...[...codecNames, ...licenseNames, ...sourceNames, ...heicSourceNames, ...jpegSourceNames, ...jpeg2000SourceNames, ...modernSourceNames, ...rasterSourceNames, ...binaryNames].map(n => 'vendor/' + n), 'scripts/build.mjs', 'scripts/knowledge.mjs', 'scripts/build-version.mjs', 'scripts/vendor-files.cjs', 'scripts/source-release.mjs', 'scripts/source-release.json', 'scripts/source-zip.cjs', 'scripts/package.json', 'scripts/package-lock.json'] };
 }
 
 function writeOutput(html, destination) {
