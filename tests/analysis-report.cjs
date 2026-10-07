@@ -106,6 +106,20 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
 }
 
 async function main() {
+  for(const [scope,region,label] of [
+    ['region',{unit:'pixels',x:8,y:4,width:48,height:24},'X 8, Y 4, 48×24 px'],
+    ['region',{x0:125,y0:125,x1:875,y1:875},'12.5%, 12.5%, 75% × 75%'],
+    ['full',null,'весь кадр'],
+    ['viewport',null,'видимая часть каждой ячейки']
+  ]) {
+    const snapshot=await makeSnapshot('waveform','delta');
+    Object.assign(snapshot.settings,{scope,region});
+    const before=structuredClone(snapshot),{report}=await exportReport(snapshot);
+    const labels=report.ops.filter(op=>op[0]==='fillText').map(op=>op[1]).join(' ');
+    assert.ok(labels.includes('область: '+label),labels);
+    assert.ok(!labels.includes('NaN'),labels);
+    assert.deepEqual(snapshot,before);
+  }
    for (const type of ['histogram','errorHistogram','waveform','ycbcrWaveform','parade','vectorscope','cieXy','deltaE','profile','difference','boundaryMap','tradeoff']) {
      const modes = type === 'tradeoff' ? ['metrics'] : ['difference','boundaryMap','deltaE'].includes(type) ? ['separate'] : ['vectorscope','errorHistogram','cieXy'].includes(type) ? ['separate','overlay'] : ['separate','overlay','delta'];
     for (const display of modes) {
