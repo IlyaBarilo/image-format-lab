@@ -9,7 +9,7 @@ const path = require('node:path');
   const data = buildKnowledge(root);
   assert.ok(data.hints.terms.length >= 20 && data.hints.controls.length >= 30);
   const topics = new Set(data.pages.flatMap(page => page.sections.map(section => page.id + '#' + section.id)));
-  assert.equal(data.pages.length, 28);
+  assert.equal(data.pages.length, knowledgeFiles.length);
   assert.deepEqual(new Set(Object.keys(FORMAT_DEFS)).difference(new Set(Object.keys(data.formatKnowledge))), new Set());
   for (const [format, page] of Object.entries(data.formatKnowledge)) assert.ok(topics.has(page + '#overview'), format);
   const viewer = fs.readFileSync(path.join(root, 'src/index.html'), 'utf8');
@@ -36,10 +36,18 @@ const path = require('node:path');
   validateKnowledgeTargets(data, sources);
   assert.throws(() => validateKnowledgeTargets(data, { 'src/index.html': '<button id="other">' }), /Missing hinted control/);
   assert.throws(() => validateKnowledgeTargets(data, { sample: '<button data-knowledge-target="formats/jpeg#missing">' }), /Broken context help target/);
+  assert.throws(() => validateKnowledgeTargets(data, { 'src/index.html': viewer.replace('id="analysisScope"', 'id="otherScope"') }), /Missing (operation|hinted) control/);
   for (const file of knowledgeFiles) assert.ok(file.startsWith('docs/knowledge/'));
   const html = fs.readFileSync(path.join(root, 'image-format-lab.html'), 'utf8');
   const embedded = JSON.parse(html.match(/id="embedded-knowledge">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(embedded, data);
   assert.ok(html.includes('id="knowledgeDialog"') && html.includes('id="knowledgeSearch"'));
-  console.log('PASS 28 offline knowledge pages, format and analysis coverage, diagrams and context targets');
+  const { HELP_OPERATIONS, helpCodeFromHash } = await import('../src/core/knowledge-targets.mjs');
+  for (const code of Object.keys(HELP_OPERATIONS)) {
+    assert.ok(topics.has('workflow/operations#' + code));
+    assert.equal(helpCodeFromHash('#help=' + code), code);
+  }
+  for (const hash of ['', '#other=crop-source', '#help=missing', '#help=constructor', '#help=__proto__', '#help=%3Cscript%3E', '#help=crop-source&help=export-graph'])
+    assert.equal(helpCodeFromHash(hash), null);
+  console.log('PASS offline knowledge pages, operation addresses, format and analysis coverage, diagrams and context targets');
 })().catch(error => { console.error(error); process.exitCode = 1; });

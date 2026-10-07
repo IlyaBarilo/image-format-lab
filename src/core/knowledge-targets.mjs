@@ -31,3 +31,22 @@ export const ANALYSIS_KNOWLEDGE = Object.freeze({
   ssim: 'analysis/differences#ssim',
   tradeoff: 'analysis/tradeoff#graph'
 });
+
+// Stable, deliberately limited navigation targets. A help URL never runs an operation.
+export const HELP_OPERATIONS = Object.freeze({
+  'crop-source': { title: 'Создать исходник из области', control: 'analysisScope', fallback: 'analysisType', analysis: true,
+    prerequisite: 'Выберите обычную «Гистограмму»: в режиме размера и точного float-исходника список области скрыт.' },
+  'view-layout': { title: 'Два или четыре окна', control: 'layout4' },
+  'format-settings': { title: 'Настроить формат изображения', selector: '.cell:not(.hidden) .format-select', fallback: 'layout2' },
+  'graph-settings': { title: 'Выбрать график и область анализа', control: 'analysisType', analysis: true },
+  'analysis-line': { title: 'Задать линию профиля', control: 'analysisLineOpen', fallback: 'analysisType', analysis: true,
+    prerequisite: 'Сначала выберите «Профиль по линии» или «Профиль ошибки» и откройте изображение.' },
+  'export-graph': { title: 'Сохранить график PNG', control: 'analysisPNG', analysis: true,
+    prerequisite: 'Дождитесь готовности графиков. Кнопка PNG сохраняет анализ, а не изображение из ячейки.' }
+});
+
+export function helpCodeFromHash(hash) {
+  const params = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+  const code = params.get('help');
+  return params.getAll('help').length === 1 && Object.hasOwn(HELP_OPERATIONS, code) ? code : null;
+}

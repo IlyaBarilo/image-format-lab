@@ -1,8 +1,10 @@
 // The build supplies validated, text-only Markdown blocks. No page text is HTML.
 import { renderKnowledgeDiagram } from './knowledge-diagrams.mjs';
+import { HELP_OPERATIONS, helpCodeFromHash } from '../core/knowledge-targets.mjs';
 export function createKnowledge() {
   let data, current = '', opener = null;
   let openTerm = null;
+  let highlighted = null, highlightTimer = null, pendingCode = null, guideGeneration = 0;
   const backStack = [];
   const $ = id => document.getElementById(id);
 
@@ -75,6 +77,15 @@ export function createKnowledge() {
       sectionEl.id = 'knowledge-' + page.id.replace('/', '-') + '-' + item.id;
       const title = document.createElement('h4'); title.textContent = item.title;
       sectionEl.append(title);
+      const operation = page.id === 'workflow/operations' && HELP_OPERATIONS[item.id];
+      if (operation) {
+        const show = document.createElement('button');
+        show.type = 'button'; show.className = 'text-btn knowledge-show';
+        show.textContent = 'Показать в интерфейсе';
+        show.setAttribute('aria-label', 'Показать в интерфейсе: ' + operation.title);
+        show.addEventListener('click', () => showOperation(item.id));
+        sectionEl.append(show);
+      }
       for (const block of item.blocks) {
         if (block.type === 'paragraph') {
           const p = document.createElement('p'); p.append(partsElement(block.parts)); sectionEl.append(p);
@@ -113,7 +124,8 @@ export function createKnowledge() {
       button.textContent = page.title;
       button.title = page.group;
       if (current.split('#')[0] === page.id) button.setAttribute('aria-current', 'page');
-      button.addEventListener('click', () => navigate(page.id + '#overview'));
+      const code = Object.hasOwn(HELP_OPERATIONS, query) ? query : null;
+      button.addEventListener('click', () => navigate(page.id + '#' + (page.id === 'workflow/operations' && code ? code : 'overview')));
       item.append(button); list.append(item); count++;
     }
     $('knowledgeSearchStatus').textContent = query ? `Найдено тем: ${count}` : '';
@@ -125,6 +137,7 @@ export function createKnowledge() {
     renderPage(target);
   }
   function openKnowledge(target = 'workflow/start#overview', trigger = document.activeElement) {
+    clearHighlight();
     const dialog = $('knowledgeDialog');
     if (!dialog.open) {
       opener = trigger;
@@ -136,6 +149,57 @@ export function createKnowledge() {
       $('knowledgeCurrent').focus();
     } else navigate(target);
   }
+  function clearHighlight() {
+    guideGeneration++;
+    if (highlightTimer !== null) clearTimeout(highlightTimer);
+    highlighted?.classList.remove('knowledge-highlight');
+    highlighted = null; highlightTimer = null;
+    const notice = $('knowledgeGuide');
+    if (notice) notice.hidden = true;
+  }
+  function otherDialogOpen() {
+    return document.querySelector('dialog[open]:not(#knowledgeDialog)');
+  }
+  function showOperation(code) {
+    const operation = HELP_OPERATIONS[code];
+    if (!operation) return;
+    if (otherDialogOpen()) {
+      $('knowledgeActionStatus').textContent = 'Сначала закройте другое окно приложения, затем повторите переход из справки.';
+      return;
+    }
+    clearHighlight();
+    $('knowledgeDialog').close();
+    // Only reveal the layout. Never select a format, change a region or start a download.
+    if (operation.analysis && $('analysisBody').hidden) $('analysisBalance').click();
+    const generation = guideGeneration;
+    requestAnimationFrame(() => {
+      if (generation !== guideGeneration || $('knowledgeDialog').open) return;
+      const visible = element => element && !element.closest('[hidden], .hidden') && element.getBoundingClientRect().width > 0;
+      let target = operation.control ? $(operation.control) : document.querySelector(operation.selector);
+      let message = operation.title;
+      if (!visible(target)) {
+        target = $(operation.fallback || 'analysisType');
+        message += '. ' + (operation.prerequisite || 'Верните отдельные окна кнопкой 2 в группе «Вид»; при скрытых изображениях выберите размер анализа «Баланс».');
+      } else if (target.disabled) message += '. ' + (operation.prerequisite || 'Сначала откройте изображение и дождитесь готовности.');
+      else message += '. Настройки изменяйте самостоятельно; Escape убирает подсказку.';
+      if (visible(target)) {
+        highlighted = target;
+        target.classList.add('knowledge-highlight');
+        target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        if (!target.disabled) target.focus({ preventScroll: true });
+      }
+      $('knowledgeGuideText').textContent = message;
+      $('knowledgeGuide').hidden = false;
+      highlightTimer = setTimeout(clearHighlight, 12000);
+    });
+  }
+  function openAddressHelp() {
+    pendingCode = helpCodeFromHash(globalThis.location?.hash);
+    if (pendingCode && !otherDialogOpen()) {
+      const code = pendingCode; pendingCode = null;
+      openKnowledge('workflow/operations#' + code);
+    }
+  }
   function attachKnowledgeEvents() {
     for (const hint of readData().hints.controls) {
       const control = $(hint.id);
@@ -146,10 +210,12 @@ export function createKnowledge() {
     }
     $('knowledgeBack').addEventListener('click', () => { if (backStack.length) navigate(backStack.pop(), false); });
     $('knowledgeSearch').addEventListener('input', renderIndex);
+    $('knowledgeGuideClose').addEventListener('click', clearHighlight);
     $('knowledgeDialog').addEventListener('close', () => {
       closeTerm();
       if (opener?.isConnected) opener.focus();
       opener = null;
+      $('knowledgeActionStatus').textContent = '';
     });
     document.addEventListener('click', event => {
       if (!event.target.closest?.('.knowledge-term')) closeTerm();
@@ -173,6 +239,7 @@ export function createKnowledge() {
       openKnowledge(link.dataset.knowledgeTarget, link);
     });
     document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !$('knowledgeGuide').hidden) { clearHighlight(); return; }
       if (event.key === 'Escape' && (openTerm || document.activeElement?.classList?.contains?.('knowledge-term'))) {
         event.preventDefault(); event.stopPropagation?.(); closeTerm(); document.activeElement?.blur?.(); return;
       }
@@ -198,6 +265,11 @@ export function createKnowledge() {
       const field = $(id);
       if (field) field.dataset.knowledgeTarget = target;
     }
+    globalThis.addEventListener?.('hashchange', openAddressHelp);
+    document.addEventListener('close', () => {
+      if (pendingCode && !otherDialogOpen()) openAddressHelp();
+    }, true);
+    requestAnimationFrame(openAddressHelp);
   }
   return { attachKnowledgeEvents, openKnowledge };
 }

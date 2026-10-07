@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { FORMAT_KNOWLEDGE, ANALYSIS_KNOWLEDGE } from '../src/core/knowledge-targets.mjs';
+import { FORMAT_KNOWLEDGE, ANALYSIS_KNOWLEDGE, HELP_OPERATIONS } from '../src/core/knowledge-targets.mjs';
 
 // Explicit inputs keep local/ and unrelated documents outside the build.
 export const knowledgeFiles = [
@@ -28,6 +28,7 @@ export const knowledgeFiles = [
   'docs/knowledge/analysis/differences.md',
   'docs/knowledge/analysis/tradeoff.md',
   'docs/knowledge/workflow/start.md',
+  'docs/knowledge/workflow/operations.md',
   'docs/knowledge/workflow/comparison.md',
   'docs/knowledge/workflow/inspection.md',
   'docs/knowledge/workflow/experiments.md',
@@ -139,6 +140,9 @@ export function buildKnowledge(root) {
     if (!pageById.has(id)) throw new Error(`Missing format knowledge for ${format}`);
   }
   const topics = new Set(pages.flatMap(page => page.sections.map(section => `${page.id}#${section.id}`)));
+  for (const code of Object.keys(HELP_OPERATIONS)) {
+    if (!topics.has(`workflow/operations#${code}`)) throw new Error(`Missing help operation: ${code}`);
+  }
   for (const term of hints.terms) if (term.target && !topics.has(term.target)) throw new Error(`Broken knowledge hint target: ${term.id}`);
   for (const [mode, target] of Object.entries(analysisKnowledge)) {
     if (!topics.has(target)) throw new Error(`Missing analysis knowledge for ${mode}: ${target}`);
@@ -157,5 +161,10 @@ export function validateKnowledgeTargets(data, sources) {
   }
   if (sources['src/index.html']) for (const hint of data.hints.controls) {
     if (!sources['src/index.html'].includes(`id="${hint.id}"`)) throw new Error(`Missing hinted control: ${hint.id}`);
+  }
+  if (sources['src/index.html']) for (const operation of Object.values(HELP_OPERATIONS)) {
+    for (const id of [operation.control, operation.fallback].filter(Boolean)) {
+      if (!sources['src/index.html'].includes(`id="${id}"`)) throw new Error(`Missing operation control: ${id}`);
+    }
   }
 }

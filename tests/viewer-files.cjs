@@ -8,7 +8,7 @@ let failures = 0;
 async function ready(page, name) {
   await page.waitForFunction(name => app.source?.name === name && !app.sourceLoading &&
     app.files.find(f => f.id === app.selectedFileId)?.status === 'ready' &&
-    app.variants.filter(v => !v.cell.classList.contains('hidden')).every(isVariantReady), name);
+    app.variants.filter(v => !v.cell.classList.contains('hidden')).every(isVariantReady), name, { timeout: 30000 });
 }
 async function selectedSource(page, name) {
   await page.waitForFunction(name => app.source?.name === name &&
@@ -49,11 +49,30 @@ async function snapshot(page) {
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
       try {
-        await page.goto(url);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // Cold codec startup is separate from file interactions and their timeouts.
+        // Workers allow up to 60 s after their embedded scripts have loaded.
+        await page.waitForFunction(() => ['ready', 'error'].includes(els.codecStatus.dataset.state), null, { timeout: 90000 });
+        const codecs = await page.evaluate(() => ({ state: els.codecStatus.dataset.state, details: els.codecStatus.title }));
+        assert.equal(codecs.state, 'ready', codecs.details);
         await run(page);
         assert.deepEqual(errors, []);
         console.log('PASS ' + name);
-      } catch (error) { failures++; console.error(`FAIL ${name}: ${error.stack}`); }
+      } catch (error) {
+        failures++; console.error(`FAIL ${name}: ${error.stack}`);
+        const state = await page.evaluate(() => ({
+          source: typeof app === 'undefined' ? null : { name: app.source?.name, loading: app.sourceLoading, error: app.sourceError },
+          files: typeof app === 'undefined' ? [] : app.files.map(file => ({ name: file.name, status: file.status, error: file.error })),
+          codecs: document.getElementById('codecStatus')?.dataset.state,
+          codecDetails: document.getElementById('codecStatus')?.title,
+          pendingCodecs: typeof app === 'undefined' ? [] : Object.keys(app.codecPromises),
+          variants: typeof app === 'undefined' ? [] : app.variants.map(variant => ({
+            format: variant.config.format, source: variant.resultSource?.name,
+            processing: variant.processing, dirty: variant.dirty, error: variant.error
+          }))
+        })).catch(error => ({ diagnosticError: error.message }));
+        console.error('Page state:', JSON.stringify({ ...state, pageErrors: errors }, null, 2));
+      }
       finally { await page.close(); }
     }
 
@@ -247,8 +266,7 @@ async function snapshot(page) {
 
     await check('clear during encoding revokes completed URLs and discards pending results', async page => {
       await page.locator('#fileInput').setInputFiles(files);
-      await page.waitForFunction(() => app.source?.name === 'first.png' && !app.sourceLoading &&
-        app.variants.slice(0, 2).every(isVariantReady), null, { timeout: 30000 });
+      await ready(page, 'first.png');
       const result = await page.evaluate(async () => {
         const real=encodeFromSource, realRevoke=URL.revokeObjectURL;
         const urls=app.variants.map(v=>v.url).filter(Boolean), revoked=[];

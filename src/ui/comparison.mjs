@@ -51,6 +51,12 @@ export function createComparison({app, els}, deps) {
     deps.updateMetrics(variant);
     let pendingBitmap = null;
     try {
+      // A file may be opened while the embedded codec is still starting.
+      // Join that attempt; a failed or absent attempt remains an explicit error.
+      if (def.codec && !app.codecs[def.codec] && app.codecPromises[def.codec]) {
+        await app.codecPromises[def.codec];
+        if (!current()) return;
+      }
       if (format !== "original") { const unavailable=deps.formatUnavailableReason(format); if(unavailable) throw new Error(unavailable); }
       const encodeTiming={},encodeRequested=performance.now();
       const encoded = await deps.encodeFromSource(config, source, current, encodeTiming);

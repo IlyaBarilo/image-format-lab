@@ -618,14 +618,19 @@
     <div class="knowledge-layout">
       <nav class="knowledge-nav" aria-label="Темы справки">
         <label for="knowledgeSearch">Поиск по справке</label>
-        <input id="knowledgeSearch" type="search" autocomplete="off" placeholder="Формат или понятие">
+        <input id="knowledgeSearch" type="search" autocomplete="off" placeholder="Тема или код действия">
         <p id="knowledgeSearchStatus" role="status" aria-live="polite"></p>
         <ul id="knowledgeIndex"></ul>
       </nav>
       <article class="knowledge-article" id="knowledgeContent" aria-label="Статья справки"></article>
     </div>
+    <p id="knowledgeActionStatus" role="status" aria-live="polite"></p>
     <p class="knowledge-offline-note">Статьи и схемы доступны без интернета. Ссылки на дополнительные материалы открывают внешние сайты.</p>
   </dialog>
+  <aside class="knowledge-guide" id="knowledgeGuide" hidden aria-label="Подсказка по действию">
+    <span id="knowledgeGuideText" role="status" aria-live="polite"></span>
+    <button class="text-btn" id="knowledgeGuideClose" type="button" aria-label="Скрыть подсказку">Закрыть</button>
+  </aside>
   <dialog class="study-dialog licenses-dialog" id="licensesDialog" aria-labelledby="licensesTitle" aria-describedby="licensesSummary">
     <div class="licenses-heading"><h2 id="licensesTitle">Лицензии и исходники</h2><form method="dialog"><button class="text-btn" aria-label="Закрыть лицензии" autofocus>Закрыть</button></form></div>
     <p id="licensesSummary"></p>

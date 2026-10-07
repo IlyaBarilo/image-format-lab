@@ -7,6 +7,9 @@ class Element {
     this.tag = tag; this.children = []; this.dataset = {}; this.listeners = {};
     this.textContent = ''; this.value = ''; this.disabled = false;
     this.isConnected = true; this.open = false; this.attributes = new Set();
+    this.hidden = false; this.style = {};
+    const classes = new Set();
+    this.classList = { add: value => classes.add(value), remove: value => classes.delete(value), contains: value => classes.has(value) };
   }
   append(...children) { this.children.push(...children); }
   replaceChildren(...children) { this.children = children; }
@@ -16,7 +19,10 @@ class Element {
   getAttribute(name) { return this.attributes.has(name) ? this[name] : null; }
   hasAttribute(name) { return this.attributes.has(name); }
   matches(selector) { return selector === 'button, a' && ['button', 'a'].includes(this.tag); }
+  getBoundingClientRect() { return { width: this.hidden ? 0 : 100 }; }
+  click() { this.emit('click'); }
   closest(selector) {
+    if (selector === '[hidden], .hidden') return this.hidden ? this : null;
     if (selector === '[data-knowledge-target]' && this.dataset.knowledgeTarget) return this;
     if (selector === '[data-knowledge-analysis-select]' && this.dataset.knowledgeAnalysisSelect) return this;
     if (selector === '[data-knowledge-format-select]' && this.dataset.knowledgeFormatSelect) return this;
@@ -32,7 +38,7 @@ class Element {
     return null;
   }
   focus() { global.document.activeElement = this; }
-  scrollIntoView() {}
+  scrollIntoView() { global.lastScrolledElement = this; }
   showModal() { this.open = true; }
   close() { this.open = false; this.emit('close'); }
 }
@@ -41,7 +47,8 @@ class Element {
   const root = path.resolve(__dirname, '..');
   const html = fs.readFileSync(path.join(root, 'image-format-lab.html'), 'utf8');
   const payload = html.match(/id="embedded-knowledge">([\s\S]*?)<\/script>/)[1];
-  const nodes = new Map(), events = {};
+  const nodes = new Map(), events = {}, windowEvents = {};
+  let otherDialog = null;
   const get = id => {
     if (!nodes.has(id)) { const element = new Element(); element.id = id; nodes.set(id, element); }
     return nodes.get(id);
@@ -55,11 +62,17 @@ class Element {
     createElement: tag => new Element(tag),
     createElementNS: (namespace, tag) => new Element(tag),
     createTextNode: text => { const node = new Element('text'); node.textContent = text; return node; },
+    querySelector(selector) { return selector.startsWith('dialog') ? otherDialog : get('formatSelect'); },
     addEventListener(name, fn) { events[name] = fn; }
   };
   global.requestAnimationFrame = fn => fn();
+  global.window = { innerWidth: 1200, innerHeight: 800 };
+  global.location = { hash: '#help=crop-source' };
+  global.addEventListener = (name, fn) => { windowEvents[name] = fn; };
   const { createKnowledge } = await import('../src/ui/knowledge.mjs');
   createKnowledge().attachKnowledgeEvents();
+  assert.match(get('knowledgeCurrent').textContent, /Действия по шагам/);
+  get('knowledgeDialog').close();
   assert.match(get('wipeMode').title, /границей/);
   assert.match(get('analysisPNG')['aria-description'], /графики/);
   const opener = new Element('button'); opener.dataset.knowledgeTarget = 'formats/jpeg#parameters';
@@ -120,5 +133,65 @@ class Element {
   events.keydown({ key: 'F1', preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
   assert.match(get('knowledgeCurrent').textContent, /Прозрачность/);
+  get('knowledgeDialog').close();
+  get('analysisBody').hidden = true;
+  let revealCount = 0;
+  get('analysisBalance').addEventListener('click', () => { revealCount++; get('analysisBody').hidden = false; });
+  const settings = { scope: 'viewport', format: 'jpeg', quality: 85 };
+  get('analysisScope').value = settings.scope;
+  function operation(code) {
+    global.location.hash = '#help=' + code;
+    windowEvents.hashchange();
+    const section = get('knowledgeContent').querySelector('#knowledge-workflow-operations-' + code);
+    return section.children.find(node => node.className === 'text-btn knowledge-show');
+  }
+  operation('crop-source').click();
+  assert.equal(get('knowledgeDialog').open, false);
+  assert.equal(revealCount, 1);
+  assert.equal(document.activeElement, get('analysisScope'));
+  assert.equal(get('analysisScope').value, settings.scope, 'help never applies a region');
+  assert.equal(get('analysisScope').classList.contains('knowledge-highlight'), true);
+  events.keydown({ key: 'Escape' });
+  assert.equal(get('knowledgeGuide').hidden, true);
+  assert.equal(get('analysisScope').classList.contains('knowledge-highlight'), false);
+  get('analysisLineOpen').hidden = true;
+  operation('analysis-line').click();
+  assert.equal(document.activeElement, get('analysisType'));
+  assert.match(get('knowledgeGuideText').textContent, /Сначала выберите/);
+  assert.equal(get('analysisType').value, 'ssim', 'help never changes graph type');
+  get('knowledgeGuideClose').click();
+  get('analysisPNG').disabled = true;
+  operation('export-graph').click();
+  assert.match(get('knowledgeGuideText').textContent, /Дождитесь/);
+  get('knowledgeGuideClose').click();
+  otherDialog = new Element('dialog');
+  global.location.hash = '#help=view-layout'; windowEvents.hashchange();
+  assert.equal(get('knowledgeDialog').open, false, 'address help waits for another dialog');
+  otherDialog = null; events.close();
+  assert.equal(get('knowledgeDialog').open, true);
+  const contentBefore = get('knowledgeContent').children;
+  global.location.hash = '#help=missing'; windowEvents.hashchange();
+  assert.equal(get('knowledgeContent').children, contentBefore, 'unknown hash is ignored');
+  get('knowledgeSearch').value = 'analysis-line'; get('knowledgeSearch').emit('input');
+  const codeResult = descendants(get('knowledgeIndex')).find(node => node.className === 'knowledge-index-link');
+  assert.equal(codeResult.textContent, 'Действия по шагам');
+  codeResult.click();
+  assert.ok(get('knowledgeContent').querySelector('#knowledge-workflow-operations-analysis-line'));
+  assert.equal(global.lastScrolledElement.id, 'knowledge-workflow-operations-analysis-line');
+  get('analysisType').value = 'floatSource'; get('analysisScope').hidden = true;
+  operation('crop-source').click();
+  assert.equal(document.activeElement, get('analysisType'));
+  assert.match(get('knowledgeGuideText').textContent, /Гистограмму/);
+  assert.equal(get('analysisType').value, 'floatSource');
+  operation('view-layout');
+  assert.equal(get('analysisType').classList.contains('knowledge-highlight'), false, 'opening help clears an earlier guide');
+  otherDialog = new Element('dialog');
+  const blocked = get('knowledgeContent').querySelector('#knowledge-workflow-operations-view-layout').children.find(node => node.className === 'text-btn knowledge-show');
+  blocked.click();
+  assert.match(get('knowledgeActionStatus').textContent, /другое окно/);
+  assert.equal(get('knowledgeDialog').open, true);
+  otherDialog = null;
+  get('knowledgeDialog').close();
   console.log('PASS contextual links, term hints, central control hints, diagrams, search, back, F1 and focus');
+  console.log('PASS address help, reveal without parameter changes, hidden/disabled controls, Escape and deferred dialogs');
 })().catch(error => { console.error(error); process.exitCode = 1; });
