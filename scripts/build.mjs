@@ -108,6 +108,7 @@ export async function buildViewer({ test = false, debug = false, release = false
   const css = readProjectText('src/styles.css');
   if (/<\/style/i.test(css)) throw new Error('Unexpected closing style tag in CSS');
   let html = readProjectText('src/index.html');
+  html = replaceOnce(html, '<!-- VIEWER_RELEASE_VERSION -->', releaseTag ? `<span class="app-version" aria-label="Версия ${releaseTag}">${releaseTag}</span>` : '');
   validateKnowledgeTargets(knowledge, {
     'src/index.html': html,
     'src/ui/controls.mjs': readProjectText('src/ui/controls.mjs'),

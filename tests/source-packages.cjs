@@ -68,7 +68,9 @@ class Element {
   }
   const { buildViewer } = await import('../scripts/build.mjs');
   const tag = 'v9.8.7-rc.1'; // Test-only tag; no real release is created.
-  const released = payloadOf((await buildViewer({ release: true, tag, sourceConfig: releaseConfig })).html);
+  const releaseBuild = await buildViewer({ release: true, tag, sourceConfig: releaseConfig });
+  const released = payloadOf(releaseBuild.html);
+  assert.ok(releaseBuild.html.includes(`<h1>Image Format Lab<span class="app-version" aria-label="Версия ${tag}">${tag}</span></h1>`), 'release heading retains the full exact tag');
   assert.equal(released.releaseTag, tag);
   const local = { ...payload, releaseTag: null };
   await assert.rejects(buildViewer({ release: true, sourceConfig: releaseConfig }), /explicit version tag/);

@@ -29,6 +29,8 @@ const { assertEmbeddedPayload } = require('./support/embedded-payload.cjs');
   assert.deepEqual(Object.keys(samples),['photo']);
   assert.deepEqual(Buffer.from(samples.photo,'base64'),fs.readFileSync(path.join(root,photoPath)),'offline HTML embeds the exact sample');
   assert.equal(first.html, second.html, 'same inputs must produce identical bytes');
+  const heading = first.html.match(/<h1>([\s\S]*?)<\/h1>/)[1];
+  assert.equal(heading, 'Image Format Lab' + (tag ? `<span class="app-version" aria-label="Версия ${tag}">${tag}</span>` : ''), 'heading shows only the exact release tag; local builds omit the version');
   assert.ok(first.html.startsWith('<!doctype html>\n<!-- Generated from src/'));
   assert.equal(fs.readFileSync(path.join(root, 'image-format-lab.html'), 'utf8'), first.html, 'root HTML must be current');
   console.log('PASS deterministic build and current root HTML');
