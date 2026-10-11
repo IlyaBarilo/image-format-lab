@@ -70,7 +70,8 @@ class Element {
   const tag = 'v9.8.7-rc.1'; // Test-only tag; no real release is created.
   const releaseBuild = await buildViewer({ release: true, tag, sourceConfig: releaseConfig });
   const released = payloadOf(releaseBuild.html);
-  assert.ok(releaseBuild.html.includes(`<h1>Image Format Lab<span class="app-version" aria-label="Версия ${tag}">${tag}</span></h1>`), 'release heading retains the full exact tag');
+  const versionLabel = '9.8.7-rc.1';
+  assert.ok(releaseBuild.html.includes(`<h1>Image Format Lab<span class="app-version" aria-label="Версия ${versionLabel}">${versionLabel}</span></h1>`), 'release heading omits v and retains every other version part');
   assert.equal(released.releaseTag, tag);
   const local = { ...payload, releaseTag: null };
   await assert.rejects(buildViewer({ release: true, sourceConfig: releaseConfig }), /explicit version tag/);
