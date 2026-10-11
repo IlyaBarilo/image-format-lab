@@ -223,6 +223,10 @@
         <h2 id="analysisTitle">Анализ</h2>
         <div class="analysis-header-actions">
           <div class="analysis-actions">
+            <div class="toolbar-group analysis-png-field"><span class="toolbar-label">PNG</span><div class="segmented" role="group" aria-label="Содержание PNG графика">
+              <button id="analysisPNGCompact" type="button" class="active" aria-pressed="true" title="График, настройки и численные результаты">Кратко</button>
+              <button id="analysisPNGDetailed" type="button" aria-pressed="false" title="Дополнительно включить пояснение метода анализа">С пояснением</button>
+            </div></div>
             <button class="text-btn" id="analysisPNG" type="button" disabled>PNG</button>
             <button class="text-btn" id="analysisJSON" type="button" disabled>JSON</button>
             <button class="text-btn analysis-help" id="analysisHelp" type="button" aria-label="Как читать графики" aria-expanded="false" aria-controls="analysisHelpContent">?</button>
@@ -233,7 +237,7 @@
               <button id="analysisCollapse" type="button" data-analysis-size="collapsed" aria-pressed="false" aria-expanded="true" aria-controls="analysisBody">Свернуть</button>
               <button class="active" id="analysisCompact" type="button" data-analysis-size="compact" aria-pressed="true" aria-controls="analysisBody">Компактно</button>
               <button id="analysisBalance" type="button" data-analysis-size="balance" aria-pressed="false" aria-controls="analysisBody">Баланс</button>
-              <button id="analysisMax" type="button" data-analysis-size="max" aria-pressed="false" aria-controls="analysisBody">Максимум</button>
+              <button id="analysisMax" type="button" title="Развернуть графики, скрыв изображения. Настройки форматов и метрики останутся доступны." data-analysis-size="max" aria-pressed="false" aria-controls="analysisBody">Максимум</button>
               <button id="analysisManual" type="button" data-analysis-size="manual" aria-pressed="false" aria-controls="analysisBody" disabled>Вручную</button>
             </div>
           </div>
@@ -553,6 +557,18 @@
     <h2 id="studyTitle">Эксперименты</h2>
     <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#overview">Как пользоваться экспериментами</button>
     <section>
+      <h3>Результаты сравнения</h3>
+      <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#reports">Как читать и сохранять отчёты</button>
+      <p class="batch-note" id="comparisonSummarySource">Сначала откройте изображение.</p>
+      <div class="comparison-summary-wrap"><table id="comparisonSummaryTable" aria-label="Краткая сводка текущего сравнения"><thead><tr><th>№</th><th>Формат и режим</th><th>Размер</th><th>Файл, байт</th><th>bpp</th><th>Q</th><th>PSNR RGB</th><th>Δα, %</th><th>Бит/канал</th><th>Примечание</th></tr></thead><tbody id="comparisonSummaryRows"></tbody></table></div>
+      <p class="batch-note" id="comparisonSummaryNote"></p>
+      <div class="study-tools"><button class="text-btn" id="comparisonSummaryCopy" type="button" disabled>Копировать таблицу</button><button class="text-btn" id="comparisonSummaryCSV" type="button" disabled>Скачать краткий CSV</button></div>
+      <p class="batch-note">bpp — биты файла на пиксель результата; Q указано только для форматов с настройкой качества. Копия таблицы содержит значения с разделителями табуляции.</p>
+      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button></div>
+      <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
+      <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>
+    </section>
+    <section>
       <label for="referenceSampleSelect">Контрольный образец</label>
       <div class="study-tools"><select class="select" id="referenceSampleSelect"><option value="gradient">Градиенты и резкие границы</option><option value="alpha">Прозрачность и цвет</option><option value="palette">Палитра и дизеринг</option></select><button class="text-btn" id="referenceSampleCreate" type="button">Открыть и применить</button></div>
       <p class="batch-note">Образцы создаются из точных пикселей без фотографий и шрифтов. Кнопка добавляет PNG в список файлов и применяет подходящий готовый эксперимент. Один и тот же образец имеет одинаковые пиксели и имя файла.</p>
@@ -585,19 +601,6 @@
       <div class="study-tools"><select class="select" id="profileSelect" aria-label="Сохранённые наборы"></select><button class="text-btn" id="profileApply" type="button">Применить</button><button class="text-btn" id="profileDelete" type="button">Удалить набор</button><button class="text-btn" id="profileReset" type="button">Начальные настройки</button></div>
       <div class="study-tools"><button class="text-btn" id="profileExport" type="button">Экспорт наборов JSON</button><label for="profileImport">Импорт JSON</label><input id="profileImport" type="file" accept=".json,application/json"></div>
       <p class="batch-note">Сохраняются параметры четырёх ячеек, вид, фон и метаданные JPEG. Файлы и результаты не записываются. Импорт добавляет наборы; совпадения имён получают номер.</p>
-    </section>
-    <section>
-      <h3>Отчёт текущего сравнения</h3>
-      <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#reports">Как читать и сохранять отчёты</button>
-      <h4>Краткая сводка готовых ячеек</h4>
-      <p class="batch-note" id="comparisonSummarySource">Сначала откройте изображение.</p>
-      <div class="comparison-summary-wrap"><table id="comparisonSummaryTable" aria-label="Краткая сводка текущего сравнения"><thead><tr><th>№</th><th>Формат и режим</th><th>Размер</th><th>Файл</th><th>bpp</th><th>Q</th><th>PSNR RGB</th><th>Δα, %</th><th>Бит/канал</th><th>Примечание</th></tr></thead><tbody id="comparisonSummaryRows"></tbody></table></div>
-      <p class="batch-note" id="comparisonSummaryNote"></p>
-      <div class="study-tools"><button class="text-btn" id="comparisonSummaryCopy" type="button" disabled>Копировать таблицу</button><button class="text-btn" id="comparisonSummaryCSV" type="button" disabled>Скачать краткий CSV</button></div>
-      <p class="batch-note">bpp — биты файла на пиксель результата; Q указано только для форматов с настройкой качества. Копия таблицы содержит значения с разделителями табуляции.</p>
-      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button></div>
-      <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
-      <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>
     </section>
     <section><details><summary>Форматы и ограничения</summary>
       <button class="knowledge-text-link" type="button" data-knowledge-target="concepts/compression#overview">Открыть справку по форматам</button>

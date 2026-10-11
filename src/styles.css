@@ -1046,7 +1046,7 @@ select:disabled {
 .analysis-heading, .analysis-header-actions, .analysis-toolbar, .analysis-actions, .analysis-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
 .analysis-heading { justify-content: space-between; cursor: row-resize; touch-action: none; user-select: none; }
 .analysis-header-actions { margin-left: auto; min-width: 0; max-width: 100%; }
-.analysis-header-actions > .analysis-actions { flex-wrap: nowrap; }
+.analysis-header-actions > .analysis-actions { flex-wrap: wrap; max-width:100%; }
 .stage[data-analysis-collapsed] .analysis-header-actions > .analysis-actions { display: none; }
 .analysis-toolbar { margin-top: 10px; }
 .analysis-body { display: flex; flex-direction: column; flex: 1 0 auto; min-width: 0; min-height: 0; }
@@ -1233,3 +1233,10 @@ canvas:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
   .grid.wipe .cell[data-index="1"] { grid-column: 1; grid-row: 2; }
   .grid.wipe .wipe-overlay { grid-column: 1; grid-row: 3; }
 }
+
+/* Exact file size remains readable with keyboard focus. */
+.size-value { position:relative; }
+.metric .size-value:focus { overflow:visible; }
+.size-value:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.size-value:focus::after { content:attr(data-exact-size); position:absolute; bottom:100%; left:0; z-index:20; padding:6px 8px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:5px; white-space:nowrap; font-size:12px; }
+.analysis-png-field { padding:2px 4px; }

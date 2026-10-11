@@ -647,7 +647,7 @@ export function createControls({els, app}, deps) {
       }
       const valueEl = document.createElement("span");
       if (key === "psnr") valueEl.className = "psnr-value";
-      if (key === "size") valueEl.className = "size-value";
+      if (key === "size") { valueEl.className = "size-value"; valueEl.tabIndex = 0; }
       valueEl.textContent = "—";
       metric.append(labelEl, valueEl);
       variant.foot.append(metric);
@@ -697,6 +697,11 @@ export function createControls({els, app}, deps) {
     const label = deps.outputFormatLabel(variant.config.format);
     variant.metricsEls.format.textContent = variant.dirty ? `${label} *` : (m.format || label);
     variant.metricsEls.size.textContent = m.size || "—";
+    const size = variant.metricsEls.size, bytes = deps.isVariantReady(variant) ? variant.blob.size : null;
+    const exactSize = bytes === null ? 'Размер готового файла пока недоступен' : `${bytes.toLocaleString('ru-RU')} байт`;
+    size.title = exactSize;
+    size.setAttribute('aria-label', `Размер файла: ${exactSize}`);
+    size.dataset.exactSize = exactSize;
     variant.metricsEls.ratio.textContent = m.ratio || "—";
     variant.metricsEls.psnr.textContent = (m.psnr || "—") + "\nΔα " + (m.alpha || "—");
     variant.metricsEls.format.title = m.format || label;

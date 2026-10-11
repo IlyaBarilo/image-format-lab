@@ -31,7 +31,7 @@ export function defaultPreferences() {
     panels:{size:'compact',previous:'compact',ratio:null,collapsed:false,lastManual:null},
     analysis:{...Object.fromEntries(Object.entries(ANALYSIS_PREFERENCE_FIELDS).map(([key,[,value]])=>[key,value])),
        displays:{histogram:'overlay',signalHistogram:'overlay',errorHistogram:'overlay',waveform:'separate',parade:'separate',rgbWaveform:'separate',ycbcrWaveform:'separate',ycbcrParade:'separate',vectorscope:'separate',cieXy:'overlay',profile:'overlay',errorProfile:'separate',ssim:'separate',deltaE:'separate'},
-      pair:[1,2],metric:'psnrRGB',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE},floatMin:0,floatMax:1,
+      pair:[1,2],metric:'psnrRGB',pngDetail:'compact',scope:'viewport',region:null,line:{...DEFAULT_ANALYSIS_LINE},floatMin:0,floatMax:1,
       printName:DEFAULT_PRINT_CHECK_PROFILE.name,preserveKOnly:true}
   };
 }
@@ -80,6 +80,7 @@ export function normalizePreferences(value) {
       if(record(a.displays)&&modes.includes(a.displays[type]))result.analysis.displays[type]=a.displays[type];
     }
     if(Array.isArray(a.pair)&&a.pair.length===2&&a.pair.every(n=>Number.isInteger(n)&&n>=1&&n<=result.comparison.layout)&&a.pair[0]<a.pair[1])result.analysis.pair=[...a.pair];
+    if(['compact','detailed'].includes(a.pngDetail))result.analysis.pngDetail=a.pngDetail;
     if(['psnrRGB','alphaErrorPercent','processingMs'].includes(a.metric))result.analysis.metric=a.metric;
     result.analysis.region=geometry(a.region,true);
     result.analysis.line=geometry(a.line,false)||result.analysis.line;

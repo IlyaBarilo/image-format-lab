@@ -1,3 +1,4 @@
+import { profileMeanSummary } from './profile-summary.mjs';
 // Own image scopes UI, MIT. These are established analysis methods.
 import { differenceColor } from '../core/difference.mjs';
 import { BOUNDARY_COLORS } from '../core/boundary-map.mjs';
@@ -656,7 +657,7 @@ export function createAnalysis({ app }, deps) {
         const bin=profileBinAt(data,cursor),p=data.points;
         const values=indices.map(index=>{const c=data.channels[index];return `${NAMES[index]} ${number(c.mean[bin])}${data.counts[bin]>1?` [${c.min[bin]}–${c.max[bin]}]`:''}`;}).join(' · ');
         card.canvas.dataset.yMax=String(data.scaleMax||255);card.canvas.dataset.profileSamples=String(data.sampleCount);
-        card.values.textContent=values;
+        card.values.textContent=`Позиция ${number(cursor/10)}%: ${values}. ${profileMeanSummary(data,profileChannel.value)}`;
         card.values.title=`${number(cursor/10)}% от A к B. ${data.counts[bin]} отсчётов в группе; в скобках минимум–максимум.`;
         detail=`Профиль A (${p.x0}, ${p.y0}) → B (${p.x1}, ${p.y1}): ${number(data.sampleCount)} отсчётов, ${data.bins} групп. Положение ${number(cursor/10)}%: ${values}. Уровни 0–${data.scaleMax||255}.`;
         deps.plotLineProfile(card.canvas,data,indices,cursor);

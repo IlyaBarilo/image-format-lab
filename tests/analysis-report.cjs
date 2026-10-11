@@ -47,7 +47,7 @@ async function makeSnapshot(type, display, count = 2) {
 }
 
 // A supplied Canvas factory also permits visual inspection using a native renderer.
-async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canvasFactory = recordingCanvas, includeJSON = false} = {}) {
+async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canvasFactory = recordingCanvas, includeJSON = false, pngDetail = 'compact'} = {}) {
   const {createAnalysis} = await import('../src/ui/analysis.mjs');
   const {createAnalysisOutput} = await import('../src/ui/analysis-output.mjs');
   const {createAnalysisCombined} = await import('../src/ui/analysis-combined.mjs');
@@ -56,7 +56,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
   const oldDocument = globalThis.document, oldDpr = globalThis.devicePixelRatio;
   const elements = new Map(), liveCanvases = [], created = [], downloads = [];
   function element() {
-    return {dataset:{}, style:{}, attrs:{}, children:[], events:{}, hidden:false, value:'', textContent:'',
+    return {dataset:{}, style:{}, attrs:{}, classList:{toggle(){}}, children:[], events:{}, hidden:false, value:'', textContent:'',
       get options() { return this.children; }, get selectedOptions() { return [{textContent:this.label || this.value}]; },
       append(child) { this.children.push(child); }, replaceChildren() { this.children = []; },
       setAttribute(k,v) { this.attrs[k] = v; }, getAttribute(k) { return this.attrs[k] ?? null; }, removeAttribute(k) { delete this.attrs[k]; },
@@ -84,7 +84,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     const state = {app:{layout:snapshot.items.length}};
     deps.renderAnalysisChart = createAnalysis(state, deps).renderAnalysisChart;
     const output = createAnalysisOutput(state, deps);
-    output.applyAnalysisOutputPreferences({displays:{[snapshot.settings.type]:snapshot.settings.display}, pair:snapshot.settings.pair, metric:snapshot.settings.metric});
+    output.applyAnalysisOutputPreferences({displays:{[snapshot.settings.type]:snapshot.settings.display}, pair:snapshot.settings.pair, metric:snapshot.settings.metric, pngDetail});
     output.attachAnalysisOutputEvents();
     if (snapshot.settings.display === 'separate') for (const [i, item] of snapshot.items.entries()) {
        if (item.data) deps.renderAnalysisChart(cards[i], item, snapshot.settings, analysisMaximum(snapshot.settings.type, snapshot.items, snapshot.settings.type==='errorHistogram'?snapshot.settings.errorChannel:snapshot.settings.channel));
@@ -106,6 +106,14 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
 }
 
 async function main() {
+  const compactSnapshot=await makeSnapshot('profile','overlay');
+  const compact=await exportReport(compactSnapshot),detailed=await exportReport(compactSnapshot,{pngDetail:'detailed'});
+  const texts=r=>r.report.ops.filter(op=>op[0]==='fillText').map(op=>op[1]).join(' ');
+  assert.ok(!texts(compact).includes(compactSnapshot.method));
+  assert.ok(texts(detailed).includes(compactSnapshot.method));
+  assert.ok(detailed.report.height>compact.report.height);
+  assert.deepEqual(compact.report.images.map(c=>c.ops),detailed.report.images.map(c=>c.ops));
+  for(const report of [compact,detailed])for(const text of ['Среднее по линии','уровни 0–255','видимая часть','Профиль по линии'])assert.ok(texts(report).includes(text),text);
   for(const [scope,region,label] of [
     ['region',{unit:'pixels',x:8,y:4,width:48,height:24},'X 8, Y 4, 48×24 px'],
     ['region',{x0:125,y0:125,x1:875,y1:875},'12.5%, 12.5%, 75% × 75%'],

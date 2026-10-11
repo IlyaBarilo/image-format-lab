@@ -27,7 +27,7 @@ const path = require('node:path');
       assert.ok(parts.some(part => part.url), page.id + ' needs an external source');
     assert.ok(parts.every(part => !part.url || part.url.startsWith('https://')));
   }
-  assert.deepEqual(new Set(diagrams), new Set(['chroma', 'histogram-waveform', 'analysis-area']));
+  assert.deepEqual(new Set(diagrams), new Set(['chroma', 'histogram-waveform', 'analysis-area', 'profile-reading', 'error-map-histogram', 'ssim-reading', 'waveform-density', 'error-profile-reading']));
   const allParts = data.pages.flatMap(page => page.sections.flatMap(section => section.blocks.flatMap(block => block.type === 'paragraph' ? block.parts : block.type === 'list' ? block.items.flat() : [])));
   assert.ok(allParts.some(part => part.term === 'd65'));
   for (const target of ['concepts/color-profile#srgb', 'concepts/metrics#psnr', 'concepts/chroma#ycbcr'])

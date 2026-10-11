@@ -127,7 +127,7 @@ function recordingCanvas(width=600,height=300) {
 
   const elements=new Map(),created=[],get=id=>{if(!elements.has(id))elements.set(id,{...recordingCanvas(),hidden:false,value:'',textContent:'',style:{},attrs:{},children:[],events:{},
     get options(){return this.children;},get selectedOptions(){return [{textContent:this.value}];},replaceChildren(){this.children=[];},append(c){this.children.push(c);},
-    setAttribute(k,v){this.attrs[k]=v;},removeAttribute(k){delete this.attrs[k];},querySelector(){return get('plots');},
+    classList:{toggle(){}},setAttribute(k,v){this.attrs[k]=v;},removeAttribute(k){delete this.attrs[k];},querySelector(){return get('plots');},
     addEventListener(k,fn){(this.events[k]??=[]).push(fn);},async fire(k){for(const fn of this.events[k]||[])await fn();}});return elements.get(id);};
   let delayedPNG=false,pngCallback=null;
   global.document={getElementById:get,createElement:tag=>{

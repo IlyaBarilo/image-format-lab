@@ -1,3 +1,4 @@
+import { profileMeanSummary } from './profile-summary.mjs';
 // Own analysis display/export controls, MIT. Modules are wired by application.
 import {analysisJSON,tradeoffData,analysisMaximum,ANALYSIS_CHANNELS,SIGNAL_NAMES,spatialChannels} from '../core/analysis-output.mjs';
 import {histogramView,histogramBinAt,histogramTick,histogramInterval,histogramSummary,groupHistogramDelta} from '../core/histogram-view.mjs';
@@ -15,7 +16,8 @@ export function createAnalysisOutput({app},deps){
   const displays=new Map([['histogram','overlay'],['signalHistogram','overlay'],['errorHistogram','overlay'],['profile','overlay'],['cieXy','overlay']]);
   const combined=get('analysisCombined'),canvas=get('analysisCombinedChart'),legend=get('analysisCombinedLegend'),note=get('analysisCombinedInfo');
   const png=get('analysisPNG'),json=get('analysisJSON'),notice=get('analysisSaveStatus');
-  let saving=false,attached=false,lastDelta=null;
+  let saving=false,attached=false,lastDelta=null,pngDetail='compact';
+  function syncPNGDetail(){for(const [id,value] of [['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']]){const button=get(id);button.classList.toggle('active',pngDetail===value);button.setAttribute('aria-pressed',String(pngDetail===value));}}
   function deltaModel(items,settings){
     const key=[settings.type,settings.channel,settings.profileChannel,...items.map(i=>i.cell)].join(':');
     if(!lastDelta||lastDelta.key!==key||items.some((item,i)=>item.data!==lastDelta.data[i]))lastDelta={key,data:items.map(i=>i.data),model:analysisDelta(items,settings)};
@@ -23,11 +25,12 @@ export function createAnalysisOutput({app},deps){
   }
   function getAnalysisOutputSettings(){
     const kind=get('analysisType').value;
-    return {display:kind==='tradeoff'?'metrics':['difference','boundaryMap','errorProfile','ssim','deltaE','floatSource','cmyk'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value};
+    return {display:kind==='tradeoff'?'metrics':['difference','boundaryMap','errorProfile','ssim','deltaE','floatSource','cmyk'].includes(kind)?'separate':displays.get(kind)||'separate',pair:pair.value.split(',').map(Number),metric:metric.value,pngDetail};
   }
   function captureAnalysisOutputPreferences(){return {...getAnalysisOutputSettings(),displays:Object.fromEntries(displays)};}
   function applyAnalysisOutputPreferences(value){
     displays.clear();for(const [kind,display] of Object.entries(value.displays))displays.set(kind,display);
+    pngDetail=value.pngDetail==='detailed'?'detailed':'compact';syncPNGDetail();
     metric.value=value.metric;syncAnalysisOutput();pair.value=value.pair.join(',');syncAnalysisOutput();lastDelta=null;
   }
   function syncAnalysisOutput(){
@@ -97,7 +100,8 @@ export function createAnalysisOutput({app},deps){
             if(items.some(i=>i.data.underflow?.some(n=>n)||i.data.overflow?.some(n=>n)))note.textContent+=' '+items.map(i=>`${i.cell}: ${histogramSummary(i.data,snapshot.settings.channel)}`).join(' ');
           }
           if(snapshot.settings.type==='errorHistogram'){get('analysisLevelValue').textContent=snapshot.settings.level===0?'0%':`${fmt(snapshot.settings.level/255*100)}%`;note.textContent=errorBinInterval(snapshot.settings.level)+'; группа 0 — только точное совпадение.';}
-          if(snapshot.settings.type==='profile'&&new Set(items.map(i=>i.data.scaleMax||255)).size>1)note.textContent='Разная разрядность: общая шкала 0–100% полного диапазона; точные коды каждой ячейки доступны в JSON.';
+          if(snapshot.settings.type==='profile')note.textContent=items.map(i=>`${i.cell}: ${profileMeanSummary(i.data,snapshot.settings.profileChannel)}`).join('; ');
+          if(snapshot.settings.type==='profile'&&new Set(items.map(i=>i.data.scaleMax||255)).size>1)note.textContent+=' Разная разрядность: общая шкала 0–100% полного диапазона; точные коды каждой ячейки доступны в JSON.';
           if(snapshot.settings.type==='cieXy')note.textContent=items.map(item=>{
             const data=item.data,reference=data.iccReference;
             return `${item.cell}: ${data.exact?'все пиксели':'выборка '+fmt(data.sampleCount)+' из '+fmt(data.pixelCount)}, чёрных ${fmt(data.blackCount)}${data.colorAssumption==='srgb-assumed'?'; sRGB предположен':''}${reference?`; исходник ICC вне sRGB ${fmt(reference.outOfSrgbPercent)}% (${fmt(reference.outOfSrgbCount)} из ${fmt(reference.sampleCount)}), область ${reference.bounds.x}, ${reference.bounds.y}: ${reference.bounds.width}×${reference.bounds.height} px`:''}`;
@@ -146,7 +150,7 @@ export function createAnalysisOutput({app},deps){
   function makeAnalysisPNG(snapshot){
     const output=document.createElement('canvas');output.width=1200;let ctx=output.getContext('2d');ctx.font='16px "Segoe UI",sans-serif';
     let selected=chosen(snapshot);const shared=snapshot.settings.display!=='separate';
-    const variantTitles={histogram:'Гистограмма · RGB',signalHistogram:'Гистограмма · Y′CbCr',waveform:'Waveform · Y′',rgbWaveform:'Waveform · RGB вместе',ycbcrWaveform:'Waveform · Y′CbCr вместе',parade:'Parade · RGB',ycbcrParade:'Parade · Y′CbCr'};
+    const variantTitles={profile:'Профиль по линии',histogram:'Гистограмма · RGB',signalHistogram:'Гистограмма · Y′CbCr',waveform:'Waveform · Y′',rgbWaveform:'Waveform · RGB вместе',ycbcrWaveform:'Waveform · Y′CbCr вместе',parade:'Parade · RGB',ycbcrParade:'Parade · Y′CbCr'};
     const title=`Анализ · ${variantTitles[snapshot.settings.type]||get('analysisType').selectedOptions[0].textContent}`;
     const header=wrap(ctx,`${snapshot.source.name} · ${snapshot.source.width}×${snapshot.source.height} · ${snapshot.createdAt}`,1152);
     const s=snapshot.settings,b=s.region,line=s.line;
@@ -160,7 +164,7 @@ export function createAnalysisOutput({app},deps){
       (s.channel?`; каналы: ${s.channel}, ${reportView?histogramInterval(reportDelta?.scale||reportView.scale,s.level):`уровень ${s.level}`}`:'')+(s.type==='cieXy'?`; цвета: ${s.cieView==='icc'?'показанные SDR + исходник ICC':'показанные SDR'}`:'')+(s.type==='errorHistogram'?`; ошибка: ${s.errorChannel}, ${errorBinInterval(s.level)}`:'')+(s.type==='boundaryMap'?`; канал: ${s.boundaryChannel==='alpha'?'α':'RGB'}`:'')+(line?`; ${s.type==='errorProfile'?'ошибка: '+s.errorChannel:'каналы: '+s.profileChannel}, позиция ${s.position/10}%; A (${line.x0/10}%, ${line.y0/10}%) → B (${line.x1/10}%, ${line.y1/10}%)`:'')+(s.type==='profile'&&shared?`; шкала: ${new Set(selected.map(i=>i.data?.scaleMax||255)).size>1?'0–100% полного диапазона':`0–${selected[0].data?.scaleMax||255} кодовых уровней`}`:'')+(s.gain?`; канал: ${s.differenceChannel}, усиление ×${s.gain}`:'');
     const viewportText=s.scope==='viewport'?'; '+s.viewports.filter(v=>selected.some(i=>i.cell===v.cell)).map(v=>v.region?`${v.cell}: X ${v.region.x}, Y ${v.region.y}, ${v.region.width}×${v.region.height} px`:`${v.cell}: нет видимых пикселей`).join('; '):'';
     const settings=wrap(ctx,parameterText+viewportText,1152);
-    const method=wrap(ctx,snapshot.method,1152);
+    const method=pngDetail==='detailed'?wrap(ctx,snapshot.method,1152):[];
     const charts=shared?[{available:selected.some(i=>i.data),title:[...legend.children].map(s=>s.textContent).join(' · '),details:selected.map(i=>`${i.label}${i.data?` · ${i.data.width}×${i.data.height}`:''}${i.message?': '+i.message:''}`).join('; ')+(note.textContent?'. '+note.textContent:'')}]:selected.map(item=>({item,available:Boolean(item.data),title:item.label,details:item.message||document.querySelectorAll('.analysis-card canvas')[item.cell-1].getAttribute('aria-label')}));
     if(reportView){
       const scale=reportDelta?.scale||reportView.scale,groupNote=scale.grouped?` Показано ${scale.bins} групп; соседние доли суммируются.`:'';
@@ -179,6 +183,7 @@ export function createAnalysisOutput({app},deps){
        if(shared){charts[0].title=selected.map((item,i)=>`${item.cell} ${i?'□ контур':'■ заливка'}`).join(' · ');charts[0].details=selected.map(describe).join(' ');}
        else for(const chart of charts)if(chart.item.data)chart.details=describe(chart.item);
     }
+    if(s.type==='profile'&&!shared)for(const chart of charts)if(chart.item.data)chart.details+=' '+profileMeanSummary(chart.item.data,s.profileChannel);
     if(s.type==='boundaryMap'){
       const index=s.boundaryChannel==='alpha'?1:0;
       for(const chart of charts)if(chart.item.data){
@@ -221,6 +226,8 @@ export function createAnalysisOutput({app},deps){
   }
   function attachAnalysisOutputEvents(){
     if(attached)return;attached=true;
+    for(const [id,value] of [['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']])get(id).addEventListener('click',()=>{pngDetail=value;syncPNGDetail();});
+    syncPNGDetail();
     for(const [value,input] of displayInputs)input.addEventListener('change',()=>{
       const kind=get('analysisType').value;
       if(!input.checked||input.disabled||getAnalysisOutputSettings().display===value)return;

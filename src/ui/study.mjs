@@ -49,7 +49,7 @@ export function createStudy({app, els}, deps) {
     body.replaceChildren(...rows.map(row=>{
       const tr=document.createElement('tr');
       const cells=[row.cell,`${row.format} · ${row.mode}`,`${row.width}×${row.height}`,
-        deps.formatBytes(row.bytes),row.bpp.toFixed(2),row.quality??'—',
+        row.bytes.toLocaleString('ru-RU'),row.bpp.toFixed(2),row.quality??'—',
         row.psnr===Infinity?'∞':row.psnr===null?'—':row.psnr.toFixed(2),
         row.alpha===null?'—':row.alpha.toFixed(2),row.depth??'—',row.note||'—'];
       for(const value of cells){const td=document.createElement('td');td.textContent=String(value);tr.append(td);}

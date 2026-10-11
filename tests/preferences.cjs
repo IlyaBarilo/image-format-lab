@@ -17,6 +17,9 @@ function events() {
   assert.equal(defaults.gridMode,'pixels');
   assert.equal(normalizePreferences({version:1,pixelGrid:true}).gridMode,'pixels','old grid setting keeps the pixel mode');
   assert.equal(defaults.analysis.scope,'viewport');
+  assert.equal(defaults.analysis.pngDetail,'compact');
+  assert.equal(normalizePreferences({version:1,analysis:{pngDetail:'detailed'}}).analysis.pngDetail,'detailed');
+  assert.equal(normalizePreferences({version:1,analysis:{pngDetail:'invalid'}}).analysis.pngDetail,'compact');
   assert.equal(normalizePreferences({version:1,analysis:{scope:'full'}}).analysis.scope,'full','preserve an explicitly saved full-image scope');
   assert.equal(normalizePreferences({version:1,analysis:{}}).analysis.scope,'viewport','missing scope uses the current default');
   custom.comparison.layout=4;custom.comparison.background='black';custom.comparison.autoApply=true;

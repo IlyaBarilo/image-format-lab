@@ -38,7 +38,7 @@ export const knowledgeFiles = [
 export const formatKnowledge = FORMAT_KNOWLEDGE;
 export const analysisKnowledge = ANALYSIS_KNOWLEDGE;
 
-const diagramIds = new Set(['chroma', 'histogram-waveform', 'analysis-area']);
+const diagramIds = new Set(['chroma', 'histogram-waveform', 'analysis-area', 'profile-reading', 'error-map-histogram', 'ssim-reading', 'waveform-density', 'error-profile-reading']);
 export const hintsFile = 'docs/knowledge/hints.json';
 
 const fileById = new Map(knowledgeFiles.map(file => [file.slice('docs/knowledge/'.length, -3), file]));

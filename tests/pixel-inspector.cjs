@@ -53,7 +53,7 @@ const assert = require('node:assert/strict');
   console.log('PASS client coordinates, pan, zoom, independent DPR axes, borders and centered rasters');
 
   class Element {
-    constructor() { this.children = []; this.events = new Map(); this.attrs = {}; this.value = ''; this.text = ''; this.open = false; this.hidden = false; this.disabled = false; this.rect = { left: 100, top: 200, width: 200, height: 100 }; this.classList = { contains: () => false, add() {}, remove() {} }; }
+    constructor() { this.children = []; this.events = new Map(); this.attrs = {}; this.dataset = {}; this.value = ''; this.text = ''; this.open = false; this.hidden = false; this.disabled = false; this.rect = { left: 100, top: 200, width: 200, height: 100 }; this.classList = { contains: () => false, add() {}, remove() {} }; }
     set textContent(v) { this.text = String(v); this.children = []; }
     get textContent() { return this.text + this.children.map(c => c.textContent).join(''); }
     append(...nodes) { this.children.push(...nodes); }
@@ -89,7 +89,7 @@ const assert = require('node:assert/strict');
     const canvas = new Element(); canvas.width = 400; canvas.height = 200; canvas.parentElement = new Element();
     const ctx = new Proxy({}, { get: (t, k) => k === 'drawImage' ? () => { paints++; } : k === 'stroke' ? () => { strokes++; } : () => {} });
     const v = { index, canvas, ctx, cell: new Element(), config: { format: 'png' }, resultConfig: { format: 'png' },
-      resultSource: app.source, blob: {}, url: 'blob:test', bitmap: { width: pixels.width, height: pixels.height }, pixelBuffer: pixels,
+      resultSource: app.source, blob: new Blob([new Uint8Array(12345)]), url: 'blob:test', bitmap: { width: pixels.width, height: pixels.height }, pixelBuffer: pixels,
       controls: { download: {} }, generation: 0, metricsEls: Object.fromEntries(['format', 'size', 'ratio', 'psnr', 'time'].map(k => [k, new Element()])) };
     canvasUI.attachCanvasEvents(canvas); return v;
   }
@@ -119,7 +119,10 @@ const assert = require('node:assert/strict');
   panel.open = true; panel.emit('toggle'); assert.equal(get('pixelRows').textContent, oldRows);
   get('analysisBody').hidden = true; ui.updatePixelInspector(); const beforeHidden = strokes; deps.redrawPreviews(); assert.equal(strokes, beforeHidden);
   get('analysisBody').hidden = false; ui.updatePixelInspector();
+  controls.updateMetrics(app.variants[1]);
+  assert.equal(app.variants[1].metricsEls.size.title, (12345).toLocaleString('ru-RU') + ' байт');
   controls.markDirty(app.variants[1], { schedule: false });
+  assert.equal(app.variants[1].metricsEls.size.dataset.exactSize, 'Размер готового файла пока недоступен');
   assert.match(get('pixelRows').children[2].textContent, /Ожидание/); assert.doesNotMatch(get('pixelRows').children[2].textContent, /Δ/);
   app.variants[1].dirty = false; app.variants[1].error = 'failure'; controls.updateMetrics(app.variants[1]); assert.match(get('pixelRows').children[2].textContent, /Ошибка/);
   app.variants[1].error = null; app.variants[1].pixelBuffer = raster([3, 4, 5, 6]); controls.updateMetrics(app.variants[1]);

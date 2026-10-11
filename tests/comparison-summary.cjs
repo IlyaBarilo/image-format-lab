@@ -56,6 +56,7 @@ const assert=require('node:assert/strict');
     formatBytes:bytes=>`${bytes} B`,downloadBlob:(blob,name)=>{downloads++;assert.equal(name,'comparison-summary.csv');}});
   ui.updateStudySummary();
   assert.equal(element('comparisonSummaryRows').children.length,3);
+  assert.equal(element('comparisonSummaryRows').children[1].children[3].textContent,(48000).toLocaleString('ru-RU'),'the visible table exposes exact bytes, not a rounded size');
   assert.equal(element('comparisonSummaryCopy').disabled,false);
   current={...report,variants:report.variants.map(v=>({...v,status:'stale'}))};
   ui.updateStudySummary();

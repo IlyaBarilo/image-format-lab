@@ -70,7 +70,7 @@ const assert=require('node:assert/strict');
   console.log('PASS histogram RGB/alpha fill/contour order, saturation, normalization, DPR=1/2, coincident curves, profile ranges/one sample and density scopes');
 
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,{...recorder().canvas,hidden:false,value:'',textContent:'',style:{},children:[],attrs:{},events:{},
-    setAttribute(name,value){this.attrs[name]=value;},removeAttribute(name){delete this.attrs[name];},
+    classList:{toggle(){}},setAttribute(name,value){this.attrs[name]=value;},removeAttribute(name){delete this.attrs[name];},
     addEventListener(name,fn){(this.events[name]??=[]).push(fn);},fire(name){for(const fn of this.events[name]||[])fn();},
     get options(){return this.children;},replaceChildren(){this.children=[];},append(child){this.children.push(child);},querySelector:()=>get('plots')});return elements.get(id);};
   globalThis.document={getElementById:get,createElement:()=>({style:{}})};
@@ -78,6 +78,12 @@ const assert=require('node:assert/strict');
   let resizing=false,redraws=0;
   const output=createAnalysisOutput({app:{layout:2}},{renderAnalysisOverlay(){},isAnalysisResizing:()=>resizing,redrawAnalysis(){redraws++;}});
   output.attachAnalysisOutputEvents();output.attachAnalysisOutputEvents();
+  assert.equal(get('analysisPNGCompact').attrs['aria-pressed'],'true');
+  get('analysisPNGDetailed').fire('click');
+  assert.equal(output.captureAnalysisOutputPreferences().pngDetail,'detailed');
+  assert.equal(get('analysisPNGCompact').attrs['aria-pressed'],'false');
+  assert.equal(get('analysisPNGDetailed').attrs['aria-pressed'],'true');
+  assert.equal(redraws,0,'PNG presentation changes neither plot computation nor encoding');
   const selectKind=kind=>{get('analysisType').value=kind;output.syncAnalysisOutput();};
   const expectDisplay=value=>{
     assert.equal(output.getAnalysisOutputSettings().display,value);
