@@ -69,20 +69,35 @@ const assert=require('node:assert/strict');
   }
   console.log('PASS histogram RGB/alpha fill/contour order, saturation, normalization, DPR=1/2, coincident curves, profile ranges/one sample and density scopes');
 
+  let focused=null;
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,{...recorder().canvas,hidden:false,value:'',textContent:'',style:{},children:[],attrs:{},events:{},
     classList:{toggle(){}},setAttribute(name,value){this.attrs[name]=value;},removeAttribute(name){delete this.attrs[name];},
-    addEventListener(name,fn){(this.events[name]??=[]).push(fn);},fire(name){for(const fn of this.events[name]||[])fn();},
+    focus(){focused=this;},contains(node){return node===this||this.children.includes(node);},
+    addEventListener(name,fn){(this.events[name]??=[]).push(fn);},fire(name,event={}){for(const fn of this.events[name]||[])fn(event);},
     get options(){return this.children;},replaceChildren(){this.children=[];},append(child){this.children.push(child);},querySelector:()=>get('plots')});return elements.get(id);};
-  globalThis.document={getElementById:get,createElement:()=>({style:{}})};
+  globalThis.document={getElementById:get,createElement:()=>({style:{}}),addEventListener:(name,fn)=>get('document').addEventListener(name,fn)};
   get('analysisType').value='histogram';get('analysisPair').value='1,2';get('analysisPair').dataset.layout='2';
   let resizing=false,redraws=0;
   const output=createAnalysisOutput({app:{layout:2}},{renderAnalysisOverlay(){},isAnalysisResizing:()=>resizing,redrawAnalysis(){redraws++;}});
   output.attachAnalysisOutputEvents();output.attachAnalysisOutputEvents();
-  assert.equal(get('analysisPNGCompact').attrs['aria-pressed'],'true');
+  const menu=get('analysisPNGMenu'),toggle=get('analysisPNGToggle');
+  assert.equal(menu.hidden,true);
+  assert.equal(get('analysisPNGCompact').attrs['aria-checked'],'true');
+  toggle.fire('click');assert.equal(menu.hidden,false);assert.equal(focused,get('analysisPNGCompact'));
+  let prevented=false;
+  get('analysisPNGCompact').fire('keydown',{key:'ArrowDown',preventDefault(){prevented=true;}});
+  assert.equal(prevented,true);assert.equal(focused,get('analysisPNGDetailed'));
   get('analysisPNGDetailed').fire('click');
   assert.equal(output.captureAnalysisOutputPreferences().pngDetail,'detailed');
-  assert.equal(get('analysisPNGCompact').attrs['aria-pressed'],'false');
-  assert.equal(get('analysisPNGDetailed').attrs['aria-pressed'],'true');
+  assert.equal(get('analysisPNGCompact').attrs['aria-checked'],'false');
+  assert.equal(get('analysisPNGDetailed').attrs['aria-checked'],'true');
+  assert.equal(menu.hidden,true);assert.equal(focused,toggle);
+  toggle.fire('click');assert.equal(focused,get('analysisPNGDetailed'));
+  get('analysisPNGSwitch').fire('keydown',{key:'Escape',preventDefault(){},stopPropagation(){}});
+  assert.equal(menu.hidden,true);assert.equal(focused,toggle);
+  toggle.fire('click');get('document').fire('pointerdown',{target:get('outside')});assert.equal(menu.hidden,true);
+  toggle.fire('click');get('analysisPNGSwitch').fire('focusout',{relatedTarget:get('outside')});assert.equal(menu.hidden,true);
+  assert.equal(toggle.attrs['aria-expanded'],'false');
   assert.equal(redraws,0,'PNG presentation changes neither plot computation nor encoding');
   const selectKind=kind=>{get('analysisType').value=kind;output.syncAnalysisOutput();};
   const expectDisplay=value=>{

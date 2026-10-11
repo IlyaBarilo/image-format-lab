@@ -130,7 +130,7 @@ function recordingCanvas(width=600,height=300) {
     classList:{toggle(){}},setAttribute(k,v){this.attrs[k]=v;},removeAttribute(k){delete this.attrs[k];},querySelector(){return get('plots');},
     addEventListener(k,fn){(this.events[k]??=[]).push(fn);},async fire(k){for(const fn of this.events[k]||[])await fn();}});return elements.get(id);};
   let delayedPNG=false,pngCallback=null;
-  global.document={getElementById:get,createElement:tag=>{
+  global.document={getElementById:get,addEventListener(){},createElement:tag=>{
     if(tag!=='canvas')return {style:{}};
     const c=recordingCanvas();c.toBlob=fn=>{if(delayedPNG)pngCallback=fn;else fn(new Blob(['test canvas'],{type:'image/png'}));};created.push(c);return c;
   }};

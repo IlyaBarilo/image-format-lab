@@ -140,7 +140,7 @@ print(json.dumps(out))
   }
 
   class Element {
-    constructor(){this.children=[];this.events=new Map();this.attrs={};this.open=false;this.value='';this.text='';this.disabled=false;}
+    constructor(){this.children=[];this.events=new Map();this.attrs={};this.dataset={};this.open=false;this.value='';this.text='';this.disabled=false;}
     set textContent(v){this.text=String(v);this.children=[];} get textContent(){return this.text+this.children.map(c=>c.textContent).join('');}
     append(...nodes){this.children.push(...nodes);} replaceChildren(...nodes){this.children=nodes;this.text='';}
     setAttribute(k,v){this.attrs[k]=String(v);} addEventListener(k,f){this.events.set(k,f);} emit(k){this.events.get(k)?.({target:this});}

@@ -75,7 +75,7 @@ async function exportReport(snapshot, {width = 1000, height = 112, dpr = 1, canv
     globalThis.devicePixelRatio = dpr;
     const cards = snapshot.items.map(() => canvas(true)), combined = canvas(true);
     elements.set('analysisCombinedChart', combined);
-    globalThis.document = {getElementById:get, createElement: tag => tag === 'canvas' ? canvas() : element(), querySelectorAll: () => cards};
+    globalThis.document = {getElementById:get, addEventListener(){}, createElement: tag => tag === 'canvas' ? canvas() : element(), querySelectorAll: () => cards};
     get('analysisType').value = snapshot.settings.type;
      get('analysisType').label = {histogram:'Гистограмма', errorHistogram:'Гистограмма ошибок', waveform:'Waveform', ycbcrWaveform:'Waveform', parade:'Parade', vectorscope:'Вектороскоп', cieXy:'CIE xy', deltaE:'Цветовая разница ΔE00', profile:'Профиль', difference:'Карта различий', boundaryMap:'Границы диапазона', tradeoff:'Размер и метрика'}[snapshot.settings.type];
     get('analysisMetric').value = snapshot.settings.metric;

@@ -17,7 +17,15 @@ export function createAnalysisOutput({app},deps){
   const combined=get('analysisCombined'),canvas=get('analysisCombinedChart'),legend=get('analysisCombinedLegend'),note=get('analysisCombinedInfo');
   const png=get('analysisPNG'),json=get('analysisJSON'),notice=get('analysisSaveStatus');
   let saving=false,attached=false,lastDelta=null,pngDetail='compact';
-  function syncPNGDetail(){for(const [id,value] of [['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']]){const button=get(id);button.classList.toggle('active',pngDetail===value);button.setAttribute('aria-pressed',String(pngDetail===value));}}
+  const pngChoices=[['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']];
+  function syncPNGDetail(){
+    for(const [id,value] of pngChoices)get(id).setAttribute('aria-checked',String(pngDetail===value));
+    get('analysisPNGToggle').setAttribute('aria-label',`Выбрать содержание PNG: ${pngDetail==='detailed'?'С пояснением':'Кратко'}`);
+  }
+  function closePNGMenu(focus=false){
+    get('analysisPNGMenu').hidden=true;get('analysisPNGToggle').setAttribute('aria-expanded','false');
+    if(focus)get('analysisPNGToggle').focus();
+  }
   function deltaModel(items,settings){
     const key=[settings.type,settings.channel,settings.profileChannel,...items.map(i=>i.cell)].join(':');
     if(!lastDelta||lastDelta.key!==key||items.some((item,i)=>item.data!==lastDelta.data[i]))lastDelta={key,data:items.map(i=>i.data),model:analysisDelta(items,settings)};
@@ -226,7 +234,24 @@ export function createAnalysisOutput({app},deps){
   }
   function attachAnalysisOutputEvents(){
     if(attached)return;attached=true;
-    for(const [id,value] of [['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']])get(id).addEventListener('click',()=>{pngDetail=value;syncPNGDetail();});
+    const menu=get('analysisPNGMenu'),toggle=get('analysisPNGToggle'),group=get('analysisPNGSwitch');
+    const open=()=>{menu.hidden=false;toggle.setAttribute('aria-expanded','true');get(pngDetail==='detailed'?'analysisPNGDetailed':'analysisPNGCompact').focus();};
+    toggle.addEventListener('click',()=>menu.hidden?open():closePNGMenu());
+    toggle.addEventListener('keydown',event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();open();}});
+    group.addEventListener('focusout',event=>{if(!group.contains(event.relatedTarget))closePNGMenu();});
+    group.addEventListener('keydown',event=>{if(event.key==='Escape'&&!menu.hidden){event.preventDefault();event.stopPropagation();closePNGMenu(true);}});
+    document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!group.contains(event.target))closePNGMenu();});
+    for(const [index,[id,value]] of pngChoices.entries()){
+      const button=get(id);
+      button.addEventListener('click',()=>{pngDetail=value;syncPNGDetail();closePNGMenu(true);});
+      button.addEventListener('keydown',event=>{
+        if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
+        event.preventDefault();
+        const next=event.key==='Home'?0:event.key==='End'?1:1-index;
+        get(pngChoices[next][0]).focus();
+      });
+    }
+    closePNGMenu();
     syncPNGDetail();
     for(const [value,input] of displayInputs)input.addEventListener('change',()=>{
       const kind=get('analysisType').value;
@@ -234,7 +259,7 @@ export function createAnalysisOutput({app},deps){
       displays.set(kind,value);syncAnalysisOutput();deps.redrawAnalysis();
     });
     for(const field of [pair,metric])field.addEventListener('change',()=>{syncAnalysisOutput();deps.redrawAnalysis();});
-    png.addEventListener('click',()=>saveAnalysis('png'));json.addEventListener('click',()=>saveAnalysis('json'));
+    png.addEventListener('click',()=>{closePNGMenu();return saveAnalysis('png');});json.addEventListener('click',()=>saveAnalysis('json'));
     syncAnalysisOutput();
   }
   return {getAnalysisOutputSettings,syncAnalysisOutput,presentAnalysis,attachAnalysisOutputEvents,captureAnalysisOutputPreferences,applyAnalysisOutputPreferences};

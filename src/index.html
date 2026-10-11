@@ -223,11 +223,14 @@
         <h2 id="analysisTitle">Анализ</h2>
         <div class="analysis-header-actions">
           <div class="analysis-actions">
-            <div class="toolbar-group analysis-png-field"><span class="toolbar-label">PNG</span><div class="segmented" role="group" aria-label="Содержание PNG графика">
-              <button id="analysisPNGCompact" type="button" class="active" aria-pressed="true" title="График, настройки и численные результаты">Кратко</button>
-              <button id="analysisPNGDetailed" type="button" aria-pressed="false" title="Дополнительно включить пояснение метода анализа">С пояснением</button>
-            </div></div>
-            <button class="text-btn" id="analysisPNG" type="button" disabled>PNG</button>
+            <div class="grid-switch analysis-png-switch" id="analysisPNGSwitch">
+              <button class="text-btn" id="analysisPNG" type="button" disabled>PNG</button>
+              <button class="text-btn grid-mode-toggle" id="analysisPNGToggle" type="button" aria-label="Выбрать содержание PNG: Кратко" aria-haspopup="menu" aria-expanded="false" aria-controls="analysisPNGMenu">▾</button>
+              <div class="grid-mode-menu analysis-png-menu" id="analysisPNGMenu" role="menu" aria-label="Содержание PNG графика" hidden>
+                <button id="analysisPNGCompact" type="button" role="menuitemradio" aria-checked="true" tabindex="-1">Кратко</button>
+                <button id="analysisPNGDetailed" type="button" role="menuitemradio" aria-checked="false" tabindex="-1">С пояснением</button>
+              </div>
+            </div>
             <button class="text-btn" id="analysisJSON" type="button" disabled>JSON</button>
             <button class="text-btn analysis-help" id="analysisHelp" type="button" aria-label="Как читать графики" aria-expanded="false" aria-controls="analysisHelpContent">?</button>
           </div>
