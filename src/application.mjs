@@ -30,6 +30,8 @@ import { createQualitySeries } from './ui/quality-series.mjs';
 import { createLicenses } from './ui/licenses.mjs';
 import { createKnowledge } from './ui/knowledge.mjs';
 import { createReports } from './ui/reports.mjs';
+import { createDiagnostics } from './ui/diagnostics.mjs';
+import { createDiagnosticRuntime } from './services/diagnostic-runtime.mjs';
 import { createAnalysis } from './ui/analysis.mjs';
 import { createPixelInspector } from './ui/pixel-inspector.mjs';
 import { createFilePassport } from './ui/file-passport.mjs';
@@ -277,6 +279,7 @@ export function createApplication() {
   ])));
   Object.assign(actions, createDisplay(context, dependencies(["redrawPreviews"])));
   Object.assign(actions, createStudy(context, dependencies([
+    "attachDiagnosticEvents",
     "addFiles",
     "applyComparison",
     "attachQualitySeriesEvents",
@@ -326,6 +329,8 @@ export function createApplication() {
     "isVariantReady"
   ])));
   Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing", "encodeExactPng", "registerExactPngFile", "addFiles", "showStatus"])));
+  actions.createDiagnosticRuntime = () => createDiagnosticRuntime(dependencies(['loadScript', 'loadOptionalCodec']));
+  Object.assign(actions, createDiagnostics(context, dependencies(['createDiagnosticRuntime', 'downloadBlob', 'isVariantReady', 'getAnalysisSnapshot', 'fileKind'])));
   Object.assign(actions, createPixelInspector(context, dependencies(["isVariantReady", "outputFormatLabel", "getDrawScale", "redrawPreviews", "redrawAnalysis"])));
   Object.assign(actions, createFilePassport(context, dependencies(["inspectFile", "workingRasterInfo", "fileBitsPerPixel", "formatBytes", "isVariantReady", "outputFormatLabel"])));
   Object.assign(actions, createScopePlots());

@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "informational": [
+    "resize",
+    "alpha-canvas",
+    "webp"
+  ],
+  "tests": {
+    "metrics": {
+      "fileHash": "-",
+      "pixelHash": "37IZsL3Ddk4"
+    },
+    "crop": {
+      "fileHash": "-",
+      "pixelHash": "O_Xoz9J7JbA"
+    },
+    "icc-p3": {
+      "fileHash": "-",
+      "pixelHash": "q6zjRMu5rL8"
+    },
+    "photo-webp": {
+      "changed": 0
+    },
+    "jpeg": {
+      "fileHash": "No0bcJcTqgI"
+    },
+    "png": {
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "png-js": {
+      "fileHash": "t8kXHCsD4kM",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "png-palette": {
+      "fileHash": "7O5oWlFc24w",
+      "pixelHash": "DRxkht4CXoI"
+    },
+    "png-opt": {
+      "fileHash": "PShSxIQL0ug",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "webp-ll": {
+      "fileHash": "QaqO1N3iS_k",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "jxl": {
+      "fileHash": "zozAXcoGu2k",
+      "pixelHash": "HO-tMCNJQ6A"
+    },
+    "jxl-ll": {
+      "fileHash": "BVYg5iuWuSY",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "jp2": {
+      "fileHash": "39uKjZpX1fk",
+      "pixelHash": "2CDkPbzfLBQ"
+    },
+    "j2k": {
+      "fileHash": "QF7opKJXBso",
+      "pixelHash": "ZR350Vc2Pgg"
+    },
+    "tiff": {
+      "fileHash": "zpVKG_Gg2NA",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "bmp8": {
+      "fileHash": "mfH2uxBjpM0",
+      "pixelHash": "tjQRTuQJDAs"
+    },
+    "bmp24": {
+      "fileHash": "0z9gGbPN6GA",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "bmp32": {
+      "fileHash": "Stdbr2iPCz4",
+      "pixelHash": "cQjEVfsN4wo"
+    },
+    "gif": {
+      "fileHash": "rpEKIjtiMYk",
+      "pixelHash": "DRxkht4CXoI"
+    },
+    "gifenc": {
+      "fileHash": "pJvcAzZer2k",
+      "pixelHash": "UTBujxzq03U"
+    },
+    "heic": {
+      "fileHash": "uecBcSNsn7w",
+      "pixelHash": "vf1n1e1i3EA"
+    },
+    "avif": {
+      "fileHash": "F97jfWjQosE",
+      "pixelHash": "fKzU9y0V5KE"
+    },
+    "ico": {
+      "pixelHash": "mV9jwtvcW9E"
+    },
+    "png16": {
+      "fileHash": "1SyncolPbNU",
+      "pixelHash": "qYLQlJ3ujPs"
+    },
+    "tiff16": {
+      "fileHash": "v3jGKytoTuc",
+      "pixelHash": "FF5K7wJ84u8"
+    },
+    "jxl16": {
+      "fileHash": "6xRYBF2WyMI",
+      "pixelHash": "FF5K7wJ84u8"
+    },
+    "jp2-16": {
+      "fileHash": "c33p06moEKo",
+      "pixelHash": "FF5K7wJ84u8"
+    },
+    "png-alpha": {
+      "fileHash": "zo0C78FgZvs",
+      "pixelHash": "SuCDA-3R1X4"
+    },
+    "avif-alpha": {
+      "fileHash": "0pwxDFGBgvo",
+      "pixelHash": "GI7JwYfThRo"
+    },
+    "cmyk-tiff": {
+      "fileHash": "1JEP63hr2pI",
+      "pixelHash": "pOzGS-2RQOQ"
+    },
+    "cmyk-jpeg": {
+      "fileHash": "cCrLTnhXpJo",
+      "pixelHash": "I6xk0i8stUo"
+    }
+  }
+}

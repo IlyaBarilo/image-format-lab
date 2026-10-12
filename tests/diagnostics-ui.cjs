@@ -1,0 +1,27 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=require('../scripts/node_modules/esbuild');
+(async()=>{
+ const bundle=buildSync({entryPoints:['src/ui/diagnostics.mjs'],bundle:true,write:false,format:'cjs',platform:'node'}).outputFiles[0].text;
+ const module={exports:{}};new Function('exports','module',bundle)(module.exports,module);const {createDiagnostics}=module.exports;
+ const {DIAGNOSTIC_CASES}=await import('../src/services/diagnostic-tests.mjs');
+ const {createPixelBuffer}=await import('../src/core/pixel-buffer.mjs');
+ const reference=JSON.parse(fs.readFileSync('src/diagnostic-reference.json','utf8'));
+ const libraries=JSON.parse(fs.readFileSync('vendor/components.json','utf8'));
+ const pixels=createPixelBuffer({width:1,height:1,data:new Uint8ClampedArray([20,40,60,255]),colorSpace:'srgb'});
+ global.document={getElementById:id=>id==='embedded-codecs'?{textContent:JSON.stringify({components:libraries,buildId:'e'.repeat(32),releaseTag:'v0.1.2'})}:{textContent:'{}'}};
+ const app={source:null,sourceLoading:false,codecs:{},codecPromises:{},codecAttempts:{},variants:[],layout:2,view:{zoom:1,centerX:0,centerY:0}};
+ let tests=DIAGNOSTIC_CASES.map(id=>({id,bytes:100,psnr:Infinity,alpha:0,changed:0,max:0,...reference.tests[id]}));
+ let versions={heic:{version:'1.23.4',decoder:'1.1.2'},utif:{jpegVersion:'3.2.0'}};
+ const controller=createDiagnostics({app,els:{metadataPolicy:{value:'none'}}},{isVariantReady:v=>v.ready,getAnalysisSnapshot:()=>({settings:{type:'histogram',scope:'viewport',display:'overlay'}}),runDiagnosticTests:async()=>Object.defineProperty(structuredClone(tests),'codecInfo',{value:structuredClone(versions)})});
+ let result=await controller.diagnosticReport();assert.match(result.report.verdict,/^OK/);assert.ok(result.fits);
+ app.source={file:new File(['fixture'],'PERSONAL_FILE.png',{type:'image/png'}),name:'PERSONAL_FILE.png',width:1,height:1,size:7,pixelBuffer:pixels,decodingPath:'png-js'};
+ app.variants=[0,1,2,3].map(i=>({index:i,ready:true,resultConfig:{format:'avif',matte:'white',quality:85,avifSpeed:6},config:{format:'avif'},measurement:{bytes:7,width:1,height:1,psnrRGB:40,alphaErrorPercent:0,processingMs:25},blob:new Blob(['fixture']),pixelBuffer:pixels,encodingPath:'libheif',decodingPath:'libheif'}));
+ const before=app.variants.map(v=>v.blob);
+ result=await controller.diagnosticReport();assert.ok(result.fits);assert.equal(result.report.cells.length,4);assert.ok(!result.text.includes('PERSONAL'));assert.deepEqual(app.variants.map(v=>v.blob),before);
+ versions.heic.decoder='1.1.2-test';result=await controller.diagnosticReport();assert.match(result.report.verdict,/versions=1/);versions.heic.decoder='1.1.2';
+ tests.find(t=>t.id==='avif').fileHash='0'.repeat(16);result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.match(result.text,/avif\*/);
+ tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));result=await controller.diagnosticReport();assert.equal(result.report.verdict,'INCOMPLETE');assert.equal(result.report.tests.length,34);
+ tests=DIAGNOSTIC_CASES.map(id=>({id,error:'unsupported'}));result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(result.fits);
+ const broken=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async()=>{throw new Error('C:/PERSONAL_FILE broken');}});
+ result=await broken.diagnosticReport();assert.equal(result.report.tests.length,34);assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(!result.text.includes('PERSONAL'));
+ console.log('PASS automatic result, four-cell snapshot, privacy, mismatch, missing capabilities and complete cancelled/error reports');
+})().catch(e=>{console.error(e);process.exitCode=1;});

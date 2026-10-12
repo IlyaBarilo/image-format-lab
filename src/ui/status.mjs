@@ -1,8 +1,9 @@
-
+import { recordDiagnosticEvent } from '../core/diagnostics.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createStatus({app, els}, deps) {
   function showStatus(message, isError = false) {
+    if (isError) recordDiagnosticEvent(app.diagnosticEvents ??= [], 'error', message);
     clearTimeout(app.statusTimer);
     els.status.textContent = message;
     els.status.style.background = isError ? "rgba(135, 31, 24, 0.96)" : "rgba(24, 33, 43, 0.94)";

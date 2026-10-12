@@ -153,6 +153,9 @@ process.stdout.write(require('../vendor/sources/gifenc-1.0.3/build.cjs').buildGi
   const graph = new Map();
   for (const name of first.inputs) {
     const source = fs.readFileSync(path.join(root, name), 'utf8');
+    if(name.endsWith('.json')){
+      JSON.parse(source);graph.set(name,[]);continue;
+    }
     const tree = parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
     graph.set(name, tree.body.filter(n => n.type === 'ImportDeclaration' && n.source.value.startsWith('.')).map(n => path.posix.normalize(path.posix.join(path.posix.dirname(name), n.source.value))));
     if (name.startsWith('src/core/')) assert.ok(!/\b(?:app|els)\./.test(source), name + ' must not read UI state');

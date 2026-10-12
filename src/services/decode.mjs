@@ -39,12 +39,17 @@ export function createDecode({}, deps) {
         iccProfile: decoded.iccProfile || null,
         floatStats: decoded.floatStats || null,
         colorManagementNote: decoded.colorManagementNote || '',
-        precisionNote:decoded.precisionNote||'',
+        precisionNote:decoded.precisionNote||'', decodingPath:decoded.decodingPath||'',
         hasAlpha: decoded.pixelBuffer ? decoded.pixelBuffer.data.some((n,i)=>i%4===3&&n!==2**decoded.pixelBuffer.bitDepth-1) : deps.detectAlpha(imageData.data) };
     } finally { if (decoded.close) decoded.close(); }
   }
   
   async function decodeImageBlobOrOptional(file) {
+    const decoded = await decodeByKind(file);
+    const kind = deps.fileKind(file);
+    return { ...decoded, decodingPath: decoded.decodingPath || ({bmp:'libnsbmp',tiff:'tiff',avif:'libheif',heic:'libheif',jxl:'libjxl',jp2:'openjpeg',j2k:'openjpeg',webp:'libwebp'}[kind] ?? 'embedded') };
+  }
+  async function decodeByKind(file) {
     // Sniff bytes as well as names: an empty or misleading MIME must not lose PNG16 precision.
     if(deps.decodePngFile){const png=await deps.decodePngFile(file);if(png)return png;}
     const kind = deps.fileKind(file);
@@ -114,7 +119,7 @@ export function createDecode({}, deps) {
       try {
         const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
         return {
-          image: bitmap,
+          image: bitmap, decodingPath: 'bitmap',
           width: bitmap.width,
           height: bitmap.height,
           close: () => bitmap.close && bitmap.close()
@@ -130,7 +135,7 @@ export function createDecode({}, deps) {
       img.onload = () => {
         URL.revokeObjectURL(url);
         resolve({
-          image: img,
+          image: img, decodingPath: 'img',
           width: img.naturalWidth,
           height: img.naturalHeight,
           close: null
@@ -159,14 +164,14 @@ export function createDecode({}, deps) {
     try {
       validateDecodedRaster(decoded);
       if (decoded.imageData) return { ...await deps.imageDataToPreview(decoded.imageData, decoded.pixelBuffer),
-        cmyk:decoded.cmyk||null,blockGrid: decoded.blockGrid || null };
+        cmyk:decoded.cmyk||null,blockGrid: decoded.blockGrid || null, decodingPath:decoded.decodingPath||'' };
       const canvas = document.createElement("canvas");
       canvas.width = decoded.width;
       canvas.height = decoded.height;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.drawImage(decoded.image, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      return {...await deps.imageDataToPreview(imageData),cmyk:decoded.cmyk||null};
+      return {...await deps.imageDataToPreview(imageData),cmyk:decoded.cmyk||null,decodingPath:decoded.decodingPath||''};
     } finally { if (decoded.close) decoded.close(); }
   }
 

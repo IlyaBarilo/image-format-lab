@@ -19,6 +19,7 @@ export function createComparison({app, els}, deps) {
     variant.resultConfig = null;
     variant.resultSource = null;
     variant.blockGrid = null;
+    variant.encodingPath = variant.decodingPath = '';
   }
   
   async function renderVisibleVariants() {
@@ -84,6 +85,8 @@ export function createComparison({app, els}, deps) {
       if(!current()) return;
       const alphaInfo = deps.alphaLabel(format, decoded.imageData, decoded.pixelBuffer);
       variant.blob = encoded.blob;
+      variant.encodingPath = encoded.encodingPath || '';
+      variant.decodingPath = decoded.decodingPath || (encoded.previewOnly ? 'pixels' : '');
       variant.paletteInfo = encoded.paletteInfo || null;
       variant.url = URL.createObjectURL(encoded.blob);
       variant.bitmap = decoded.bitmap;

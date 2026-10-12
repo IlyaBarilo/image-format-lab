@@ -2,10 +2,12 @@
 
 import { REFERENCE_SAMPLES, SAMPLE_CATALOG, createReferenceSamplePixels, createTiff16SamplePixels, createTiffFloatSample, createIccP3Sample, createCmykPrintSample } from '../core/reference-samples.mjs';
 import { pngPreview } from '../core/png.mjs';
+import { recordDiagnosticEvent } from '../core/diagnostics.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createSource({app, els}, deps) {
   async function loadFile(file, options = {}) {
+    recordDiagnosticEvent(app.diagnosticEvents ??= [], 'open');
     const announce = options.announce !== false;
     const fileId = options.fileId;
     deps.disposeSource();

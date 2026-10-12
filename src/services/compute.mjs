@@ -4,14 +4,16 @@ import embeddedWorkerSource from "viewer:compute-worker";
 // Dependencies are bound by application.mjs after all components are constructed.
 export function createCompute({app}, deps) {
   let computeQueue = Promise.resolve();
+  let cancelCompute = null;
   
   function workerCompute(kind,payload) {
     const task=computeQueue.catch(()=>{}).then(()=>new Promise((resolve,reject)=>{
       try {
         if(!app.computeWorker){const url=URL.createObjectURL(new Blob([embeddedWorkerSource],{type:"text/javascript"}));try{app.computeWorker=new Worker(url);}finally{URL.revokeObjectURL(url);}}
         const worker=app.computeWorker;
-        const finish=(error,result)=>{clearTimeout(timer);worker.onmessage=worker.onerror=null;if(error){worker.terminate();app.computeWorker=null;reject(error);}else resolve(result);};
+        const finish=(error,result)=>{clearTimeout(timer);cancelCompute=null;worker.onmessage=worker.onerror=null;if(error){worker.terminate();app.computeWorker=null;reject(error);}else resolve(result);};
         const timer=setTimeout(()=>finish(new Error("Превышено время обработки изображения (120 секунд).")),120000);
+        cancelCompute=()=>finish(new Error('Операция отменена'));
         worker.onmessage=event=>finish(event.data.error?new Error(event.data.error):null,event.data.result);
         worker.onerror=()=>finish(new Error("Не удалось выполнить обработку в Worker. Перезагрузите страницу и повторите."));
         worker.postMessage({kind,payload});
@@ -39,5 +41,6 @@ export function createCompute({app}, deps) {
     return deps.computePixelMetrics(inputs.a,inputs.b,inputs.options);
   }
 
-  return { workerCompute, computeImage, measurePixels };
+  function disposeCompute(){if(cancelCompute)cancelCompute();else{app.computeWorker?.terminate();app.computeWorker=null;}}
+  return { workerCompute, computeImage, measurePixels, disposeCompute };
 }

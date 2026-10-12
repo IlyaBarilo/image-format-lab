@@ -32,6 +32,7 @@ export const knowledgeFiles = [
   'docs/knowledge/workflow/comparison.md',
   'docs/knowledge/workflow/inspection.md',
   'docs/knowledge/workflow/experiments.md',
+  'docs/knowledge/workflow/diagnostics.md',
   'docs/knowledge/workflow/batch.md'
 ];
 

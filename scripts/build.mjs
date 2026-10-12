@@ -106,6 +106,11 @@ export async function buildViewer({ test = false, debug = false, release = false
     if (!name.startsWith('src/') && !(test && name.startsWith('tests/support/'))) throw new Error('Unexpected application dependency: ' + name);
   }
   const css = readProjectText('src/styles.css');
+  payload.buildId = sha256(JSON.stringify([payload.releaseTag, payload.manifest.files, knowledge,
+    app.outputFiles[0].text, worker.outputFiles[0].text, heicWorker.outputFiles[0].text,
+    modernWorker.outputFiles[0].text, tiffWorker.outputFiles[0].text, jpeg2000Worker.outputFiles[0].text,
+    css, readProjectText('src/index.html'), readProjectText('src/icons.svg'), readProjectText('src/favicon.svg'),
+    sha256(fs.readFileSync(path.join(root, samplePhotoPath)))])).slice(0, 32);
   if (/<\/style/i.test(css)) throw new Error('Unexpected closing style tag in CSS');
   let html = readProjectText('src/index.html');
   const versionLabel = releaseTag?.replace(/^v/, '');

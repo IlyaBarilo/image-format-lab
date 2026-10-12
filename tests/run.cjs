@@ -36,6 +36,8 @@ tests.push('jpeg2000');
 tests.push('cmyk');
 tests.push('icc-sdr');
 tests.push('comparison-readiness');
+tests.push('diagnostics', 'diagnostics-ui');
+tests.push('viewer-diagnostics');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

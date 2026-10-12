@@ -273,7 +273,16 @@ export function createEncode({}, deps) {
       if(!current())throw deps.staleRequest();
       if(snapshot.targetKB&&resolveCmykMode(snapshot,source))
         throw new Error('Подбор размера CMYK пока недоступен. Уберите бюджет файла или выберите RGB.');
-      if(!snapshot.targetKB) return await deps.encodeOne(snapshot,source);
+      if(!snapshot.targetKB) {
+        const encoded=await deps.encodeOne(snapshot,source);
+        const format=snapshot.format;
+        const encodingPath=format==='png'?(encoded.exactPng?'png-js':'canvas')
+          : format==='webp'?'canvas':format==='original'?'original'
+          : ['heic','avif'].includes(format)?'libheif'
+          : format.startsWith('jxl')?'libjxl':format.startsWith('jp')||format==='j2k'?'openjpeg'
+          : format==='jpeg'?'libjpeg':format==='webpLossless'?'libwebp':format;
+        return {...encoded,encodingPath};
+      }
       deps.validateExportConfig(snapshot);
       // Resize once; each probe starts with this same raster, never with a previous result.
       const prepared={...deps.outputSourceForConfig(snapshot,source)};

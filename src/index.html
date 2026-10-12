@@ -556,6 +556,15 @@
       <p class="batch-hint" id="tiffSettingsHint">Авто сохраняет точность 16-битного исходника. TIFF16 доступен в исходном размере с Deflate или без сжатия; точность экранного SDR-просмотра зависит от браузера. Для TIFF8 доступны также LZW и PackBits. Изменения учитываются автоматически. <button class="knowledge-text-link" type="button" data-knowledge-target="formats/tiff#parameters">Подробнее о настройках TIFF</button></p>
     </div>
   </dialog>
+  <dialog id="diagnosticDialog" class="batch-dialog diagnostic-dialog" aria-labelledby="diagnosticTitle" aria-describedby="diagnosticNote">
+    <div class="batch-dialog-head"><h2 id="diagnosticTitle">Отчёт о работе программы</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
+    <p class="batch-note" id="diagnosticNote">Автоматические проверки используют встроенные данные. Изображения, имена файлов и личные данные в отчёт не входят. Текущее сравнение сохраняется.</p>
+    <p id="diagnosticVerdict" role="status" aria-live="polite">Проверка…</p>
+    <p class="batch-note" id="diagnosticProgress" role="status" aria-live="polite"></p>
+    <label class="diagnostic-label" for="diagnosticText">Диагностический отчёт</label>
+    <textarea id="diagnosticText" readonly spellcheck="false"></textarea>
+    <div class="study-tools"><button class="text-btn" id="diagnosticCopy" type="button" disabled>Скопировать</button><button class="text-btn" id="diagnosticDownload" type="button" disabled>Скачать TXT</button><button class="text-btn" id="diagnosticStop" type="button">Остановить проверку</button><a class="text-btn" href="https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/" target="_blank" rel="noopener noreferrer">Форма сообщения</a><button class="knowledge-text-link" type="button" data-knowledge-target="workflow/diagnostics#overview">О проверках</button></div>
+  </dialog>
   <dialog id="studyDialog" class="batch-dialog study-dialog" aria-labelledby="studyTitle">
     <h2 id="studyTitle">Эксперименты</h2>
     <button class="knowledge-text-link" type="button" data-knowledge-target="workflow/experiments#overview">Как пользоваться экспериментами</button>
@@ -567,7 +576,7 @@
       <p class="batch-note" id="comparisonSummaryNote"></p>
       <div class="study-tools"><button class="text-btn" id="comparisonSummaryCopy" type="button" disabled>Копировать таблицу</button><button class="text-btn" id="comparisonSummaryCSV" type="button" disabled>Скачать краткий CSV</button></div>
       <p class="batch-note">bpp — биты файла на пиксель результата; Q указано только для форматов с настройкой качества. Копия таблицы содержит значения с разделителями табуляции.</p>
-      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button></div>
+      <div class="study-tools"><button class="text-btn" id="reportCSV" type="button">Скачать CSV</button><button class="text-btn" id="reportJSON" type="button">Скачать JSON</button><button class="text-btn" id="reportProtocol" type="button">Протокол опыта JSON</button><button class="text-btn" id="reportDiagnostic" type="button">Диагностика</button></div>
       <p class="batch-note">Параметры, размеры, PSNR RGB, Δα и время обработки видимых вариантов. Время включает подготовку, ожидание, кодирование, декодирование и метрики. Для устаревших результатов числа не экспортируются. Имена файлов входят в отчёт; сами изображения — нет.</p>
       <p class="batch-note">Протокол доступен после готовности всех видимых вариантов. Он сохраняет SHA-256 исходного и выходных файлов, настройки четырёх ячеек, область анализа, сведения о кодеках и результаты; изображения в JSON не включаются. Байты сжатых результатов и время могут различаться между браузерами и устройствами.</p>
     </section>

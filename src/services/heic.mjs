@@ -33,6 +33,7 @@ export function createHeic() {
       worker.onmessage = ({ data }) => {
         if (session !== current) return;
         if (data.type === 'ready') {
+          current.diagnosticInfo = { version: data.version, decoder: data.decoder };
           clearTimeout(current.timer);
           if (current.url) URL.revokeObjectURL(current.url);
           current.url = null;
@@ -86,6 +87,6 @@ export function createHeic() {
     return new Blob([result.buffer], { type: format === 'avif' ? 'image/avif' : 'image/heic' });
   }
   const api = { decode, encode };
-  async function loadHeicCodec() { await start(); return api; }
-  return { loadHeicCodec };
+  async function loadHeicCodec() { const current=await start(); return {...api,diagnosticInfo:current.diagnosticInfo}; }
+  return { loadHeicCodec, disposeHeicCodec: () => session?.fail(new Error('Операция отменена')) };
 }

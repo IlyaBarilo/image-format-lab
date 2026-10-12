@@ -804,6 +804,14 @@ select:disabled {
   transform: translateX(-50%) translateY(-2px);
 }
 
+.diagnostic-dialog { width: min(780px, calc(100vw - 24px)); }
+.diagnostic-label { display: block; margin: 12px 0 6px; }
+#diagnosticText { box-sizing: border-box; width: 100%; height: clamp(160px, 38vh, 420px); resize: vertical; padding: 10px; font: 12px/1.45 Consolas, monospace; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.diagnostic-dialog .study-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#diagnosticVerdict { font-weight: 600; }
+#diagnosticVerdict[data-state="different"], #diagnosticVerdict[data-state="incomplete"] { color: var(--warn); }
+.diagnostic-dialog a.text-btn { text-decoration: none; }
+
 .file-drop-overlay {
   position: absolute;
   inset: 8px;

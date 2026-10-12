@@ -96,6 +96,7 @@ export function createStudy({app, els}, deps) {
   }
   
   function attachStudyEvents() {
+    deps.attachDiagnosticEvents?.();
     const $ = id => document.getElementById(id);
     deps.attachQualitySeriesEvents();
     app.profiles = [];

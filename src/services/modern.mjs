@@ -144,5 +144,5 @@ export function createModern() {
     transcodeJpeg: file => convertExactJpeg(file, 'jpeg-to-jxl'),
     reconstructJpeg: file => convertExactJpeg(file, 'jxl-to-jpeg') };
   async function loadModernCodec() { await start(); return api; }
-  return { loadModernCodec };
+  return { loadModernCodec, disposeModernCodec: () => session?.fail(new Error('Операция отменена')) };
 }

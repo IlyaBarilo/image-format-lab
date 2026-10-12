@@ -102,5 +102,5 @@ export function createJpeg2000() {
   }
   const api = { decode, encode };
   async function loadJpeg2000Codec() { await start(); return api; }
-  return { loadJpeg2000Codec };
+  return { loadJpeg2000Codec, disposeJpeg2000Codec: () => session?.fail(new Error('Операция отменена')) };
 }

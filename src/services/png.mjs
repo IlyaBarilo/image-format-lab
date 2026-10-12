@@ -31,7 +31,7 @@ export function createPng({},deps){
     const pixelBuffer=prepared.pixelBuffer;
     const preview=pngPreview(pixelBuffer);
     const imageData=new ImageData(preview.data,preview.width,preview.height);
-    return {width:pixelBuffer.width,height:pixelBuffer.height,...prepared,imageData,
+    return {width:pixelBuffer.width,height:pixelBuffer.height,...prepared,imageData,decodingPath:'png-js',
       colorManagementNote:iccProfile?'ICC→sRGB':''};
   }
   async function encodeExactPng(pixels,depth,options){return encodePng(pixels,depth,await pngCodec(),options);}

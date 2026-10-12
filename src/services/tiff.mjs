@@ -38,6 +38,7 @@ export function createTiff() {
       worker.onmessage = ({ data }) => {
         if (session !== current) return;
         if (data.type === 'ready') {
+          current.diagnosticInfo = { jpegVersion: data.jpegVersion };
           clearTimeout(current.timer);
           if (current.url) URL.revokeObjectURL(current.url);
           current.url = null;
@@ -161,6 +162,6 @@ export function createTiff() {
     return {width:result.width,height:result.height,imageData:new ImageData(new Uint8ClampedArray(result.buffer),result.width,result.height),close:null};
   }
   const api = { decode, decodeCmykJpeg, encode, encodeJpeg, encodeCmyk, decodeBmp };
-  async function loadTiffCodec() { await start(); return api; }
-  return { loadTiffCodec };
+  async function loadTiffCodec() { const current=await start(); return {...api,diagnosticInfo:current.diagnosticInfo}; }
+  return { loadTiffCodec, disposeTiffCodec: () => session?.fail(new Error('Операция отменена')) };
 }
