@@ -804,7 +804,14 @@ select:disabled {
   transform: translateX(-50%) translateY(-2px);
 }
 
-.diagnostic-dialog { width: min(780px, calc(100vw - 24px)); }
+.diagnostic-dialog { box-sizing: border-box; width: min(780px, calc(100vw - 24px)); padding: 20px; }
+.diagnostic-dialog .batch-dialog-head { align-items: center; margin-bottom: 16px; }
+.diagnostic-dialog .batch-dialog-head > form { flex: 0 0 auto; max-height: none; margin: 0; padding: 0; }
+.diagnostic-dialog .batch-dialog-head h2 { min-width: 0; overflow-wrap: anywhere; }
+.diagnostic-dialog #diagnosticNote { margin-top: 0; }
+@media (max-width: 480px) {
+  .diagnostic-dialog { padding: 16px; }
+}
 .diagnostic-label { display: block; margin: 12px 0 6px; }
 #diagnosticText { box-sizing: border-box; width: 100%; height: clamp(160px, 38vh, 420px); resize: vertical; padding: 10px; font: 12px/1.45 Consolas, monospace; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 #diagnosticBar { display: block; width: 100%; height: 12px; accent-color: var(--accent); }
