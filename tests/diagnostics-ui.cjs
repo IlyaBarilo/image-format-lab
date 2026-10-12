@@ -18,10 +18,37 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=req
  const before=app.variants.map(v=>v.blob);
  result=await controller.diagnosticReport();assert.ok(result.fits);assert.equal(result.report.cells.length,4);assert.ok(!result.text.includes('PERSONAL'));assert.deepEqual(app.variants.map(v=>v.blob),before);
  versions.heic.decoder='1.1.2-test';result=await controller.diagnosticReport();assert.match(result.report.verdict,/versions=1/);versions.heic.decoder='1.1.2';
- tests.find(t=>t.id==='avif').fileHash='0'.repeat(16);result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.match(result.text,/avif\*/);
- tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));result=await controller.diagnosticReport();assert.equal(result.report.verdict,'INCOMPLETE');assert.equal(result.report.tests.length,34);
+ tests.find(t=>t.id==='avif').fileHash='0'.repeat(11);result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.match(result.text,/FAIL avif/);assert.ok(result.text.includes('Hf:'+reference.tests.avif.fileHash+'>'+'0'.repeat(11)));assert.equal(result.report.tests.find(t=>t.id==='avif').differences[0].key,'fileHash');
+ tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));result=await controller.diagnosticReport();assert.equal(result.report.verdict,'INCOMPLETE');assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.text,/SKIP photo-j85/);
  tests=DIAGNOSTIC_CASES.map(id=>({id,error:'unsupported'}));result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(result.fits);
  const broken=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async()=>{throw new Error('C:/PERSONAL_FILE broken');}});
- result=await broken.diagnosticReport();assert.equal(result.report.tests.length,34);assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(!result.text.includes('PERSONAL'));
+ result=await broken.diagnosticReport();assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(!result.text.includes('PERSONAL'));
+ tests=DIAGNOSTIC_CASES.map(id=>({id,bytes:100,psnr:Infinity,alpha:0,changed:0,max:0,...reference.tests[id]}));
+ tests.find(t=>t.id==='photo-a85').values.b++;
+ result=await controller.diagnosticReport();assert.match(result.text,/FAIL photo-a85 .*diff:b:39307>39308/);assert.equal(result.report.tests.find(t=>t.id==='photo-a85').status,'FAIL');
+ app.diagnosticEvents=[['error','timeout:12345678']];result=await controller.diagnosticReport();assert.ok(result.report.issues.some(issue=>issue.id==='session'));assert.match(result.text,/FAIL session error:timeout/);
+ class Element {
+   constructor(id){this.id=id;this.listeners={};this.children=[];this.dataset={};this.value='';this.textContent='';this.hidden=false;this.disabled=false;}
+   addEventListener(name,fn){this.listeners[name]=fn;}
+   appendChild(child){this.children.push(child);}
+   replaceChildren(){this.children=[];}
+   showModal(){this.open=true;}
+   focus(){document.activeElement=this;}
+   select(){this.selected=true;}
+   async click(){return this.listeners.click?.({currentTarget:this});}
+ }
+ const payload=document.getElementById('embedded-codecs'),nodes=new Map();
+ global.document={activeElement:null,getElementById:id=>id==='embedded-codecs'?payload:id==='embedded-samples'?{textContent:'{}'}:(nodes.get(id)??(nodes.set(id,new Element(id)),nodes.get(id))),createElement:name=>new Element(name),execCommand:()=>false};
+ let clipboard='',opened='';Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{clipboard=value;}}});global.open=url=>{opened=url;return null;};
+ const ui=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async({progress})=>{progress('metrics',0,DIAGNOSTIC_CASES.length);assert.equal(document.getElementById('diagnosticBar').value,0);progress(null,DIAGNOSTIC_CASES.length,DIAGNOSTIC_CASES.length);return structuredClone(tests);}});
+ ui.attachDiagnosticEvents();await document.getElementById('diagnosticOpen').click();
+ assert.equal(document.getElementById('diagnosticBar').value,DIAGNOSTIC_CASES.length);
+ assert.ok(document.getElementById('diagnosticOutput').children.some(row=>row.dataset.status==='FAIL'&&row.textContent.includes('photo-a85')));
+ assert.ok(document.getElementById('diagnosticDetails').children.some(row=>row.textContent.includes('ожидалось 39307, получено 39308')));
+ assert.equal(document.getElementById('diagnosticSend').disabled,false);
+ await document.getElementById('diagnosticSend').click();assert.equal(opened,'https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/');assert.equal(clipboard,document.getElementById('diagnosticText').value);
+ navigator.clipboard.writeText=async()=>{throw new Error('blocked');};await document.getElementById('diagnosticCopy').click();assert.equal(document.getElementById('diagnosticText').hidden,false);assert.equal(document.getElementById('diagnosticText').selected,true);assert.match(document.getElementById('diagnosticProgress').textContent,/Ctrl\+C/);
+ document.getElementById('diagnosticDialog').listeners.close();assert.equal(document.activeElement,document.getElementById('diagnosticOpen'));
  console.log('PASS automatic result, four-cell snapshot, privacy, mismatch, missing capabilities and complete cancelled/error reports');
+ console.log('PASS visible entry, coloured statuses, expected/actual explanations, progress, send/clipboard fallback and focus');
 })().catch(e=>{console.error(e);process.exitCode=1;});

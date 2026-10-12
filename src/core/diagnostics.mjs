@@ -1,7 +1,7 @@
 import { createPixelBuffer } from './pixel-buffer.mjs';
 import { computePixelMetrics } from './metrics.mjs';
 
-export const DIAGNOSTIC_VERSION = 1;
+export const DIAGNOSTIC_VERSION = 2;
 export const DIAGNOSTIC_LIMIT = 4000;
 export const DIAGNOSTIC_FORM = 'https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/';
 
@@ -74,7 +74,59 @@ export async function diagnosticPixelHash(pixels) {
   return diagnosticHash(JSON.stringify(header) + ':' + await diagnosticHash(pixels.data));
 }
 
+export async function diagnosticDataHash(value) {
+  async function project(item) {
+    if (ArrayBuffer.isView(item)) return [item.constructor.name, item.length, await diagnosticHash(item)];
+    if (Array.isArray(item)) return Promise.all(item.map(project));
+    if (item && typeof item === 'object') return Object.fromEntries(await Promise.all(Object.entries(item).map(async ([key, child]) => [key, await project(child)])));
+    return item;
+  }
+  return diagnosticHash(JSON.stringify(await project(value)));
+}
+
 const number = value => value === Infinity ? 'inf' : Number.isFinite(value) ? Number(value.toFixed(5)).toString() : '-';
+export const diagnosticValue = value => typeof value === 'number' ? number(value) : String(value ?? '-');
+
+export function evaluateDiagnosticTest(test, expected, informational = false) {
+  test.expected = expected;
+  test.differences = [];
+  if (!test.error && !expected && !informational) test.error = 'reference-missing';
+  if (!test.error && expected) {
+    for (const [key, value] of Object.entries(expected)) {
+      if (key === 'values') {
+        for (const [field, target] of Object.entries(value)) {
+          const actual = test.values?.[field];
+          if (diagnosticValue(actual) !== diagnosticValue(target)) test.differences.push({ key: field, expected: target, actual });
+        }
+      } else if (diagnosticValue(test[key]) !== diagnosticValue(value)) test.differences.push({ key, expected: value, actual: test[key] });
+    }
+  }
+  test.mismatch = test.differences.length > 0;
+  test.status = test.error?.startsWith('cancel') || test.error === 'reference-missing' ? 'SKIP'
+    : test.error || test.mismatch ? 'FAIL' : informational ? 'INFO' : 'PASS';
+  return test;
+}
+
+const FIELD_CODES = { bytes: 'b', psnr: 'P', alpha: 'a', changed: 'n', max: 'm', fileHash: 'Hf', pixelHash: 'Hp', inputHash: 'Hi' };
+const fieldCode = key => FIELD_CODES[key] ?? key;
+export function diagnosticTestLine(test) {
+  const prefix = `${test.status ?? (test.error || test.mismatch ? 'FAIL' : 'PASS')} ${test.id}`;
+  if (test.error) return `${prefix} !${test.error}`;
+  // Matching control values are represented by '='; the full control is part of the identified build.
+  let values;
+  if (test.values) values = Object.entries(test.values).filter(([key, value]) => !/^h[A-Z]/.test(key) && (key !== 'a' || value !== 0)).map(([key, value]) => `${key}=${diagnosticValue(value)}`).join(',');
+  else {
+    const numbers = [test.bytes, test.psnr, test.alpha, test.changed, test.max];
+    while (numbers.length > 2 && numbers.at(-1) === 0) numbers.pop();
+    values = numbers.map(diagnosticValue).join('/');
+  }
+  const hashValues = [...['fileHash', 'pixelHash', 'inputHash'].map(key => [key, test[key], test.expected?.[key]]),
+    ...Object.entries(test.values ?? {}).filter(([key]) => /^h[A-Z]/.test(key)).map(([key, value]) => [key, value, test.expected?.values?.[key]])].filter(([, value]) => value && value !== '-');
+  const hashes = hashValues.length && hashValues.every(([, value, target]) => value === target) ? 'H='
+    : hashValues.map(([key, value, target]) => `${fieldCode(key)}:${target === value ? '=' : target ? target + '>' + value : value}`).join(',');
+  const differences = test.differences?.filter(d => !/Hash$/.test(d.key) && !/^h[A-Z]/.test(d.key)).map(d => `${fieldCode(d.key)}:${diagnosticValue(d.expected)}>${diagnosticValue(d.actual)}`).join(',');
+  return `${prefix} ${values}${hashes ? ' ' + hashes : ''}${differences ? ' diff:' + differences : ''}`;
+}
 export function diagnosticConfig(config = {}) {
   const f = config.format;
   const keys = ['matte', 'colorMode', ...(['jpeg', 'webp', 'avif', 'heic', 'jxl', 'jp2', 'j2k'].includes(f) ? ['quality'] : []),
@@ -107,7 +159,7 @@ export function diagnosticEnvironment(nav = globalThis.navigator, win = globalTh
 
 export function formatDiagnostics(report) {
   const build=/^[a-f0-9]{32}$/.test(report.build??'')?btoa(String.fromCharCode(...report.build.match(/../g).map(value=>parseInt(value,16)))).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):report.build||'-';
-  const lines = [`IFL-D${DIAGNOSTIC_VERSION} ${report.release || 'local'} ${build} ${report.state}`, `ENV ${report.environment}`];
+  const lines = [`IFL-D${DIAGNOSTIC_VERSION} ${report.release || 'local'} ${build} ${report.state}`, `RESULT ${report.verdict}`, `ENV ${report.environment}`];
   lines.push('LIB ' + report.libraries.join(';'));
   lines.push('CODEC ' + report.codecs.join(';'));
   if(report.actual?.length)lines.push('ACTUAL '+report.actual.join(';'));
@@ -115,8 +167,9 @@ export function formatDiagnostics(report) {
   lines.push('VIEW ' + report.view);
   if(report.batch)lines.push('BATCH '+report.batch);
   for (const cell of report.cells) lines.push(`V${cell.index} ${cell.status} ${cell.config} | ${cell.numbers.map(number).join('/')} | ${cell.paths} | ${cell.hashes.join('/')}`);
-  lines.push('V:b/w/h/P/a/ms;T:b/P/a|TAC/n/max/Hf/Hp;H=SHA256-64;white;Q85,s6,e5;*=diff');
-  for (const test of report.tests) lines.push(test.error ? `${test.id} !${test.error}` : `${test.id}${test.mismatch ? '*' : ''} ${[test.bytes, test.psnr, test.alpha, test.changed, test.max].map(number).join('/')} ${test.fileHash || '-'}/${test.pixelHash || '-'}`);
+  lines.push('V:b/w/h/P/a/ms;T:b/P/a/n/m,tail=0;a=0 if absent;H=SHA256-64;H==control;diff:expected>actual;white;Q85,s6,e5');
+  for (const test of report.tests) lines.push(diagnosticTestLine(test));
+  for (const issue of report.issues ?? []) lines.push(`FAIL ${issue.id} ${issue.detail}`);
   lines.push('EVENT ' + report.events.map(value => value.join(':')).join(';'));
   lines.push('RESULT ' + report.verdict);
   return lines.join('\n') + '\n';

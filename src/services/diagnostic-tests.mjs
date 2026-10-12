@@ -6,6 +6,7 @@ import { cropSourcePixels } from '../core/crop-source.mjs';
 import { createIccP3Sample } from '../core/reference-samples.mjs';
 import { convertIccToSrgb } from '../core/icc-sdr.mjs';
 import { createCmykRaster } from '../core/cmyk.mjs';
+import { diagnosticLabTasks, DIAGNOSTIC_LAB_CASES } from './diagnostic-labs.mjs';
 
 export function diagnosticSource(pixels) {
   const preview = pngPreview(pixels);
@@ -20,7 +21,7 @@ export const DIAGNOSTIC_CASES = Object.freeze([
   'metrics', 'crop', 'resize', 'alpha-canvas', 'icc-p3', 'photo-webp',
   'jpeg', 'png', 'png-js', 'png-palette', 'png-opt', 'webp', 'webp-ll', 'jxl', 'jxl-ll',
   'jp2', 'j2k', 'tiff', 'bmp8', 'bmp24', 'bmp32', 'gif', 'gifenc', 'heic', 'avif', 'ico',
-  'png16', 'tiff16', 'jxl16', 'jp2-16', 'png-alpha', 'avif-alpha', 'cmyk-tiff', 'cmyk-jpeg'
+  'png16', 'tiff16', 'jxl16', 'jp2-16', 'png-alpha', 'avif-alpha', 'cmyk-tiff', 'cmyk-jpeg', ...DIAGNOSTIC_LAB_CASES
 ]);
 
 export async function runDiagnosticTests({ createRuntime, photo, signal, progress = () => {}, timeout = 30000 }) {
@@ -35,7 +36,9 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
     const encoded = await actions.encodeFromSource({ ...config, format, ...extra }, source);
     const decoded = await actions.decodeVariantForPreview(encoded.blob, encoded.exactPng);
     try {
-      return await describe(encoded.sourcePixelBuffer, decoded.pixelBuffer, encoded.blob);
+      const result = await describe(encoded.sourcePixelBuffer, decoded.pixelBuffer, encoded.blob);
+      const measured = await actions.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
+      return { ...result, psnr: measured.psnr, alpha: measured.alpha };
     } finally { decoded.bitmap?.close?.(); }
   }
   async function execute(id, task) {
@@ -52,6 +55,7 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
       results.push({ id, error: diagnosticError(error) });
       Object.assign(info,runtime.info);runtime.dispose(); runtime = createRuntime();
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+    progress(null, results.filter(result => !result.error?.startsWith('cancel')).length, DIAGNOSTIC_CASES.length);
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   try {
@@ -123,6 +127,8 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
       return { bytes: blob.size, psnr: sum ? 10 * Math.log10(255 ** 2 / (sum / data.length)) : Infinity,
         alpha: tac, changed, max: max / 255 * 100, fileHash: await diagnosticHash(blob), pixelHash: await diagnosticHash(decoded.cmyk.data) };
     });
+    const laboratory = diagnosticLabTasks({ getRuntime: () => runtime, photo, config, makeSource: diagnosticSource });
+    for (const id of DIAGNOSTIC_LAB_CASES) await execute(id, laboratory[id]);
   } finally { Object.assign(info,runtime.info);runtime.dispose(); }
   Object.defineProperty(results,'codecInfo',{value:info});
   return results;

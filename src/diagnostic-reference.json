@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "informational": [
     "resize",
     "alpha-canvas",
@@ -8,123 +8,473 @@
   "tests": {
     "metrics": {
       "fileHash": "-",
-      "pixelHash": "37IZsL3Ddk4"
+      "pixelHash": "37IZsL3Ddk4",
+      "psnr": 83.00502,
+      "alpha": 0,
+      "changed": 1,
+      "max": 0.39216,
+      "bytes": 0
     },
     "crop": {
       "fileHash": "-",
-      "pixelHash": "O_Xoz9J7JbA"
+      "pixelHash": "O_Xoz9J7JbA",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 0
     },
     "icc-p3": {
       "fileHash": "-",
-      "pixelHash": "q6zjRMu5rL8"
+      "pixelHash": "q6zjRMu5rL8",
+      "psnr": 32.43246,
+      "alpha": 0,
+      "changed": 3072,
+      "max": 12.01648,
+      "bytes": 0
     },
     "photo-webp": {
-      "changed": 0
+      "changed": 0,
+      "psnr": "inf",
+      "alpha": 0,
+      "max": 0,
+      "bytes": 1609622
     },
     "jpeg": {
-      "fileHash": "No0bcJcTqgI"
+      "fileHash": "No0bcJcTqgI",
+      "psnr": 13.1518,
+      "alpha": 0,
+      "changed": 3047,
+      "max": 74.5098,
+      "bytes": 1342
     },
     "png": {
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0
     },
     "png-js": {
       "fileHash": "t8kXHCsD4kM",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 611
     },
     "png-palette": {
       "fileHash": "7O5oWlFc24w",
-      "pixelHash": "DRxkht4CXoI"
+      "pixelHash": "DRxkht4CXoI",
+      "psnr": 20.46777,
+      "alpha": 0,
+      "changed": 3035,
+      "max": 21.17647,
+      "bytes": 639
     },
     "png-opt": {
       "fileHash": "PShSxIQL0ug",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 212
     },
     "webp-ll": {
       "fileHash": "QaqO1N3iS_k",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 74
     },
     "jxl": {
       "fileHash": "zozAXcoGu2k",
-      "pixelHash": "HO-tMCNJQ6A"
+      "pixelHash": "HO-tMCNJQ6A",
+      "psnr": 14.4049,
+      "alpha": 0,
+      "changed": 3036,
+      "max": 98.82353,
+      "bytes": 667
     },
     "jxl-ll": {
       "fileHash": "BVYg5iuWuSY",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 1411
     },
     "jp2": {
       "fileHash": "39uKjZpX1fk",
-      "pixelHash": "2CDkPbzfLBQ"
+      "pixelHash": "2CDkPbzfLBQ",
+      "psnr": 11.65459,
+      "alpha": 0,
+      "changed": 3048,
+      "max": 81.96078,
+      "bytes": 357
     },
     "j2k": {
       "fileHash": "QF7opKJXBso",
-      "pixelHash": "ZR350Vc2Pgg"
+      "pixelHash": "ZR350Vc2Pgg",
+      "psnr": 12.6634,
+      "alpha": 0,
+      "changed": 3049,
+      "max": 85.09804,
+      "bytes": 351
     },
     "tiff": {
       "fileHash": "zpVKG_Gg2NA",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 374
     },
     "bmp8": {
       "fileHash": "mfH2uxBjpM0",
-      "pixelHash": "tjQRTuQJDAs"
+      "pixelHash": "tjQRTuQJDAs",
+      "psnr": 19.87874,
+      "alpha": 0,
+      "changed": 3015,
+      "max": 33.33333,
+      "bytes": 1206
     },
     "bmp24": {
       "fileHash": "0z9gGbPN6GA",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 3126
     },
     "bmp32": {
       "fileHash": "Stdbr2iPCz4",
-      "pixelHash": "cQjEVfsN4wo"
+      "pixelHash": "cQjEVfsN4wo",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 4234
     },
     "gif": {
       "fileHash": "rpEKIjtiMYk",
-      "pixelHash": "DRxkht4CXoI"
+      "pixelHash": "DRxkht4CXoI",
+      "psnr": 20.46777,
+      "alpha": 0,
+      "changed": 3035,
+      "max": 21.17647,
+      "bytes": 600
     },
     "gifenc": {
       "fileHash": "pJvcAzZer2k",
-      "pixelHash": "UTBujxzq03U"
+      "pixelHash": "UTBujxzq03U",
+      "psnr": 21.40379,
+      "alpha": 0,
+      "changed": 3027,
+      "max": 27.05882,
+      "bytes": 774
     },
     "heic": {
       "fileHash": "uecBcSNsn7w",
-      "pixelHash": "vf1n1e1i3EA"
+      "pixelHash": "vf1n1e1i3EA",
+      "psnr": 13.59615,
+      "alpha": 0,
+      "changed": 12149,
+      "max": 76.86275,
+      "bytes": 6286
     },
     "avif": {
       "fileHash": "F97jfWjQosE",
-      "pixelHash": "fKzU9y0V5KE"
+      "pixelHash": "fKzU9y0V5KE",
+      "psnr": 13.53599,
+      "alpha": 0,
+      "changed": 3047,
+      "max": 74.90196,
+      "bytes": 948
     },
     "ico": {
-      "pixelHash": "mV9jwtvcW9E"
+      "pixelHash": "mV9jwtvcW9E",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0
     },
     "png16": {
       "fileHash": "1SyncolPbNU",
-      "pixelHash": "qYLQlJ3ujPs"
+      "pixelHash": "qYLQlJ3ujPs",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 941
     },
     "tiff16": {
       "fileHash": "v3jGKytoTuc",
-      "pixelHash": "FF5K7wJ84u8"
+      "pixelHash": "FF5K7wJ84u8",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 486
     },
     "jxl16": {
       "fileHash": "6xRYBF2WyMI",
-      "pixelHash": "FF5K7wJ84u8"
+      "pixelHash": "FF5K7wJ84u8",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 1154
     },
     "jp2-16": {
       "fileHash": "c33p06moEKo",
-      "pixelHash": "FF5K7wJ84u8"
+      "pixelHash": "FF5K7wJ84u8",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 2536
     },
     "png-alpha": {
       "fileHash": "zo0C78FgZvs",
-      "pixelHash": "SuCDA-3R1X4"
+      "pixelHash": "SuCDA-3R1X4",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 617
     },
     "avif-alpha": {
       "fileHash": "0pwxDFGBgvo",
-      "pixelHash": "GI7JwYfThRo"
+      "pixelHash": "GI7JwYfThRo",
+      "psnr": 17.65817,
+      "alpha": 0,
+      "changed": 3047,
+      "max": 74.90196,
+      "bytes": 1147
     },
     "cmyk-tiff": {
       "fileHash": "1JEP63hr2pI",
-      "pixelHash": "pOzGS-2RQOQ"
+      "pixelHash": "pOzGS-2RQOQ",
+      "psnr": "inf",
+      "alpha": 367.05882,
+      "changed": 0,
+      "max": 0,
+      "bytes": 224
     },
     "cmyk-jpeg": {
       "fileHash": "cCrLTnhXpJo",
-      "pixelHash": "I6xk0i8stUo"
+      "pixelHash": "I6xk0i8stUo",
+      "psnr": 37.97583,
+      "alpha": 370.19608,
+      "changed": 2976,
+      "max": 5.09804,
+      "bytes": 2148
+    },
+    "photo-png": {
+      "values": {
+        "b": 478394,
+        "P": "inf",
+        "a": 0
+      },
+      "fileHash": "aWHCWQEyI2I",
+      "pixelHash": "-Awx15jbsII",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-bmp": {
+      "values": {
+        "b": 921654,
+        "P": "inf",
+        "a": 0
+      },
+      "fileHash": "7NYkPh8P0Hk",
+      "pixelHash": "-Awx15jbsII",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-j85": {
+      "values": {
+        "b": 47581,
+        "P": 39.36663,
+        "a": 0
+      },
+      "fileHash": "MPrpelDagkk",
+      "pixelHash": "FOTXqqaGnxU",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-a85": {
+      "values": {
+        "b": 39307,
+        "P": 41.33034,
+        "a": 0
+      },
+      "fileHash": "H2P8PvTdV5I",
+      "pixelHash": "9IzllUIM1JA",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-j30": {
+      "values": {
+        "b": 18826,
+        "P": 33.68116,
+        "a": 0
+      },
+      "fileHash": "pLb6jwnI8mY",
+      "pixelHash": "NQ4l3WwstFM",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-j60": {
+      "values": {
+        "b": 27937,
+        "P": 36.16942,
+        "a": 0
+      },
+      "fileHash": "5mI7WjYPWKs",
+      "pixelHash": "oy3NOgH-myY",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-j90": {
+      "values": {
+        "b": 60043,
+        "P": 40.71231,
+        "a": 0
+      },
+      "fileHash": "0B11CNI5x1w",
+      "pixelHash": "KeiFW7bbPus",
+      "inputHash": "-Awx15jbsII"
+    },
+    "photo-a73": {
+      "values": {
+        "b": 27142,
+        "P": 39.83439,
+        "a": 0
+      },
+      "fileHash": "msyyaGbCdac",
+      "pixelHash": "rhHGMmMExwU",
+      "inputHash": "-Awx15jbsII"
+    },
+    "palette32": {
+      "values": {
+        "b": 8686,
+        "P": 20.44098,
+        "a": 0,
+        "levels": "4,3,4"
+      },
+      "fileHash": "tJkWVeqUA7o",
+      "pixelHash": "l6oVuBwgN38",
+      "inputHash": "mRN6YHBCxH8"
+    },
+    "dither32": {
+      "values": {
+        "b": 63897,
+        "P": 18.54584,
+        "a": 0,
+        "levels": "9,10,8"
+      },
+      "fileHash": "uwTpE01ictQ",
+      "pixelHash": "VIcqqyqVRQ0",
+      "inputHash": "mRN6YHBCxH8"
+    },
+    "sample16": {
+      "values": {
+        "b": 5387,
+        "P": "inf",
+        "a": 0,
+        "top": 65535,
+        "hHist16": "TJzUY8yHOYA"
+      },
+      "fileHash": "Uoibp94g9Fw",
+      "pixelHash": "oLEc4_QgerA",
+      "inputHash": "oLEc4_QgerA"
+    },
+    "sample-float": {
+      "values": {
+        "low": 224,
+        "high": 896
+      },
+      "pixelHash": "EZWugdcJwi4"
+    },
+    "errors": {
+      "values": {
+        "MAE": 1.39318,
+        "RMSE": 2.06986,
+        "mean": 5.70453,
+        "peak": 58,
+        "n": 306808,
+        "line": 3.03799,
+        "SSIM": 0.95411,
+        "hErrors": "vEzxw6eXJ4g",
+        "hMap": "hiOSC0xKOhA",
+        "hSSIM": "9KqFaBIpKig",
+        "hErrorLine": "Qwp0byW6Goc"
+      }
+    },
+    "scopes": {
+      "values": {
+        "pixels": 307200,
+        "strip": 40960,
+        "Y": 88.75269,
+        "waveY": 91.42532,
+        "hRGB": "hgpC9U1w0GQ",
+        "hYC": "Pj8wudHhklA",
+        "hWave": "fV0lcV7k6YA",
+        "hVector": "2B48rwBynlE",
+        "hCIE": "pvVgWa9aDAE",
+        "hLine": "2NOBF_Y6nno"
+      },
+      "inputHash": "-Awx15jbsII"
+    },
+    "sample-alpha": {
+      "values": {
+        "a": 62.45098,
+        "low": 61600,
+        "high": 20640,
+        "mean": 159.25,
+        "n": 143200,
+        "line": 127.5,
+        "edge": 82240,
+        "hAlpha": "tMpNAy1bYK4"
+      },
+      "fileHash": "qp5hiQSlSxA",
+      "pixelHash": "gf6Zwcup0c8",
+      "inputHash": "d3GlbW9B6uw"
+    },
+    "print-tiff": {
+      "values": {
+        "b": 10830,
+        "TAC": 400,
+        "over": "41528,28976,27656",
+        "lostK": 0,
+        "MAE": "0,0,0,0",
+        "hCMYK": "AQCZID8VT6o"
+      },
+      "fileHash": "3hOqIRHmGFc",
+      "pixelHash": "bRiLrR4lLVc"
+    },
+    "print-jpeg": {
+      "values": {
+        "b": 47963,
+        "TAC": 400,
+        "over": "40514,28976,26442",
+        "lostK": 0,
+        "MAE": "0.01875,0.0206,0.02023,0.04459",
+        "hCMYK": "7mCcn1K4QcQ"
+      },
+      "fileHash": "Q71Tvz68-X0",
+      "pixelHash": "7cu6XXHbZMo"
+    },
+    "metric-worker": {
+      "values": {
+        "P": 46.36989,
+        "delta": 0,
+        "bpp": 400,
+        "display": "46.37"
+      }
     }
   }
 }

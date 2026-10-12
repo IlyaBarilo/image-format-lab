@@ -807,6 +807,15 @@ select:disabled {
 .diagnostic-dialog { width: min(780px, calc(100vw - 24px)); }
 .diagnostic-label { display: block; margin: 12px 0 6px; }
 #diagnosticText { box-sizing: border-box; width: 100%; height: clamp(160px, 38vh, 420px); resize: vertical; padding: 10px; font: 12px/1.45 Consolas, monospace; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+#diagnosticBar { display: block; width: 100%; height: 12px; accent-color: var(--accent); }
+#diagnosticOutput { box-sizing: border-box; width: 100%; max-height: 42vh; overflow: auto; padding: 12px; font: 12px/1.55 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.diagnostic-details { margin: 10px 0; padding-left: 22px; font-size: 13px; line-height: 1.5; }
+.diagnostic-details li { margin: 6px 0; }
+.diagnostic-line[data-status="PASS"] { color: #08764b; }
+.diagnostic-line[data-status="FAIL"], .diagnostic-details [data-status="FAIL"] { color: #b32432; }
+.diagnostic-line[data-status="INFO"], .diagnostic-line[data-status="SKIP"], .diagnostic-details [data-status="SKIP"] { color: var(--muted); }
+[data-theme="dark"] .diagnostic-line[data-status="PASS"] { color: #70d2a3; }
+[data-theme="dark"] .diagnostic-line[data-status="FAIL"], [data-theme="dark"] .diagnostic-details [data-status="FAIL"] { color: #ff939a; }
 .diagnostic-dialog .study-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 #diagnosticVerdict { font-weight: 600; }
 #diagnosticVerdict[data-state="different"], #diagnosticVerdict[data-state="incomplete"] { color: var(--warn); }
