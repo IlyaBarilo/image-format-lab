@@ -33,6 +33,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=req
    appendChild(child){this.children.push(child);}
    replaceChildren(){this.children=[];}
    showModal(){this.open=true;}
+   close(){this.open=false;this.listeners.close?.();}
    focus(){document.activeElement=this;}
    select(){this.selected=true;}
    async click(){return this.listeners.click?.({currentTarget:this});}
@@ -40,15 +41,28 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=req
  const payload=document.getElementById('embedded-codecs'),nodes=new Map();
  global.document={activeElement:null,getElementById:id=>id==='embedded-codecs'?payload:id==='embedded-samples'?{textContent:'{}'}:(nodes.get(id)??(nodes.set(id,new Element(id)),nodes.get(id))),createElement:name=>new Element(name),execCommand:()=>false};
  let clipboard='',opened='';Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{clipboard=value;}}});global.open=url=>{opened=url;return null;};
- const ui=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async({progress})=>{progress('metrics',0,DIAGNOSTIC_CASES.length);assert.equal(document.getElementById('diagnosticBar').value,0);progress(null,DIAGNOSTIC_CASES.length,DIAGNOSTIC_CASES.length);return structuredClone(tests);}});
+ const ui=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async({progress})=>{assert.equal(document.getElementById('diagnosticSummary').dataset.state,'pending');progress('metrics',0,DIAGNOSTIC_CASES.length);assert.equal(document.getElementById('diagnosticBar').value,0);progress(null,DIAGNOSTIC_CASES.length,DIAGNOSTIC_CASES.length);return structuredClone(tests);}});
  ui.attachDiagnosticEvents();await document.getElementById('diagnosticOpen').click();
  assert.equal(document.getElementById('diagnosticBar').value,DIAGNOSTIC_CASES.length);
  assert.ok(document.getElementById('diagnosticOutput').children.some(row=>row.dataset.status==='FAIL'&&row.textContent.includes('photo-a85')));
  assert.ok(document.getElementById('diagnosticDetails').children.some(row=>row.textContent.includes('ожидалось 39307, получено 39308')));
  assert.equal(document.getElementById('diagnosticSend').disabled,false);
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'different');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Есть ошибки или расхождения');assert.match(document.getElementById('diagnosticCounts').textContent,/в тестах: 1 · замечаний состояния: 1/);
+ const summaryText=document.getElementById('diagnosticVerdict').textContent;
  await document.getElementById('diagnosticSend').click();assert.equal(opened,'https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/');assert.equal(clipboard,document.getElementById('diagnosticText').value);
+ assert.equal(document.getElementById('diagnosticVerdict').textContent,summaryText);
  navigator.clipboard.writeText=async()=>{throw new Error('blocked');};await document.getElementById('diagnosticCopy').click();assert.equal(document.getElementById('diagnosticText').hidden,false);assert.equal(document.getElementById('diagnosticText').selected,true);assert.match(document.getElementById('diagnosticProgress').textContent,/Ctrl\+C/);
- document.getElementById('diagnosticDialog').listeners.close();assert.equal(document.activeElement,document.getElementById('diagnosticOpen'));
+ document.getElementById('diagnosticDialog').close();assert.equal(document.activeElement,document.getElementById('diagnosticOpen'));
+ function validTests(){const current=JSON.parse(fs.readFileSync('src/diagnostic-reference.json','utf8'));return DIAGNOSTIC_CASES.map(id=>({id,bytes:100,psnr:Infinity,alpha:0,changed:0,max:0,...current.tests[id]}));}
+ app.diagnosticEvents=[];tests=validTests();await document.getElementById('diagnosticOpen').click();
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'ok');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Все тесты пройдены');assert.match(document.getElementById('diagnosticCounts').textContent,/Завершено 52 из 52 · ошибок\/расхождений в тестах: 0/);
+ document.getElementById('diagnosticDialog').close();tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));await document.getElementById('diagnosticOpen').click();
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'incomplete');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Проверка не завершена');assert.match(document.getElementById('diagnosticCounts').textContent,/пропущено: 52/);
+ document.getElementById('diagnosticDialog').close();tests[0]={id:'metrics',error:'timeout'};await document.getElementById('diagnosticOpen').click();
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'different');assert.match(document.getElementById('diagnosticVerdict').textContent,/ошибки.*неполная/);
+ document.getElementById('diagnosticDialog').close();tests=validTests();app.diagnosticEvents=[['error','codec:12345678']];await document.getElementById('diagnosticOpen').click();
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'different');assert.match(document.getElementById('diagnosticCounts').textContent,/в тестах: 0 · замечаний состояния: 1/);
  console.log('PASS automatic result, four-cell snapshot, privacy, mismatch, missing capabilities and complete cancelled/error reports');
  console.log('PASS visible entry, coloured statuses, expected/actual explanations, progress, send/clipboard fallback and focus');
+ console.log('PASS prominent summary: success, failures, session issues, cancelled/partial results and reset on a new run');
 })().catch(e=>{console.error(e);process.exitCode=1;});

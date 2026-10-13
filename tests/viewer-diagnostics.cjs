@@ -16,6 +16,9 @@ const {chromium}=require('playwright');
   assert.equal(await page.locator('#diagnosticOutput').isVisible(),true);
   assert.ok(await page.locator('.diagnostic-line[data-status="PASS"]').count());
   assert.equal(await page.locator('#diagnosticSend').isEnabled(),true);
+  assert.equal(await page.locator('#diagnosticSummary').evaluate(el=>el.nextElementSibling.contains(document.getElementById('diagnosticSend'))),true);
+  assert.equal(await page.locator('#diagnosticSummary').getAttribute('data-state'),first.includes('RESULT OK')?'ok':'different');
+  assert.match(await page.locator('#diagnosticCounts').innerText(),/Завершено 52 из 52/);
   const padding=await page.locator('#diagnosticDialog').evaluate(el=>{const style=getComputedStyle(el),head=el.querySelector('.batch-dialog-head').getBoundingClientRect(),form=el.querySelector('.batch-dialog-head>form');return {left:parseFloat(style.paddingLeft),top:parseFloat(style.paddingTop),headInset:head.left-el.getBoundingClientRect().left,formPadding:parseFloat(getComputedStyle(form).paddingLeft)};});
   assert.ok(padding.left>=16&&padding.top>=16&&padding.headInset>=16);assert.equal(padding.formPadding,0);
   await page.setViewportSize({width:390,height:844});assert.ok(await page.locator('#diagnosticDialog').evaluate(el=>el.getBoundingClientRect().width<=window.innerWidth-20));
@@ -28,6 +31,7 @@ const {chromium}=require('playwright');
   assert.ok(Buffer.byteLength(await page.locator('#diagnosticText').inputValue())<=4000);
   assert.ok(await page.locator('.diagnostic-line[data-status="SKIP"]').count());
   assert.ok(await page.locator('#diagnosticBar').evaluate(el=>el.value<el.max));
+  assert.equal(await page.locator('#diagnosticSummary').getAttribute('data-state'),'incomplete');assert.equal(await page.locator('#diagnosticVerdict').innerText(),'Проверка не завершена');
   assert.equal(await page.evaluate(()=>app.source),null);
   console.log('PASS offline automatic diagnostics, exact TXT, result, cancellation and focus without changing the source');
  }finally{await browser.close();}

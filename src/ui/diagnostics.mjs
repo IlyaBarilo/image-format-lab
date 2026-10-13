@@ -79,6 +79,22 @@ export function createDiagnostics({ app, els }, deps) {
     return { report, text, bytes, fits: bytes <= DIAGNOSTIC_LIMIT };
   }
   function stop() { controller?.abort(); }
+  function showSummary(report) {
+    const tests = report.tests ?? [], total = DIAGNOSTIC_CASES.length;
+    const failed = tests.filter(test => test.status === 'FAIL').length;
+    const informational = tests.filter(test => test.status === 'INFO').length;
+    const skipped = tests.filter(test => test.status === 'SKIP').length;
+    const passed = tests.filter(test => test.status === 'PASS').length;
+    const issues = report.issues?.length ?? 0;
+    const incomplete = report.verdict === 'INCOMPLETE' || skipped > 0 || tests.length !== total;
+    const state = failed || issues ? 'different' : incomplete ? 'incomplete' : 'ok';
+    get('diagnosticSummary').dataset.state = state;
+    get('diagnosticVerdict').dataset.state = state;
+    get('diagnosticVerdict').textContent = state === 'ok' ? 'Все тесты пройдены'
+      : state === 'different' ? incomplete ? 'Есть ошибки или расхождения · проверка неполная' : 'Есть ошибки или расхождения'
+        : 'Проверка не завершена';
+    get('diagnosticCounts').textContent = `Завершено ${passed + informational + failed} из ${total} · ошибок/расхождений в тестах: ${failed} · замечаний состояния: ${issues}${skipped ? ' · пропущено: ' + skipped : ''}${informational ? ' · информационных: ' + informational : ''}`;
+  }
   function renderResults(result) {
     const output = get('diagnosticOutput'), details = get('diagnosticDetails');
     output.replaceChildren(); details.replaceChildren();
@@ -108,7 +124,9 @@ export function createDiagnostics({ app, els }, deps) {
     get('diagnosticOutput').replaceChildren(); get('diagnosticDetails').replaceChildren();
     get('diagnosticCopy').disabled = get('diagnosticDownload').disabled = get('diagnosticSend').disabled = true;
     get('diagnosticBar').max = DIAGNOSTIC_CASES.length; get('diagnosticBar').value = 0;
-    get('diagnosticVerdict').textContent = 'Проверка…';
+    get('diagnosticVerdict').textContent = 'Проверка выполняется…';
+    get('diagnosticCounts').textContent = 'Итог появится автоматически после завершения проверок.';
+    get('diagnosticSummary').dataset.state = 'pending';
     get('diagnosticVerdict').dataset.state='pending';get('diagnosticStop').disabled=false;
     get('diagnosticProgress').textContent = 'Сохраняется состояние программы…';
     dialog.showModal();
@@ -125,16 +143,15 @@ export function createDiagnostics({ app, els }, deps) {
       const completed = result.report.tests.filter(test => !test.error?.startsWith('cancel')).length;
       get('diagnosticBar').value = completed;
       get('diagnosticProgress').textContent = `Завершено ${completed}/${DIAGNOSTIC_CASES.length} · ${result.bytes} байт UTF-8 · предел ${DIAGNOSTIC_LIMIT} байт`;
-      get('diagnosticVerdict').textContent = result.report.verdict.startsWith('OK') ? 'Проверенные пути совпали с контрольными результатами.'
-        : result.report.verdict === 'INCOMPLETE' ? 'Проверка неполная.' : 'Есть расхождения или ошибки.';
-      get('diagnosticVerdict').dataset.state=result.report.verdict.startsWith('OK')?'ok':result.report.verdict==='INCOMPLETE'?'incomplete':'different';
+      showSummary(result.report);
       get('diagnosticStop').disabled=true;
       if (!result.fits) get('diagnosticProgress').textContent += ' · превышение размера; полный текст сохранён без обрезания';
       get('diagnosticCopy').disabled = get('diagnosticSend').disabled = !result.fits; get('diagnosticDownload').disabled = false;
     } catch (error) {
       if (current !== revision || !dialog.open) return;
-      get('diagnosticVerdict').textContent = 'Проверка неполная.';
-      get('diagnosticVerdict').dataset.state='incomplete';get('diagnosticStop').disabled=true;
+      get('diagnosticVerdict').textContent = 'Проверка не завершена';
+      get('diagnosticCounts').textContent = diagnosticErrorDescription(diagnosticError(error));
+      get('diagnosticSummary').dataset.state='incomplete';get('diagnosticVerdict').dataset.state='incomplete';get('diagnosticStop').disabled=true;
       get('diagnosticProgress').textContent = diagnosticError(error);
     } finally { if (current === revision) controller = null; }
   }
