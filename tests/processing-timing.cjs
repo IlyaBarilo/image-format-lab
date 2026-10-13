@@ -22,16 +22,22 @@ const assert = require('node:assert/strict');
   } };
   const encoder = createEncode({ app: {} }, deps);
   const first = {}, second = {};
-  const a = encoder.encodeFromSource({ id: 1 }, {}, () => true, first);
+  const a = encoder.encodeFromSource({ id: 1, format: 'jpeg' }, {}, () => true, first);
   await new Promise(resolve => setImmediate(resolve));
-  const b = encoder.encodeFromSource({ id: 2 }, {}, () => true, second);
+  const b = encoder.encodeFromSource({ id: 2, format: 'webp' }, {}, () => true, second);
   assert.deepEqual(order, ['start 1']);
   releaseFirst();
-  await Promise.all([a, b]);
+  const [encodedFirst, encodedSecond] = await Promise.all([a, b]);
+  assert.equal(encodedFirst.encodingPath, 'libjpeg');
+  assert.equal(encodedSecond.encodingPath, 'canvas');
   assert.deepEqual(order, ['start 1', 'end 1', 'start 2', 'end 2']);
   assert.ok(first.encodeStart <= first.encodeEnd);
   assert.ok(first.encodeEnd <= second.encodeStart);
   assert.ok(second.encodeStart <= second.encodeEnd);
+  for (const [id, format] of [[3, 'jp2'], [4, 'j2k']]) {
+    const encoded = await encoder.encodeFromSource({ id, format }, {});
+    assert.equal(encoded.encodingPath, 'openjpeg');
+  }
 
   const { createReports } = await import('../src/ui/reports.mjs');
   const captured = [];
@@ -54,5 +60,5 @@ const assert = require('node:assert/strict');
   assert.equal(row[head.indexOf('measured_total_ms')], '27');
   reports.saveComparisonReport('json');
   assert.deepEqual(JSON.parse(await captured[1].blob.text()).variants[0].metrics.stages, stages);
-  console.log('PASS stage arithmetic and serialized encoding boundaries');
+  console.log('PASS stage arithmetic, serialized encoding boundaries, codec paths and CSV/JSON stages');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -279,7 +279,7 @@ export function createEncode({}, deps) {
         const encodingPath=format==='png'?(encoded.exactPng?'png-js':'canvas')
           : format==='webp'?'canvas':format==='original'?'original'
           : ['heic','avif'].includes(format)?'libheif'
-          : format.startsWith('jxl')?'libjxl':format.startsWith('jp')||format==='j2k'?'openjpeg'
+          : format.startsWith('jxl')?'libjxl':['jp2','j2k'].includes(format)?'openjpeg'
           : format==='jpeg'?'libjpeg':format==='webpLossless'?'libwebp':format;
         return {...encoded,encodingPath};
       }
