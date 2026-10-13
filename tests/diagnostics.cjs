@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 (async()=>{
  const core=await import('../src/core/diagnostics.mjs');
+ const {packDiagnostics,unpackDiagnostics}=await import('../src/core/diagnostic-transport.mjs');
  const {DIAGNOSTIC_CASES}=await import('../src/services/diagnostic-tests.mjs');
  const reference=JSON.parse(fs.readFileSync('src/diagnostic-reference.json','utf8'));
  assert.equal(reference.version,core.DIAGNOSTIC_VERSION);
@@ -14,7 +15,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
  for(let row=0;row<32;row++)iconData.set(iconInput.data.subarray(row*128,(row+1)*128),((112+row)*256+112)*4);
  const icon={...iconInput,width:256,height:256,data:iconData};
  assert.equal(await core.diagnosticPixelHash(icon),reference.tests.ico.pixelHash);
- assert.equal(reference.tests.ico.pixelHash,'XiZkJq3AIu8');
+ assert.equal(await core.diagnosticPixelHash({...icon,colorSpace:'unknown'}),reference.tests.ico.pixelHash);
  iconData[(112*256+112)*4]++;assert.notEqual(await core.diagnosticPixelHash(icon),reference.tests.ico.pixelHash);
  assert.equal(await core.diagnosticHash(new Blob(['abc'])),'ungWv48Bz-o');
  const grid={channels:[new Uint32Array([0,1,2])],count:3},owned=grid.channels[0].slice();
@@ -28,16 +29,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
   source:[99999,400,999999999,'uint16',16,'unknown','straight',1,1,'bitmap','99999,99999,99999,99999','f'.repeat(11),'f'.repeat(11)],view:'4/1/panorama/errorProfile/delta/viewport/alpha/black/255/99999,99999,99999,99999/99999,99999,99999,99999/'+Array(4).fill('99999,99999,99999,99999').join(';')+'/float16/123456.12345/123456.12345/123456.12345/batch-running/100,1000,400,65535,65535,24',actual:['heic=1.23.4/1.1.2','utif=3.2.0'],
   batch:'tiff/black/cmyk/16/deflate/9/1/99999/99999/999999/100/panorama/files/999',cells:[0,1,2,3].map(i=>({index:i+1,status:'ready',config:core.diagnosticConfig({format:'tiff',matte:'black',colorMode:'cmyk',tiffDepth:'16',tiffCompression:'deflate',tiffLevel:9,tiffPredictor:true}),numbers:[999999999,99999,99999,123.12345,100,99999999],paths:'libheif/bitmap',hashes:['f'.repeat(11),'f'.repeat(11)]})),
   tests:DIAGNOSTIC_CASES.map(id=>core.evaluateDiagnosticTest({id,bytes:628,psnr:Infinity,alpha:0,changed:0,max:0,...reference.tests[id]},reference.tests[id],reference.informational.includes(id))),events,verdict:'OK checked paths'};
- const text=core.formatDiagnostics(report);const size=core.diagnosticByteLength(text);
+ const readable=core.formatDiagnostics(report),text=packDiagnostics(readable);const size=core.diagnosticByteLength(text);
+ assert.equal(unpackDiagnostics(text),readable);
  console.log('Largest fixed-schema case:',size,'bytes');assert.ok(size<=core.DIAGNOSTIC_LIMIT);assert.ok(core.diagnosticByteLength(text.replaceAll('\n','\r\n'))<=core.DIAGNOSTIC_LIMIT);
- assert.equal(text.split('\n').filter(line=>/^(PASS|INFO) /.test(line)).length,DIAGNOSTIC_CASES.length);
+ assert.equal(readable.split('\n').filter(line=>/^(PASS|INFO) /.test(line)).length,DIAGNOSTIC_CASES.length);
  assert.match(text,/RESULT OK/);assert.ok(!text.includes('PRIVATE'));
  const altered=core.evaluateDiagnosticTest({id:'photo-a85',values:{...reference.tests['photo-a85'].values,b:39308},...Object.fromEntries(Object.entries(reference.tests['photo-a85']).filter(([key])=>key!=='values'))},reference.tests['photo-a85']);
- assert.equal(altered.status,'FAIL');assert.deepEqual(altered.differences,[{key:'b',expected:39307,actual:39308}]);assert.match(core.diagnosticTestLine(altered),/diff:b:39307>39308/);
+ assert.equal(altered.status,'FAIL');assert.deepEqual(altered.differences,[{key:'b',expected:39307,actual:39308}]);assert.match(core.diagnosticTestLine(altered),/b=39308.*D:b/);
  const failed={...report,tests:report.tests.map(test=>test.id===altered.id?altered:test),verdict:'DIFFERENCES tests=1 current=0'};
- assert.ok(core.diagnosticByteLength(core.formatDiagnostics(failed).replaceAll('\n','\r\n'))<=core.DIAGNOSTIC_LIMIT);
+ assert.ok(core.diagnosticByteLength(packDiagnostics(core.formatDiagnostics(failed)).replaceAll('\n','\r\n'))<=core.DIAGNOSTIC_LIMIT);
  const graph=core.evaluateDiagnosticTest({id:'scopes',values:{...reference.tests.scopes.values,hWave:'z'.repeat(11)},inputHash:reference.tests.scopes.inputHash},reference.tests.scopes);
- assert.equal(graph.status,'FAIL');assert.deepEqual(graph.differences.map(d=>d.key),['hWave']);assert.ok(core.diagnosticTestLine(graph).includes('hWave:'+reference.tests.scopes.values.hWave+'>'+'z'.repeat(11)));
+ assert.equal(graph.status,'FAIL');assert.deepEqual(graph.differences.map(d=>d.key),['hWave']);assert.ok(core.diagnosticTestLine(graph).includes('w'+'z'.repeat(11)));
  const worker=reference.tests['metric-worker'].values;assert.equal(worker.delta,0);assert.equal(worker.bpp,400);assert.equal(worker.display,'46.37');assert.ok(Math.abs(worker.P-10*Math.log10(255**2/(9/6)))<0.00001);
  assert.deepEqual(reference.tests['sample-float'].values,{low:224,high:896});
  assert.equal(reference.tests['sample-alpha'].values.low,61600);assert.equal(reference.tests['sample-alpha'].values.high,20640);assert.equal(reference.tests['sample-alpha'].values.line,127.5);

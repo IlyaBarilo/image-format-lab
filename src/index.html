@@ -560,11 +560,11 @@
   <dialog id="diagnosticDialog" class="batch-dialog diagnostic-dialog" aria-labelledby="diagnosticTitle" aria-describedby="diagnosticNote">
     <div class="batch-dialog-head"><h2 id="diagnosticTitle">Отчёт о работе программы</h2><form method="dialog"><button class="text-btn" autofocus>Закрыть</button></form></div>
     <p class="batch-note" id="diagnosticNote">Автоматические проверки используют встроенные данные. Изображения, имена файлов и личные данные в отчёт не входят. Текущее сравнение сохраняется.</p>
-    <progress id="diagnosticBar" value="0" max="52" aria-label="Прогресс проверки"></progress>
+    <progress id="diagnosticBar" value="0" max="56" aria-label="Прогресс проверки"></progress>
     <p class="batch-note" id="diagnosticProgress" role="status" aria-live="polite"></p>
     <div id="diagnosticSummary" class="diagnostic-summary" data-state="pending" role="status" aria-live="polite" aria-atomic="true"><strong id="diagnosticVerdict">Проверка выполняется…</strong><p id="diagnosticCounts">Итог появится автоматически после завершения проверок.</p></div>
     <div class="study-tools"><button class="text-btn primary" id="diagnosticSend" type="button" disabled>Отправить отчёт</button><button class="text-btn" id="diagnosticCopy" type="button" disabled>Скопировать</button><button class="text-btn" id="diagnosticDownload" type="button" disabled>Скачать TXT</button><button class="text-btn" id="diagnosticStop" type="button">Остановить проверку</button></div>
-    <p class="batch-note">«Отправить отчёт» копирует текст и открывает форму. Вставьте отчёт в поле формы и нажмите отправку. <a href="https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/" target="_blank" rel="noopener noreferrer">Открыть форму отдельно</a>.</p>
+    <p class="batch-note">«Отправить отчёт» копирует текст и открывает форму. Вставьте отчёт в поле формы и нажмите отправку. Для формы и TXT данные упакованы без потерь; ниже показан полный читаемый отчёт. <a href="https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/" target="_blank" rel="noopener noreferrer">Открыть форму отдельно</a>.</p>
     <ul id="diagnosticDetails" class="diagnostic-details" aria-label="Пояснения результатов"></ul>
     <pre id="diagnosticOutput" tabindex="0" aria-label="Диагностический отчёт"></pre>
     <textarea id="diagnosticText" readonly spellcheck="false" hidden aria-label="Текст для ручного копирования"></textarea>

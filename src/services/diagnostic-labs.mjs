@@ -41,7 +41,8 @@ export function diagnosticLabTasks({ getRuntime, photo, config, makeSource }) {
     try {
       const metrics = await actions.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
       const values = { b: encoded.blob.size, P: metrics.psnr, a: metrics.alpha };
-      const result = { values, fileHash: await diagnosticHash(encoded.blob), pixelHash: await diagnosticPixelHash(decoded.pixelBuffer), inputHash: await diagnosticPixelHash(encoded.sourcePixelBuffer) };
+      const result = { values, fileHash: await diagnosticHash(encoded.blob), pixelHash: await diagnosticPixelHash(decoded.pixelBuffer), inputHash: await diagnosticPixelHash(encoded.sourcePixelBuffer),
+        colors: encoded.sourcePixelBuffer.colorSpace + '/' + decoded.pixelBuffer.colorSpace };
       outputs.set(id, { pixels: decoded.pixelBuffer, values, settings });
       return result;
     } finally { decoded.bitmap?.close?.(); }

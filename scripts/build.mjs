@@ -103,7 +103,7 @@ export async function buildViewer({ test = false, debug = false, release = false
   const inputs = [...new Set([...Object.keys(theme.metafile.inputs), ...Object.keys(worker.metafile.inputs), ...Object.keys(modernWorker.metafile.inputs), ...Object.keys(heicWorker.metafile.inputs), ...Object.keys(tiffWorker.metafile.inputs), ...Object.keys(jpeg2000Worker.metafile.inputs), ...Object.keys(app.metafile.inputs)])].filter(name => !name.startsWith('embedded:'));
   // Validate the entire dependency graph, not a recursive filesystem inventory.
   for (const name of inputs) {
-    if (!name.startsWith('src/') && !(test && name.startsWith('tests/support/'))) throw new Error('Unexpected application dependency: ' + name);
+    if (!name.startsWith('src/') && name !== 'vendor/pako-2.1.0.min.js' && !(test && name.startsWith('tests/support/'))) throw new Error('Unexpected application dependency: ' + name);
   }
   const css = readProjectText('src/styles.css');
   payload.buildId = sha256(JSON.stringify([payload.releaseTag, payload.manifest.files, knowledge,

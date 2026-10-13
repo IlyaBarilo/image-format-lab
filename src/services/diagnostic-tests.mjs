@@ -1,4 +1,4 @@
-import { DEFAULT_EXPORT_CONFIG } from '../core/config.mjs';
+import { DEFAULT_EXPORT_CONFIG, FORMAT_DEFS } from '../core/config.mjs';
 import { diagnosticPixels, diagnosticDifference, diagnosticHash, diagnosticPixelHash, diagnosticError } from '../core/diagnostics.mjs';
 import { pngPreview } from '../core/png.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
@@ -18,7 +18,7 @@ export function diagnosticSource(pixels) {
 }
 
 export const DIAGNOSTIC_CASES = Object.freeze([
-  'metrics', 'crop', 'resize', 'alpha-canvas', 'icc-p3', 'photo-webp',
+  'metrics', 'crop', 'canvas-meta', 'canvas-copy', 'resize', 'alpha-canvas', 'alpha-white', 'alpha-jpeg', 'icc-p3', 'photo-webp',
   'jpeg', 'png', 'png-js', 'png-palette', 'png-opt', 'webp', 'webp-ll', 'jxl', 'jxl-ll',
   'jp2', 'j2k', 'tiff', 'bmp8', 'bmp24', 'bmp32', 'gif', 'gifenc', 'heic', 'avif', 'ico',
   'png16', 'tiff16', 'jxl16', 'jp2-16', 'png-alpha', 'avif-alpha', 'cmyk-tiff', 'cmyk-jpeg', ...DIAGNOSTIC_LAB_CASES
@@ -30,7 +30,7 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
   const config = { ...DEFAULT_EXPORT_CONFIG, resizeWidth: '', resizeHeight: '', targetKB: '', metadataPolicy: 'none', quality: 85,
     pngDepth: '8', tiffDepth: '8', jxlDepth: '8', gifColors: 32, gifDither: false, bmpColors: 32, bmpCompression: 'none', colorMode: 'rgb' };
   const describe = async (reference, actual, blob) => ({ ...diagnosticDifference(reference, actual), bytes: blob?.size ?? 0,
-    fileHash: blob ? await diagnosticHash(blob) : '-', pixelHash: await diagnosticPixelHash(actual) });
+    fileHash: blob ? await diagnosticHash(blob) : '-', pixelHash: await diagnosticPixelHash(actual), colors: reference.colorSpace + '/' + actual.colorSpace });
   async function conversion(format, source = base, extra = {}) {
     const actions = runtime.actions;
     const encoded = await actions.encodeFromSource({ ...config, format, ...extra }, source);
@@ -72,6 +72,17 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
       for (let y = 0; y < 16; y++) expected.set(base.pixelBuffer.data.subarray(((y + 2) * 32 + 3) * 4, ((y + 2) * 32 + 19) * 4), y * 64);
       return describe({ ...pixels, data: expected }, pixels);
     });
+    await execute('canvas-meta', async () => {
+      const image = base.ctx.getImageData(0, 0, 1, 1), working = pixelBufferFromImageData(image);
+      if (working.colorSpace !== 'srgb') throw new Error('default Canvas color mismatch');
+      const api = typeof image.colorSpace === 'string';
+      return { values: { api: +api, image: image.colorSpace ?? '-', context: base.ctx.getContextAttributes?.()?.colorSpace ?? '-', working: working.colorSpace },
+        note: api ? 'Браузер сообщает цветовое пространство ImageData.' : 'Браузер не сообщает ImageData.colorSpace; стандартный ImageData обрабатывается как sRGB. Неизвестные профили файлов сохраняют свою метку.' };
+    });
+    await execute('canvas-copy', async () => {
+      const pixels = pixelBufferFromImageData(base.ctx.getImageData(0, 0, 32, 32));
+      return describe(base.pixelBuffer, pixels);
+    });
     await execute('resize', async () => {
       const resized = runtime.actions.outputSourceForConfig({ format: 'png', resizeWidth: '16', resizeHeight: '16' }, base);
       if (resized.width !== 16 || resized.height !== 16) throw new Error('resize dimensions');
@@ -79,7 +90,30 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
     });
     await execute('alpha-canvas', async () => {
       const imageData = transparent.ctx.getImageData(0, 0, 32, 32);
-      return describe(transparent.pixelBuffer, pixelBufferFromImageData(imageData));
+      return { ...await describe(transparent.pixelBuffer, pixelBufferFromImageData(imageData)), inputHash: await diagnosticPixelHash(transparent.pixelBuffer),
+        note: 'Чтение полупрозрачного Canvas может округлять RGB и терять скрытые цвета полностью прозрачных пикселей. Это отдельная проверка браузерного пути.' };
+    });
+    await execute('alpha-white', async () => {
+      const canvas = runtime.actions.prepareCanvasForFormat(FORMAT_DEFS.jpeg, 'white', transparent);
+      const actual = pixelBufferFromImageData(canvas.getContext('2d').getImageData(0, 0, 32, 32));
+      const data = new Uint8ClampedArray(transparent.pixelBuffer.data.length), input = transparent.pixelBuffer.data;
+      for (let at = 0; at < input.length; at += 4) {
+        for (let channel = 0; channel < 3; channel++) data[at + channel] = Math.round((input[at + channel] * input[at + 3] + 255 * (255 - input[at + 3])) / 255);
+        data[at + 3] = 255;
+      }
+      return { ...await describe({ ...transparent.pixelBuffer, data }, actual), inputHash: await diagnosticPixelHash(transparent.pixelBuffer),
+        note: 'Сравнение наложения на белый через Canvas с целочисленной формулой. Число и максимум отклонений показывают округление до передачи пикселей JPEG-кодеку.' };
+    });
+    await execute('alpha-jpeg', async () => {
+      const actions = runtime.actions, canvas = actions.prepareCanvasForFormat(FORMAT_DEFS.jpeg, 'white', transparent);
+      const input = canvas.getContext('2d').getImageData(0, 0, 32, 32), pixels = pixelBufferFromImageData(input);
+      const blob = await (await actions.loadOptionalCodec('utif')).encodeJpeg(input, config);
+      const encoded = await actions.encodeFromSource({ ...config, format: 'jpeg' }, transparent);
+      if (await diagnosticHash(blob) !== await diagnosticHash(encoded.blob)) throw new Error('JPEG direct and application path mismatch');
+      const decoded = await actions.decodeVariantForPreview(blob);
+      try { return { ...await describe(pixels, decoded.pixelBuffer, blob), inputHash: await diagnosticPixelHash(pixels),
+        note: 'Пиксели после белой подложки переданы прямо встроенному JPEG-кодеку; его файл совпадает с обычным путём приложения. Отпечатки до и после JPEG позволяют отделить кодек от Canvas.' }; }
+      finally { decoded.bitmap?.close?.(); }
     });
     await execute('icc-p3', async () => {
       const { pixels, iccProfile } = createIccP3Sample();

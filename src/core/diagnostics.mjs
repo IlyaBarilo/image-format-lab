@@ -1,7 +1,7 @@
 import { createPixelBuffer } from './pixel-buffer.mjs';
 import { computePixelMetrics } from './metrics.mjs';
 
-export const DIAGNOSTIC_VERSION = 2;
+export const DIAGNOSTIC_VERSION = 3;
 export const DIAGNOSTIC_LIMIT = 4000;
 export const DIAGNOSTIC_FORM = 'https://forms.yandex.ru/u/6acd565e5057b2a2063f9016/';
 
@@ -70,7 +70,7 @@ export async function diagnosticHash(value) {
 
 export async function diagnosticPixelHash(pixels) {
   if (!pixels?.data) return '-';
-  const header = [pixels.width, pixels.height, pixels.sampleType, pixels.bitDepth, pixels.colorSpace, pixels.alphaMode];
+  const header = [pixels.width, pixels.height, pixels.sampleType, pixels.bitDepth, pixels.alphaMode];
   return diagnosticHash(JSON.stringify(header) + ':' + await diagnosticHash(pixels.data));
 }
 
@@ -78,7 +78,9 @@ export async function diagnosticDataHash(value) {
   async function project(item) {
     if (ArrayBuffer.isView(item)) return [item.constructor.name, item.length, await diagnosticHash(item)];
     if (Array.isArray(item)) return Promise.all(item.map(project));
-    if (item && typeof item === 'object') return Object.fromEntries(await Promise.all(Object.entries(item).map(async ([key, child]) => [key, await project(child)])));
+    if (item && typeof item === 'object') return Object.fromEntries(await Promise.all(Object.entries(item)
+      .filter(([key]) => !['colorSpace', 'sourceColorSpace', 'colorComparison'].includes(key))
+      .map(async ([key, child]) => [key, await project(child)])));
     return item;
   }
   return diagnosticHash(JSON.stringify(await project(value)));
@@ -90,10 +92,13 @@ export const diagnosticValue = value => typeof value === 'number' ? number(value
 export function evaluateDiagnosticTest(test, expected, informational = false) {
   test.expected = expected;
   test.differences = [];
+  test.metadataDifferences = [];
   if (!test.error && !expected && !informational) test.error = 'reference-missing';
   if (!test.error && expected) {
     for (const [key, value] of Object.entries(expected)) {
-      if (key === 'values') {
+      if (key === 'colors') {
+        if (test.colors !== value) test.metadataDifferences.push({ key, expected: value, actual: test.colors });
+      } else if (key === 'values') {
         for (const [field, target] of Object.entries(value)) {
           const actual = test.values?.[field];
           if (diagnosticValue(actual) !== diagnosticValue(target)) test.differences.push({ key: field, expected: target, actual });
@@ -103,11 +108,12 @@ export function evaluateDiagnosticTest(test, expected, informational = false) {
   }
   test.mismatch = test.differences.length > 0;
   test.status = test.error?.startsWith('cancel') || test.error === 'reference-missing' ? 'SKIP'
-    : test.error || test.mismatch ? 'FAIL' : informational ? 'INFO' : 'PASS';
+    : test.error || test.mismatch ? 'FAIL' : informational || test.metadataDifferences.length ? 'INFO' : 'PASS';
   return test;
 }
 
-const FIELD_CODES = { bytes: 'b', psnr: 'P', alpha: 'a', changed: 'n', max: 'm', fileHash: 'Hf', pixelHash: 'Hp', inputHash: 'Hi' };
+const FIELD_CODES = { bytes: 'b', psnr: 'P', alpha: 'a', changed: 'n', max: 'm', fileHash: 'f', pixelHash: 'p', inputHash: 'i',
+  hHist16:'g',hErrors:'e',hMap:'m',hSSIM:'s',hErrorLine:'l',hRGB:'r',hYC:'y',hWave:'w',hVector:'v',hCIE:'c',hLine:'l',hAlpha:'a',hCMYK:'k' };
 const fieldCode = key => FIELD_CODES[key] ?? key;
 export function diagnosticTestLine(test) {
   const prefix = `${test.status ?? (test.error || test.mismatch ? 'FAIL' : 'PASS')} ${test.id}`;
@@ -122,10 +128,11 @@ export function diagnosticTestLine(test) {
   }
   const hashValues = [...['fileHash', 'pixelHash', 'inputHash'].map(key => [key, test[key], test.expected?.[key]]),
     ...Object.entries(test.values ?? {}).filter(([key]) => /^h[A-Z]/.test(key)).map(([key, value]) => [key, value, test.expected?.values?.[key]])].filter(([, value]) => value && value !== '-');
-  const hashes = hashValues.length && hashValues.every(([, value, target]) => value === target) ? 'H='
-    : hashValues.map(([key, value, target]) => `${fieldCode(key)}:${target === value ? '=' : target ? target + '>' + value : value}`).join(',');
-  const differences = test.differences?.filter(d => !/Hash$/.test(d.key) && !/^h[A-Z]/.test(d.key)).map(d => `${fieldCode(d.key)}:${diagnosticValue(d.expected)}>${diagnosticValue(d.actual)}`).join(',');
-  return `${prefix} ${values}${hashes ? ' ' + hashes : ''}${differences ? ' diff:' + differences : ''}`;
+  const hashes = !hashValues.length ? '' : hashValues.every(([, value, target]) => value === target) ? 'H='
+    : 'H:' + hashValues.map(([key, value, target]) => `${fieldCode(key)}${target === value ? '=' : value}`).join('/');
+  const differences = test.differences?.filter(d => !/Hash$/.test(d.key) && !/^h[A-Z]/.test(d.key)).map(d => fieldCode(d.key)).join(',');
+  const colors = test.colors ? test.colors === test.expected?.colors ? ' M=' : ' M:' + test.colors.replaceAll('srgb','s').replaceAll('unknown','u').replaceAll('display-p3','p') : '';
+  return `${prefix} ${values}${hashes ? ' ' + hashes : ''}${differences ? ' D:' + differences : ''}${colors}`;
 }
 export function diagnosticConfig(config = {}) {
   const f = config.format;
@@ -151,7 +158,7 @@ export function diagnosticEnvironment(nav = globalThis.navigator, win = globalTh
   const browser = /(?:Edg|Firefox|Chrome|Version)\/([0-9.]{1,24})(?![0-9.])/.exec(ua);
   const all = [...ua.matchAll(/(Edg|Firefox|Chrome|Version)\/([0-9.]{1,24})(?![0-9.])/g)];
   const chosen = all.find(item => item[1] === 'Edg') ?? all.find(item => item[1] === 'Firefox') ?? (browser && all[0]);
-  const os = (/(Windows NT [0-9.]+|(?:Intel )?Mac OS X [0-9_]+|Android [0-9.]+|(?:CPU (?:iPhone )?OS) [0-9_]+|Linux)/.exec(ua)?.[0] ?? 'unknown')
+  const os = (/(Windows NT [0-9.]+|(?:Intel )?Mac OS X [0-9_.]+|Android [0-9.]+|(?:CPU (?:iPhone )?OS) [0-9_.]+|Linux)/.exec(ua)?.[0] ?? 'unknown')
     .replace(/^(?:Intel )?Mac OS X /,'mac/').replace(/^Windows NT /,'win/').replace(/^Android /,'android/').replace(/^CPU (?:iPhone )?OS /,'ios/');
   return `${chosen ? chosen[1].replace('Version', 'Safari') + '/' + chosen[2] : 'unknown'};${os};` +
     `W${+!!win.Worker}B${+!!win.createImageBitmap}C${+!!win.crypto?.subtle}O${+!!win.OffscreenCanvas};DPR=${number(win.devicePixelRatio)};${win.location?.protocol === 'file:' ? 'file' : 'web'}`;
@@ -167,7 +174,7 @@ export function formatDiagnostics(report) {
   lines.push('VIEW ' + report.view);
   if(report.batch)lines.push('BATCH '+report.batch);
   for (const cell of report.cells) lines.push(`V${cell.index} ${cell.status} ${cell.config} | ${cell.numbers.map(number).join('/')} | ${cell.paths} | ${cell.hashes.join('/')}`);
-  lines.push('V:b/w/h/P/a/ms;T:b/P/a/n/m,tail=0;a=0 if absent;H=SHA256-64;H==control;diff:expected>actual;white;Q85,s6,e5');
+  lines.push('V b/w/h/P/a/ms;T b/P/a/n/m;H f=file,p=pixels,i=input;=control;D=fields;M s=srgb,u=unknown,p=P3;UA=OS hint');
   for (const test of report.tests) lines.push(diagnosticTestLine(test));
   for (const issue of report.issues ?? []) lines.push(`FAIL ${issue.id} ${issue.detail}`);
   lines.push('EVENT ' + report.events.map(value => value.join(':')).join(';'));

@@ -4,8 +4,11 @@ export function pixelBufferFromImageData(imageData) {
   if (!(imageData?.data instanceof Uint8ClampedArray)) {
     throw new TypeError('Текущий адаптер ImageData принимает только RGBA8.');
   }
+  // Native ImageData without the optional colour API uses the standard sRGB default.
+  // Plain raster descriptors and unlabelled file pixels retain their unknown space.
+  const nativeDefault = typeof ImageData !== 'undefined' && imageData instanceof ImageData;
   return createPixelBuffer({ width: imageData.width, height: imageData.height, data: imageData.data,
-    colorSpace: imageData.colorSpace ?? 'unknown', alphaMode: 'straight' });
+    colorSpace: imageData.colorSpace ?? (nativeDefault ? 'srgb' : 'unknown'), alphaMode: 'straight' });
 }
 
 export function pixelBufferToImageData(pixels) {

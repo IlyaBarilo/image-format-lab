@@ -1,44 +1,51 @@
 {
-  "version": 2,
+  "version": 3,
   "informational": [
     "resize",
     "alpha-canvas",
-    "webp"
+    "webp",
+    "canvas-meta",
+    "alpha-white",
+    "alpha-jpeg"
   ],
   "tests": {
     "metrics": {
       "fileHash": "-",
-      "pixelHash": "37IZsL3Ddk4",
+      "pixelHash": "ZmuPMD4ZlpY",
       "psnr": 83.00502,
       "alpha": 0,
       "changed": 1,
       "max": 0.39216,
-      "bytes": 0
+      "bytes": 0,
+      "colors": "srgb/srgb"
     },
     "crop": {
       "fileHash": "-",
-      "pixelHash": "O_Xoz9J7JbA",
+      "pixelHash": "DJopWSIN6lY",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 0
+      "bytes": 0,
+      "colors": "srgb/srgb"
     },
     "icc-p3": {
       "fileHash": "-",
-      "pixelHash": "q6zjRMu5rL8",
+      "pixelHash": "w850kWVxKq8",
       "psnr": 32.43246,
       "alpha": 0,
       "changed": 3072,
       "max": 12.01648,
-      "bytes": 0
+      "bytes": 0,
+      "colors": "unknown/srgb"
     },
     "photo-webp": {
       "changed": 0,
       "psnr": "inf",
       "alpha": 0,
       "max": 0,
-      "bytes": 1609622
+      "bytes": 1609622,
+      "colors": "srgb/srgb"
     },
     "jpeg": {
       "fileHash": "No0bcJcTqgI",
@@ -46,219 +53,244 @@
       "alpha": 0,
       "changed": 3047,
       "max": 74.5098,
-      "bytes": 1342
+      "bytes": 1342,
+      "colors": "srgb/srgb"
     },
     "png": {
-      "pixelHash": "cQjEVfsN4wo",
-      "psnr": "inf",
-      "alpha": 0,
-      "changed": 0,
-      "max": 0
-    },
-    "png-js": {
-      "fileHash": "t8kXHCsD4kM",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 611
+      "colors": "srgb/srgb"
+    },
+    "png-js": {
+      "fileHash": "t8kXHCsD4kM",
+      "pixelHash": "RLBchI9vx50",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 611,
+      "colors": "srgb/srgb"
     },
     "png-palette": {
       "fileHash": "7O5oWlFc24w",
-      "pixelHash": "DRxkht4CXoI",
+      "pixelHash": "geM33JifmgY",
       "psnr": 20.46777,
       "alpha": 0,
       "changed": 3035,
       "max": 21.17647,
-      "bytes": 639
+      "bytes": 639,
+      "colors": "srgb/srgb"
     },
     "png-opt": {
       "fileHash": "PShSxIQL0ug",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 212
+      "bytes": 212,
+      "colors": "srgb/srgb"
     },
     "webp-ll": {
       "fileHash": "QaqO1N3iS_k",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 74
+      "bytes": 74,
+      "colors": "srgb/srgb"
     },
     "jxl": {
       "fileHash": "zozAXcoGu2k",
-      "pixelHash": "HO-tMCNJQ6A",
+      "pixelHash": "p1Dpn8ogUe0",
       "psnr": 14.4049,
       "alpha": 0,
       "changed": 3036,
       "max": 98.82353,
-      "bytes": 667
+      "bytes": 667,
+      "colors": "srgb/srgb"
     },
     "jxl-ll": {
       "fileHash": "BVYg5iuWuSY",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 1411
+      "bytes": 1411,
+      "colors": "srgb/srgb"
     },
     "jp2": {
       "fileHash": "39uKjZpX1fk",
-      "pixelHash": "2CDkPbzfLBQ",
+      "pixelHash": "KEBndLSwzGw",
       "psnr": 11.65459,
       "alpha": 0,
       "changed": 3048,
       "max": 81.96078,
-      "bytes": 357
+      "bytes": 357,
+      "colors": "srgb/unknown"
     },
     "j2k": {
       "fileHash": "QF7opKJXBso",
-      "pixelHash": "ZR350Vc2Pgg",
+      "pixelHash": "VpOKIIjan-0",
       "psnr": 12.6634,
       "alpha": 0,
       "changed": 3049,
       "max": 85.09804,
-      "bytes": 351
+      "bytes": 351,
+      "colors": "srgb/unknown"
     },
     "tiff": {
       "fileHash": "zpVKG_Gg2NA",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 374
+      "bytes": 374,
+      "colors": "srgb/srgb"
     },
     "bmp8": {
       "fileHash": "mfH2uxBjpM0",
-      "pixelHash": "tjQRTuQJDAs",
+      "pixelHash": "AFAaEi-SOYc",
       "psnr": 19.87874,
       "alpha": 0,
       "changed": 3015,
       "max": 33.33333,
-      "bytes": 1206
+      "bytes": 1206,
+      "colors": "srgb/srgb"
     },
     "bmp24": {
       "fileHash": "0z9gGbPN6GA",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 3126
+      "bytes": 3126,
+      "colors": "srgb/srgb"
     },
     "bmp32": {
       "fileHash": "Stdbr2iPCz4",
-      "pixelHash": "cQjEVfsN4wo",
+      "pixelHash": "RLBchI9vx50",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 4234
+      "bytes": 4234,
+      "colors": "srgb/srgb"
     },
     "gif": {
       "fileHash": "rpEKIjtiMYk",
-      "pixelHash": "DRxkht4CXoI",
+      "pixelHash": "geM33JifmgY",
       "psnr": 20.46777,
       "alpha": 0,
       "changed": 3035,
       "max": 21.17647,
-      "bytes": 600
+      "bytes": 600,
+      "colors": "srgb/srgb"
     },
     "gifenc": {
       "fileHash": "pJvcAzZer2k",
-      "pixelHash": "UTBujxzq03U",
+      "pixelHash": "vnPiHa5A36s",
       "psnr": 21.40379,
       "alpha": 0,
       "changed": 3027,
       "max": 27.05882,
-      "bytes": 774
+      "bytes": 774,
+      "colors": "srgb/srgb"
     },
     "heic": {
       "fileHash": "uecBcSNsn7w",
-      "pixelHash": "vf1n1e1i3EA",
+      "pixelHash": "X9bUzDHhj2g",
       "psnr": 13.59615,
       "alpha": 0,
       "changed": 12149,
       "max": 76.86275,
-      "bytes": 6286
+      "bytes": 6286,
+      "colors": "srgb/srgb"
     },
     "avif": {
       "fileHash": "F97jfWjQosE",
-      "pixelHash": "fKzU9y0V5KE",
+      "pixelHash": "X0UX8nuDaz4",
       "psnr": 13.53599,
       "alpha": 0,
       "changed": 3047,
       "max": 74.90196,
-      "bytes": 948
+      "bytes": 948,
+      "colors": "srgb/srgb"
     },
     "ico": {
-      "pixelHash": "XiZkJq3AIu8",
+      "pixelHash": "A4eYan-qBCE",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
-      "max": 0
+      "max": 0,
+      "colors": "srgb/srgb"
     },
     "png16": {
       "fileHash": "1SyncolPbNU",
-      "pixelHash": "qYLQlJ3ujPs",
+      "pixelHash": "eV5nb1iG6l4",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 941
+      "bytes": 941,
+      "colors": "srgb/srgb"
     },
     "tiff16": {
       "fileHash": "v3jGKytoTuc",
-      "pixelHash": "FF5K7wJ84u8",
+      "pixelHash": "eV5nb1iG6l4",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 486
+      "bytes": 486,
+      "colors": "srgb/unknown"
     },
     "jxl16": {
       "fileHash": "6xRYBF2WyMI",
-      "pixelHash": "FF5K7wJ84u8",
+      "pixelHash": "eV5nb1iG6l4",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 1154
+      "bytes": 1154,
+      "colors": "srgb/unknown"
     },
     "jp2-16": {
       "fileHash": "c33p06moEKo",
-      "pixelHash": "FF5K7wJ84u8",
+      "pixelHash": "eV5nb1iG6l4",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 2536
+      "bytes": 2536,
+      "colors": "srgb/unknown"
     },
     "png-alpha": {
       "fileHash": "zo0C78FgZvs",
-      "pixelHash": "SuCDA-3R1X4",
+      "pixelHash": "_alLrikhnaU",
       "psnr": "inf",
       "alpha": 0,
       "changed": 0,
       "max": 0,
-      "bytes": 617
+      "bytes": 617,
+      "colors": "srgb/srgb"
     },
     "avif-alpha": {
       "fileHash": "0pwxDFGBgvo",
-      "pixelHash": "GI7JwYfThRo",
+      "pixelHash": "WAFOXDfH-9Y",
       "psnr": 17.65817,
       "alpha": 0,
       "changed": 3047,
       "max": 74.90196,
-      "bytes": 1147
+      "bytes": 1147,
+      "colors": "srgb/srgb"
     },
     "cmyk-tiff": {
       "fileHash": "1JEP63hr2pI",
@@ -285,8 +317,9 @@
         "a": 0
       },
       "fileHash": "aWHCWQEyI2I",
-      "pixelHash": "-Awx15jbsII",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "wGDyZzQxxWI",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-bmp": {
       "values": {
@@ -295,8 +328,9 @@
         "a": 0
       },
       "fileHash": "7NYkPh8P0Hk",
-      "pixelHash": "-Awx15jbsII",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "wGDyZzQxxWI",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-j85": {
       "values": {
@@ -305,8 +339,9 @@
         "a": 0
       },
       "fileHash": "MPrpelDagkk",
-      "pixelHash": "FOTXqqaGnxU",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "A7HHLC6gS5g",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-a85": {
       "values": {
@@ -315,8 +350,9 @@
         "a": 0
       },
       "fileHash": "H2P8PvTdV5I",
-      "pixelHash": "9IzllUIM1JA",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "OEBoh7x_Au8",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-j30": {
       "values": {
@@ -325,8 +361,9 @@
         "a": 0
       },
       "fileHash": "pLb6jwnI8mY",
-      "pixelHash": "NQ4l3WwstFM",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "JETvHlJOGTA",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-j60": {
       "values": {
@@ -335,8 +372,9 @@
         "a": 0
       },
       "fileHash": "5mI7WjYPWKs",
-      "pixelHash": "oy3NOgH-myY",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "dDTwKOtNWLM",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-j90": {
       "values": {
@@ -345,8 +383,9 @@
         "a": 0
       },
       "fileHash": "0B11CNI5x1w",
-      "pixelHash": "KeiFW7bbPus",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "RNgh9cREHew",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "photo-a73": {
       "values": {
@@ -355,8 +394,9 @@
         "a": 0
       },
       "fileHash": "msyyaGbCdac",
-      "pixelHash": "rhHGMmMExwU",
-      "inputHash": "-Awx15jbsII"
+      "pixelHash": "g6iiPSUYqPU",
+      "inputHash": "wGDyZzQxxWI",
+      "colors": "srgb/srgb"
     },
     "palette32": {
       "values": {
@@ -366,8 +406,9 @@
         "levels": "4,3,4"
       },
       "fileHash": "tJkWVeqUA7o",
-      "pixelHash": "l6oVuBwgN38",
-      "inputHash": "mRN6YHBCxH8"
+      "pixelHash": "Ac8R82NThpQ",
+      "inputHash": "5buA0eMbbb4",
+      "colors": "srgb/srgb"
     },
     "dither32": {
       "values": {
@@ -377,8 +418,9 @@
         "levels": "9,10,8"
       },
       "fileHash": "uwTpE01ictQ",
-      "pixelHash": "VIcqqyqVRQ0",
-      "inputHash": "mRN6YHBCxH8"
+      "pixelHash": "TNgfPUIJdYg",
+      "inputHash": "5buA0eMbbb4",
+      "colors": "srgb/srgb"
     },
     "sample16": {
       "values": {
@@ -386,18 +428,19 @@
         "P": "inf",
         "a": 0,
         "top": 65535,
-        "hHist16": "TJzUY8yHOYA"
+        "hHist16": "t9ztxma2oOE"
       },
       "fileHash": "Uoibp94g9Fw",
-      "pixelHash": "oLEc4_QgerA",
-      "inputHash": "oLEc4_QgerA"
+      "pixelHash": "nn3BbLEEDrY",
+      "inputHash": "nn3BbLEEDrY",
+      "colors": "srgb/srgb"
     },
     "sample-float": {
       "values": {
         "low": 224,
         "high": 896
       },
-      "pixelHash": "EZWugdcJwi4"
+      "pixelHash": "qc9GqPrt77o"
     },
     "errors": {
       "values": {
@@ -408,10 +451,10 @@
         "n": 306808,
         "line": 3.03799,
         "SSIM": 0.95411,
-        "hErrors": "vEzxw6eXJ4g",
-        "hMap": "hiOSC0xKOhA",
-        "hSSIM": "9KqFaBIpKig",
-        "hErrorLine": "Qwp0byW6Goc"
+        "hErrors": "_nQ--1HzWKQ",
+        "hMap": "kSIwZAQd9qk",
+        "hSSIM": "tvDYIn_jPek",
+        "hErrorLine": "ePbBPhWxsOM"
       }
     },
     "scopes": {
@@ -420,14 +463,14 @@
         "strip": 40960,
         "Y": 88.75269,
         "waveY": 91.42532,
-        "hRGB": "hgpC9U1w0GQ",
-        "hYC": "Pj8wudHhklA",
-        "hWave": "fV0lcV7k6YA",
-        "hVector": "2B48rwBynlE",
+        "hRGB": "lf1Wbbq4KJU",
+        "hYC": "FM7ZbfKhiBY",
+        "hWave": "XLKRp8l17nE",
+        "hVector": "uHfjEUJYnXM",
         "hCIE": "pvVgWa9aDAE",
-        "hLine": "2NOBF_Y6nno"
+        "hLine": "_LXDL9eFtwM"
       },
-      "inputHash": "-Awx15jbsII"
+      "inputHash": "wGDyZzQxxWI"
     },
     "sample-alpha": {
       "values": {
@@ -438,11 +481,12 @@
         "n": 143200,
         "line": 127.5,
         "edge": 82240,
-        "hAlpha": "tMpNAy1bYK4"
+        "hAlpha": "0cEntM9thF0"
       },
       "fileHash": "qp5hiQSlSxA",
-      "pixelHash": "gf6Zwcup0c8",
-      "inputHash": "d3GlbW9B6uw"
+      "pixelHash": "QO37UEOc05k",
+      "inputHash": "92U99D6HUcA",
+      "colors": "srgb/srgb"
     },
     "print-tiff": {
       "values": {
@@ -475,6 +519,16 @@
         "bpp": 400,
         "display": "46.37"
       }
+    },
+    "canvas-copy": {
+      "fileHash": "-",
+      "pixelHash": "RLBchI9vx50",
+      "psnr": "inf",
+      "alpha": 0,
+      "changed": 0,
+      "max": 0,
+      "bytes": 0,
+      "colors": "srgb/srgb"
     }
   }
 }

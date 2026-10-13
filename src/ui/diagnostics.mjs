@@ -4,6 +4,7 @@ import { diagnosticConfig, diagnosticEnvironment, diagnosticError, diagnosticHas
 import { DIAGNOSTIC_LABELS, diagnosticFieldLabel, diagnosticErrorDescription } from '../core/diagnostic-labels.mjs';
 import { runDiagnosticTests, DIAGNOSTIC_CASES } from '../services/diagnostic-tests.mjs';
 import reference from '../diagnostic-reference.json';
+import { packDiagnostics } from '../core/diagnostic-transport.mjs';
 
 export function createDiagnostics({ app, els }, deps) {
   let controller, revision = 0, attached = false, returnFocus;
@@ -75,8 +76,8 @@ export function createDiagnostics({ app, els }, deps) {
     for (const event of report.events) if (['error','page','promise'].includes(event[0])) report.issues.push({ id: 'session', detail: event.join(':'), description: 'В текущем сеансе ранее зарегистрирована ошибка. ' + diagnosticErrorDescription(event[1]) });
     const currentErrors = report.issues.length - versionErrors.length;
     report.verdict = incomplete ? 'INCOMPLETE' : problems || report.issues.length ? `DIFFERENCES tests=${problems} current=${currentErrors}${versionErrors.length?' versions='+versionErrors.length:''}` : 'OK checked paths';
-    const text = formatDiagnostics(report), bytes = diagnosticByteLength(text);
-    return { report, text, bytes, fits: bytes <= DIAGNOSTIC_LIMIT };
+    const readableText = formatDiagnostics(report), text = packDiagnostics(readableText), bytes = diagnosticByteLength(text);
+    return { report, text, readableText, bytes, fits: bytes <= DIAGNOSTIC_LIMIT };
   }
   function stop() { controller?.abort(); }
   function showSummary(report) {
@@ -98,14 +99,17 @@ export function createDiagnostics({ app, els }, deps) {
   function renderResults(result) {
     const output = get('diagnosticOutput'), details = get('diagnosticDetails');
     output.replaceChildren(); details.replaceChildren();
-    for (const line of result.text.trimEnd().split('\n')) {
+    for (const line of result.readableText.trimEnd().split('\n')) {
       const row = document.createElement('span'); row.textContent = line + '\n';
       row.className = 'diagnostic-line'; row.dataset.status = /^(PASS|FAIL|INFO|SKIP)\b/.exec(line)?.[1] ?? '';
       output.appendChild(row);
     }
-    for (const test of result.report.tests.filter(test => test.status === 'FAIL' || test.status === 'SKIP')) {
+    for (const test of result.report.tests.filter(test => test.status === 'FAIL' || test.status === 'SKIP' || test.note || test.metadataDifferences?.length)) {
       const row = document.createElement('li');
-      const reason = test.error ? diagnosticErrorDescription(test.error) : test.differences.map(d => `${diagnosticFieldLabel(test, d.key)}: ожидалось ${diagnosticValue(d.expected)}, получено ${diagnosticValue(d.actual)}`).join('; ') + '.';
+      const entries = [...(test.differences ?? []), ...(test.metadataDifferences ?? [])];
+      const reason = test.error ? diagnosticErrorDescription(test.error) : [entries.length ? entries.map(d => `${diagnosticFieldLabel(test, d.key)}: ожидалось ${diagnosticValue(d.expected)}, получено ${diagnosticValue(d.actual)}`).join('; ') + '.' : '', test.note ?? '',
+        test.id === 'sample-alpha' && test.status === 'FAIL' && result.report.tests.find(item => item.id === 'alpha-white')?.changed > 0
+          ? 'Проверка alpha-white также обнаружила округление в Canvas до JPEG-кодека; сравните её число и максимум отклонений.' : ''].filter(Boolean).join(' ');
       row.textContent = `${test.status} · ${DIAGNOSTIC_LABELS[test.id] ?? test.id}: ${reason}`;
       row.dataset.status = test.status; details.appendChild(row);
     }

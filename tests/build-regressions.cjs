@@ -23,6 +23,7 @@ const { assertEmbeddedPayload } = require('./support/embedded-payload.cjs');
   const options = { release: tag !== null, tag };
   if (tag) options.sourceConfig = { version: 1, urls: Object.fromEntries(Object.entries(currentPayload.sourcePackages).map(([id, info]) => [id, info.url])) };
   const first = await buildViewer(options), second = await buildViewer(options);
+  assert.deepEqual(first.inputs.filter(name => name.startsWith('vendor/')), ['vendor/pako-2.1.0.min.js'], 'only the manifest-verified pako is bundled for report transport');
   const photoPath='src/samples/ifl-photo-still-life-v1.webp';
   assert.ok(first.watchFiles.includes(photoPath),'sample is included in clean-checkout builds and watch');
   const samples=JSON.parse(first.html.match(/id="embedded-samples">([\s\S]*?)<\/script>/)[1]);

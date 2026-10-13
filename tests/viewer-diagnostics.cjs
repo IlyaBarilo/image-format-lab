@@ -1,24 +1,29 @@
 const assert=require('node:assert/strict'),{pathToFileURL}=require('node:url');
-const {chromium}=require('playwright');
+const {chromium,firefox}=require('playwright');
 (async()=>{
- const browser=await chromium.launch({headless:true,executablePath:process.env.IMAGE_TEST_BROWSER||undefined});
+ const engine=process.env.IMAGE_TEST_ENGINE??'chromium';assert.ok(['chromium','firefox'].includes(engine));
+ const {unpackDiagnostics}=await import('../src/core/diagnostic-transport.mjs');
+ const browser=await ({chromium,firefox}[engine]).launch({headless:true,executablePath:process.env.IMAGE_TEST_BROWSER||undefined});
  try{
   const context=await browser.newContext({acceptDownloads:true});await context.setOffline(true);
   const page=await context.newPage();await page.goto(pathToFileURL(require('./support/viewer-path.cjs')()).href);
   await page.waitForFunction(()=>document.getElementById('codecStatus').dataset.state==='ready',null,{timeout:90000});
   await page.locator('#diagnosticOpen').click();
   await page.waitForFunction(()=>document.getElementById('diagnosticText').value.includes('\nRESULT '),null,{timeout:240000});
-  const first=await page.locator('#diagnosticText').inputValue();assert.ok(Buffer.byteLength(first)<=4000);assert.match(first,/avif /);assert.match(first,/photo-webp /);assert.match(first,/ACTUAL .*1\.23\.4/);
+  const first=await page.locator('#diagnosticText').inputValue(),readable=unpackDiagnostics(first);assert.ok(Buffer.byteLength(first)<=4000);assert.match(readable,/avif /);assert.match(readable,/photo-webp /);assert.match(readable,/ACTUAL .*1\.23\.4/);
   const {DIAGNOSTIC_CASES}=await import('../src/services/diagnostic-tests.mjs');
-  assert.equal(first.split('\n').filter(line=>/^(PASS|FAIL|INFO|SKIP) /.test(line)&&DIAGNOSTIC_CASES.some(id=>line.split(' ')[1]===id)).length,DIAGNOSTIC_CASES.length);
+  assert.equal(readable.split('\n').filter(line=>/^(PASS|FAIL|INFO|SKIP) /.test(line)&&DIAGNOSTIC_CASES.some(id=>line.split(' ')[1]===id)).length,DIAGNOSTIC_CASES.length);
+  for(const id of ['metrics','crop','canvas-copy','png-js','ico','photo-png','photo-j85','photo-a85','png16','tiff16','jxl16','jp2-16'])assert.match(readable,new RegExp('PASS '+id+' '));
+  assert.match(readable,/INFO canvas-meta /);assert.match(readable,/INFO alpha-white /);assert.match(readable,/INFO alpha-jpeg /);
+  const api=await page.evaluate(()=>+(typeof new ImageData(1,1).colorSpace==='string'));assert.match(readable,new RegExp('INFO canvas-meta api='+api+','));
   assert.equal(await page.locator('#diagnosticBar').evaluate(el=>el.value),DIAGNOSTIC_CASES.length);
-  assert.equal(await page.locator('#diagnosticOutput').textContent(),first);
+  assert.equal(await page.locator('#diagnosticOutput').textContent(),readable);
   assert.equal(await page.locator('#diagnosticOutput').isVisible(),true);
   assert.ok(await page.locator('.diagnostic-line[data-status="PASS"]').count());
   assert.equal(await page.locator('#diagnosticSend').isEnabled(),true);
   assert.equal(await page.locator('#diagnosticSummary').evaluate(el=>el.nextElementSibling.contains(document.getElementById('diagnosticSend'))),true);
   assert.equal(await page.locator('#diagnosticSummary').getAttribute('data-state'),first.includes('RESULT OK')?'ok':'different');
-  assert.match(await page.locator('#diagnosticCounts').innerText(),/Завершено 52 из 52/);
+  assert.ok((await page.locator('#diagnosticCounts').innerText()).includes(`Завершено ${DIAGNOSTIC_CASES.length} из ${DIAGNOSTIC_CASES.length}`));
   const padding=await page.locator('#diagnosticDialog').evaluate(el=>{const style=getComputedStyle(el),head=el.querySelector('.batch-dialog-head').getBoundingClientRect(),form=el.querySelector('.batch-dialog-head>form');return {left:parseFloat(style.paddingLeft),top:parseFloat(style.paddingTop),headInset:head.left-el.getBoundingClientRect().left,formPadding:parseFloat(getComputedStyle(form).paddingLeft)};});
   assert.ok(padding.left>=16&&padding.top>=16&&padding.headInset>=16);assert.equal(padding.formPadding,0);
   await page.setViewportSize({width:390,height:844});assert.ok(await page.locator('#diagnosticDialog').evaluate(el=>el.getBoundingClientRect().width<=window.innerWidth-20));

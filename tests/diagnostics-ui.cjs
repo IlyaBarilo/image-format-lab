@@ -16,17 +16,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=req
  app.source={file:new File(['fixture'],'PERSONAL_FILE.png',{type:'image/png'}),name:'PERSONAL_FILE.png',width:1,height:1,size:7,pixelBuffer:pixels,decodingPath:'png-js'};
  app.variants=[0,1,2,3].map(i=>({index:i,ready:true,resultConfig:{format:'avif',matte:'white',quality:85,avifSpeed:6},config:{format:'avif'},measurement:{bytes:7,width:1,height:1,psnrRGB:40,alphaErrorPercent:0,processingMs:25},blob:new Blob(['fixture']),pixelBuffer:pixels,encodingPath:'libheif',decodingPath:'libheif'}));
  const before=app.variants.map(v=>v.blob);
- result=await controller.diagnosticReport();assert.ok(result.fits);assert.equal(result.report.cells.length,4);assert.ok(!result.text.includes('PERSONAL'));assert.deepEqual(app.variants.map(v=>v.blob),before);
+ result=await controller.diagnosticReport();assert.ok(result.fits);assert.equal(result.report.cells.length,4);assert.ok(!result.readableText.includes('PERSONAL'));assert.deepEqual(app.variants.map(v=>v.blob),before);
  versions.heic.decoder='1.1.2-test';result=await controller.diagnosticReport();assert.match(result.report.verdict,/versions=1/);versions.heic.decoder='1.1.2';
- tests.find(t=>t.id==='avif').fileHash='0'.repeat(11);result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.match(result.text,/FAIL avif/);assert.ok(result.text.includes('Hf:'+reference.tests.avif.fileHash+'>'+'0'.repeat(11)));assert.equal(result.report.tests.find(t=>t.id==='avif').differences[0].key,'fileHash');
- tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));result=await controller.diagnosticReport();assert.equal(result.report.verdict,'INCOMPLETE');assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.text,/SKIP photo-j85/);
+ tests.find(t=>t.id==='avif').fileHash='0'.repeat(11);result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.match(result.readableText,/FAIL avif/);assert.ok(result.readableText.includes('H:f'+'0'.repeat(11)));assert.equal(result.report.tests.find(t=>t.id==='avif').differences[0].key,'fileHash');
+ tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));result=await controller.diagnosticReport();assert.equal(result.report.verdict,'INCOMPLETE');assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.readableText,/SKIP photo-j85/);
  tests=DIAGNOSTIC_CASES.map(id=>({id,error:'unsupported'}));result=await controller.diagnosticReport();assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(result.fits);
  const broken=createDiagnostics({app,els:{}},{isVariantReady:v=>v.ready,runDiagnosticTests:async()=>{throw new Error('C:/PERSONAL_FILE broken');}});
- result=await broken.diagnosticReport();assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(!result.text.includes('PERSONAL'));
+ result=await broken.diagnosticReport();assert.equal(result.report.tests.length,DIAGNOSTIC_CASES.length);assert.match(result.report.verdict,/^DIFFERENCES/);assert.ok(!result.readableText.includes('PERSONAL'));
  tests=DIAGNOSTIC_CASES.map(id=>({id,bytes:100,psnr:Infinity,alpha:0,changed:0,max:0,...reference.tests[id]}));
  tests.find(t=>t.id==='photo-a85').values.b++;
- result=await controller.diagnosticReport();assert.match(result.text,/FAIL photo-a85 .*diff:b:39307>39308/);assert.equal(result.report.tests.find(t=>t.id==='photo-a85').status,'FAIL');
- app.diagnosticEvents=[['error','timeout:12345678']];result=await controller.diagnosticReport();assert.ok(result.report.issues.some(issue=>issue.id==='session'));assert.match(result.text,/FAIL session error:timeout/);
+ result=await controller.diagnosticReport();assert.match(result.readableText,/FAIL photo-a85 .*b=39308.*D:b/);assert.equal(result.report.tests.find(t=>t.id==='photo-a85').status,'FAIL');
+ app.diagnosticEvents=[['error','timeout:12345678']];result=await controller.diagnosticReport();assert.ok(result.report.issues.some(issue=>issue.id==='session'));assert.match(result.readableText,/FAIL session error:timeout/);
  class Element {
    constructor(id){this.id=id;this.listeners={};this.children=[];this.dataset={};this.value='';this.textContent='';this.hidden=false;this.disabled=false;}
    addEventListener(name,fn){this.listeners[name]=fn;}
@@ -55,9 +55,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{buildSync}=req
  document.getElementById('diagnosticDialog').close();assert.equal(document.activeElement,document.getElementById('diagnosticOpen'));
  function validTests(){const current=JSON.parse(fs.readFileSync('src/diagnostic-reference.json','utf8'));return DIAGNOSTIC_CASES.map(id=>({id,bytes:100,psnr:Infinity,alpha:0,changed:0,max:0,...current.tests[id]}));}
  app.diagnosticEvents=[];tests=validTests();await document.getElementById('diagnosticOpen').click();
- assert.equal(document.getElementById('diagnosticSummary').dataset.state,'ok');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Все тесты пройдены');assert.match(document.getElementById('diagnosticCounts').textContent,/Завершено 52 из 52 · ошибок\/расхождений в тестах: 0/);
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'ok');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Все тесты пройдены');assert.ok(document.getElementById('diagnosticCounts').textContent.includes(`Завершено ${DIAGNOSTIC_CASES.length} из ${DIAGNOSTIC_CASES.length} · ошибок/расхождений в тестах: 0`));
  document.getElementById('diagnosticDialog').close();tests=DIAGNOSTIC_CASES.map(id=>({id,error:'cancel'}));await document.getElementById('diagnosticOpen').click();
- assert.equal(document.getElementById('diagnosticSummary').dataset.state,'incomplete');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Проверка не завершена');assert.match(document.getElementById('diagnosticCounts').textContent,/пропущено: 52/);
+ assert.equal(document.getElementById('diagnosticSummary').dataset.state,'incomplete');assert.equal(document.getElementById('diagnosticVerdict').textContent,'Проверка не завершена');assert.ok(document.getElementById('diagnosticCounts').textContent.includes(`пропущено: ${DIAGNOSTIC_CASES.length}`));
  document.getElementById('diagnosticDialog').close();tests[0]={id:'metrics',error:'timeout'};await document.getElementById('diagnosticOpen').click();
  assert.equal(document.getElementById('diagnosticSummary').dataset.state,'different');assert.match(document.getElementById('diagnosticVerdict').textContent,/ошибки.*неполная/);
  document.getElementById('diagnosticDialog').close();tests=validTests();app.diagnosticEvents=[['error','codec:12345678']];await document.getElementById('diagnosticOpen').click();

@@ -37,6 +37,7 @@ tests.push('cmyk');
 tests.push('icc-sdr');
 tests.push('comparison-readiness');
 tests.push('diagnostics', 'diagnostics-ui');
+tests.push('diagnostics-firefox');
 tests.push('viewer-diagnostics');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');

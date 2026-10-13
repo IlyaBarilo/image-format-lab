@@ -1,5 +1,9 @@
 name: Set up test tools
 description: Install fixed build and browser test dependencies on a GitHub runner
+inputs:
+  browsers:
+    description: Browser engines required by the checks
+    default: chromium
 runs:
   using: composite
   steps:
@@ -16,5 +20,5 @@ runs:
         npm ci --prefix scripts
         python -m pip install -r scripts/ci-requirements.txt
         npm install --prefix "$RUNNER_TEMP/image-format-tests" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.63.0
-        node "$RUNNER_TEMP/image-format-tests/node_modules/playwright/cli.js" install --with-deps chromium
+        node "$RUNNER_TEMP/image-format-tests/node_modules/playwright/cli.js" install --with-deps ${{ inputs.browsers }}
         echo "NODE_PATH=$RUNNER_TEMP/image-format-tests/node_modules" >> "$GITHUB_ENV"
