@@ -7,6 +7,8 @@ import { FORMAT_OPTIONS, isBmpFormat, isPngFormat, formatOptionValue, formatFrom
 import { FORMAT_KNOWLEDGE } from '../core/knowledge-targets.mjs';
 
 // Dependencies are bound by application.mjs after all components are constructed.
+import { bindRangeNumber } from './range-number.mjs';
+
 export function createControls({els, app}, deps) {
   let headSizeObserver;
 
@@ -491,6 +493,7 @@ export function createControls({els, app}, deps) {
       variant.config.matte = matte.value;
       deps.markDirty(variant);
     });
+    syncNumberFields(variant);
   
   }
   
@@ -522,6 +525,17 @@ export function createControls({els, app}, deps) {
     if (els.batchDialog.open) { deps.updateBatchDialogFormats(); deps.updateBatchDialog(); }
   }
   
+  function syncNumberFields(variant) {
+    const c = variant.controls;
+    for (const [range, output, label] of [
+      [c.quality, c.qualityValue, 'Качество кодирования'],
+      [c.pngLevel, c.pngLevelValue, 'Уровень Deflate PNG'],
+      [c.tiffLevel, c.tiffLevelValue, 'Уровень Deflate TIFF'],
+      [c.modernEffort, c.modernEffortValue, () => c.modernEffort.getAttribute('aria-label')],
+      [c.avifSpeed, c.avifSpeedValue, 'Скорость AVIF']
+    ]) bindRangeNumber(range, { output, label });
+  }
+
   function syncControlsVisibility(variant) {
     const format = variant.config.format;
     const def = FORMAT_DEFS[format];
@@ -607,6 +621,7 @@ export function createControls({els, app}, deps) {
     if (formatTopic && variant.controls.formatHelp) variant.controls.formatHelp.dataset.knowledgeTarget = formatTopic + '#overview';
     if (formatTopic && variant.controls.select) variant.controls.select.dataset.knowledgeTarget = formatTopic + '#overview';
     for (const { label, wrap } of variant.controls.helpFields || []) wrap.hidden = label.hidden || label.style.display === 'none';
+    syncNumberFields(variant);
   }
   
   function buildMetrics(variant) {

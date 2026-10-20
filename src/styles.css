@@ -602,6 +602,16 @@ select:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.range-number-control { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; vertical-align: middle; }
+.range-number-control > input[type="range"] { min-width: 36px; flex: 1 1 auto; accent-color: var(--accent); }
+.range-number-control > .range-number { box-sizing: border-box; flex: 0 0 62px; width: 62px; min-width: 0; padding: 5px 4px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; text-align: right; font-variant-numeric: tabular-nums; }
+.range-number-control > .range-number:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.range-number-control > .range-number[aria-invalid="true"] { border-color: #c35b5b; }
+.range-number-control > .range-number:disabled { opacity: .55; }
+.range-number-unit { font-size: 12px; color: var(--muted); }
+.quality-value[hidden], .analysis-level output[hidden], .display-menu output[hidden], .batch-field output[hidden] { display: none; }
+.display-menu .range-number-control, .batch-field > .range-number-control { display: flex; width: 100%; }
+
 .gif-wrap .small-input {
   width: 66px;
   min-width: 66px;

@@ -1,5 +1,5 @@
 import { DEFAULT_EXPORT_CONFIG, FORMAT_DEFS } from '../core/config.mjs';
-import { diagnosticPixels, diagnosticDifference, diagnosticHash, diagnosticPixelHash, diagnosticError } from '../core/diagnostics.mjs';
+import { diagnosticPixels, diagnosticDifference, diagnosticHash, diagnosticPixelHash, diagnosticError, diagnosticExceptionName } from '../core/diagnostics.mjs';
 import { pngPreview } from '../core/png.mjs';
 import { pixelBufferFromImageData } from '../core/pixels.mjs';
 import { cropSourcePixels } from '../core/crop-source.mjs';
@@ -24,25 +24,37 @@ export const DIAGNOSTIC_CASES = Object.freeze([
   'png16', 'tiff16', 'jxl16', 'jp2-16', 'png-alpha', 'avif-alpha', 'cmyk-tiff', 'cmyk-jpeg', ...DIAGNOSTIC_LAB_CASES
 ]);
 
-export async function runDiagnosticTests({ createRuntime, photo, signal, progress = () => {}, timeout = 30000 }) {
-  let runtime = createRuntime();
-  const results = [], info = {}, base = diagnosticSource(diagnosticPixels()), transparent = diagnosticSource(diagnosticPixels(8, true));
+export async function runDiagnosticTests({ createRuntime, photo, signal, progress = () => {}, checkpoint = () => {}, timeout = 30000 }) {
+  let runtime, base, transparent, phase = 'initialize';
+  const results = [], info = {};
+  Object.defineProperty(results, 'codecInfo', { value: info });
+  const operation = name => {
+    const next = /^(load|can)/.test(name) ? 'load' : /^decode/.test(name) ? 'decode' : /^(encode|canvasToBlob)/.test(name) ? 'encode'
+      : /^(measure|compute|prepareMetric)/.test(name) ? 'metrics' : /^(prepareCanvas|outputSource|cloneImageData|imageDataToPreview)/.test(name) ? 'canvas' : null;
+    if (next) phase = next;
+  };
+  const save = result => { results.push(result); Object.assign(info, runtime?.info); checkpoint(result, info); };
   const config = { ...DEFAULT_EXPORT_CONFIG, resizeWidth: '', resizeHeight: '', targetKB: '', metadataPolicy: 'none', quality: 85,
     pngDepth: '8', tiffDepth: '8', jxlDepth: '8', gifColors: 32, gifDither: false, bmpColors: 32, bmpCompression: 'none', colorMode: 'rgb' };
   const describe = async (reference, actual, blob) => ({ ...diagnosticDifference(reference, actual), bytes: blob?.size ?? 0,
     fileHash: blob ? await diagnosticHash(blob) : '-', pixelHash: await diagnosticPixelHash(actual), colors: reference.colorSpace + '/' + actual.colorSpace });
   async function conversion(format, source = base, extra = {}) {
     const actions = runtime.actions;
+    phase = 'encode';
     const encoded = await actions.encodeFromSource({ ...config, format, ...extra }, source);
+    phase = 'decode';
     const decoded = await actions.decodeVariantForPreview(encoded.blob, encoded.exactPng);
     try {
+      phase = 'hash';
       const result = await describe(encoded.sourcePixelBuffer, decoded.pixelBuffer, encoded.blob);
+      phase = 'metrics';
       const measured = await actions.measurePixels(encoded.sourcePixelBuffer, decoded.pixelBuffer, { allowUnknownColorSpace: true });
       return { ...result, psnr: measured.psnr, alpha: measured.alpha };
     } finally { decoded.bitmap?.close?.(); }
   }
   async function execute(id, task) {
-    if (signal?.aborted) { results.push({ id, error: 'cancel' }); return; }
+    if (signal?.aborted) { save({ id, error: 'cancel' }); return; }
+    phase = 'test';
     let timer, abort;
     const interrupt = new Promise((resolve, reject) => {
       timer = setTimeout(() => reject(new Error('timeout')), timeout);
@@ -50,15 +62,17 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
       signal?.addEventListener('abort', abort, { once: true });
     });
     progress(id, results.length, DIAGNOSTIC_CASES.length);
-    try { results.push({ id, ...await Promise.race([Promise.resolve().then(task), interrupt]) }); }
+    try { save({ id, ...await Promise.race([Promise.resolve().then(task), interrupt]) }); }
     catch (error) {
-      results.push({ id, error: diagnosticError(error) });
-      Object.assign(info,runtime.info);runtime.dispose(); runtime = createRuntime();
+      save({ id, error: diagnosticError(error), phase, exception: diagnosticExceptionName(error) });
+      Object.assign(info, runtime.info); phase = 'cleanup'; runtime.dispose(); phase = 'initialize'; runtime = createRuntime(operation);
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
     progress(null, results.filter(result => !result.error?.startsWith('cancel')).length, DIAGNOSTIC_CASES.length);
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   try {
+    runtime = createRuntime(operation);
+    base = diagnosticSource(diagnosticPixels()); transparent = diagnosticSource(diagnosticPixels(8, true));
     await execute('metrics', async () => {
       const other = diagnosticPixels(); other.data[0] ^= 1;
       const actual = diagnosticDifference(base.pixelBuffer, other);
@@ -163,7 +177,12 @@ export async function runDiagnosticTests({ createRuntime, photo, signal, progres
     });
     const laboratory = diagnosticLabTasks({ getRuntime: () => runtime, photo, config, makeSource: diagnosticSource });
     for (const id of DIAGNOSTIC_LAB_CASES) await execute(id, laboratory[id]);
-  } finally { Object.assign(info,runtime.info);runtime.dispose(); }
-  Object.defineProperty(results,'codecInfo',{value:info});
+  } catch (error) {
+    Object.defineProperty(results, 'failure', { value: { phase, error: diagnosticError(error), exception: diagnosticExceptionName(error) } });
+  } finally {
+    Object.assign(info, runtime?.info);
+    try { runtime?.dispose(); }
+    catch (error) { if (!results.failure) Object.defineProperty(results, 'failure', { value: { phase: 'cleanup', error: diagnosticError(error), exception: diagnosticExceptionName(error) } }); }
+  }
   return results;
 }

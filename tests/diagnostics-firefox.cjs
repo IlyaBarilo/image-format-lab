@@ -52,5 +52,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require(
   assert.throws(()=>unpackDiagnostics(packDiagnostics('IFL-D3 local\nRESULT OK\nENV test\n'+'x'.repeat(70000))),/слишком велик/);
   assert.equal(unpackDiagnostics('IFL-D2 local\nRESULT OK\nENV old\n'),'IFL-D2 local\nRESULT OK\nENV old\n');
   assert.equal(reference.tests['photo-png'].values.b,478394);assert.equal(reference.tests['photo-j85'].values.P,39.36663);assert.equal(reference.tests['photo-a85'].values.P,41.33034);
+  const failed={...report,tests:DIAGNOSTIC_CASES.map((id,index)=>core.evaluateDiagnosticTest({id,error:core.diagnosticError(new TypeError('failure '+index)),
+    phase:['encode','decode','metrics','load'][index%4],exception:'TypeError'},reference.tests[id],false)),
+    events:[...report.events.slice(0,4),['clipboard','error:12345678'],['form','error:87654321']]};
+  const failedText=core.formatDiagnostics(failed),failedPacked=packDiagnostics(failedText);
+  assert.ok(core.diagnosticByteLength(failedPacked.replaceAll('\n','\r\n'))<=4000);assert.equal(unpackDiagnostics(failedPacked),failedText);
+  assert.equal(failedText.split('\n').filter(line=>line.includes(' @')&&line.includes('/TypeError')).length,DIAGNOSTIC_CASES.length);
+  console.log('All test exceptions, operation stages, versions and delivery errors:',core.diagnosticByteLength(failedPacked),'bytes');
   console.log('PASS absent Firefox colour API, unknown files, separate metadata, strict raw counts and lossless complete report');
 })().catch(error=>{console.error(error);process.exitCode=1;});

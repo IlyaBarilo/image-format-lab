@@ -39,6 +39,7 @@ tests.push('comparison-readiness');
 tests.push('diagnostics', 'diagnostics-ui');
 tests.push('diagnostics-firefox');
 tests.push('viewer-diagnostics');
+tests.push('range-number', 'viewer-range-number');
 const requested = process.argv.slice(2);
 if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
 let failures = 0;

@@ -1,6 +1,8 @@
 import { createSdrMapper, createFloat16SdrMapper, createFloatRangeMapper, createAlphaMapper, resolveFloatDisplayRange,
   validFloatDisplayRange, MAX_DISPLAY_PIXELS, normalizeDisplay } from '../core/display-sdr.mjs';
 
+import { bindRangeNumber } from './range-number.mjs';
+
 export function probeFloat16Canvas(documentRef = document) {
   if (typeof Float16Array !== 'function') return false;
   try {
@@ -114,12 +116,16 @@ export function createDisplay({ app, els }, deps) {
     els.displayBlackValue.textContent = `${value.black}%`;
     els.displayWhiteValue.textContent = `${value.white}%`;
     els.displayExposureValue.textContent = `${value.exposure > 0 ? '+' : ''}${value.exposure} EV`;
+    bindRangeNumber(els.displayBlack, { output: els.displayBlackValue, label: 'Чёрная точка', unit: '%' });
+    bindRangeNumber(els.displayWhite, { output: els.displayWhiteValue, label: 'Белая точка', unit: '%' });
+    bindRangeNumber(els.displayExposure, { output: els.displayExposureValue, label: 'Экспозиция', unit: 'EV' });
     const floatMode = value.mode === 'float', native = floatSource();
     els.displaySdrFields.hidden = value.mode !== 'sdr';
     els.displayFloatFields.hidden = !floatMode;
     els.displayFloatBounds.hidden = !floatMode || value.floatRange !== 'manual';
     els.displayDitherField.hidden = value.mode === 'standard' || value.mode === 'alpha';
     for (const control of [els.displayBlack, els.displayWhite, els.displayExposure]) control.disabled = value.mode !== 'sdr';
+    for (const control of [els.displayBlack, els.displayWhite, els.displayExposure]) bindRangeNumber(control);
     for (const control of [els.displayFloatRange, els.displayFloatMin, els.displayFloatMax]) control.disabled = !floatMode;
     els.displayMenuToggle.classList.toggle('active', value.mode !== 'standard');
     const range = resolveFloatDisplayRange(value, app.source?.floatStats);

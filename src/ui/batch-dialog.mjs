@@ -6,6 +6,8 @@ import { FORMAT_DEFS } from "./../core/config.mjs";
 import { FORMAT_OPTIONS, isBmpFormat, formatOptionValue, formatFromOption, resolveCmykMode } from "./../core/format-options.mjs";
 
 // Dependencies are bound by application.mjs after all components are constructed.
+import { bindRangeNumber } from './range-number.mjs';
+
 export function createBatchDialog({els, app}, deps) {
   function updateBatchDialogFormats(current = els.batchFormat.value) {
     els.batchFormat.replaceChildren();
@@ -139,6 +141,10 @@ export function createBatchDialog({els, app}, deps) {
     document.getElementById('batchPngFilterField').hidden=!['png','pngIndexed'].includes(config.format);
     document.getElementById('batchPngLevelField').hidden=!['png','pngIndexed'].includes(config.format)||config.pngFilter==='default';
     document.getElementById('batchPngLevelValue').textContent=String(config.pngLevel);
+    for (const [id, label] of [['batchPngLevel', 'Уровень Deflate PNG'], ['batchWebpMethod', 'Метод WebP lossless'],
+      ['batchJxlEffort', 'Усилие JPEG XL'], ['batchAvifSpeed', 'Скорость AVIF']]) {
+      bindRangeNumber(document.getElementById(id), { output: document.getElementById(id + 'Value'), label });
+    }
     els.batchQualityField.hidden = !def?.lossy;
     document.getElementById("batchBudgetFields").hidden = !def?.lossy;
     els.batchGifField.hidden = !gif;

@@ -20,6 +20,11 @@ export function diagnosticError(error) {
   return code + ':' + hash.toString(16).padStart(8, '0');
 }
 
+export function diagnosticExceptionName(error) {
+  return ['Error','TypeError','RangeError','ReferenceError','SyntaxError','SecurityError','NotSupportedError',
+    'InvalidStateError','OperationError','DataError','QuotaExceededError','AbortError'].includes(error?.name) ? error.name : 'Error';
+}
+
 export function recordDiagnosticEvent(events, kind, detail = '') {
   const allowed = ['open', 'settings', 'error', 'page', 'promise'];
   if (!allowed.includes(kind)) return;
@@ -107,7 +112,7 @@ export function evaluateDiagnosticTest(test, expected, informational = false) {
     }
   }
   test.mismatch = test.differences.length > 0;
-  test.status = test.error?.startsWith('cancel') || test.error === 'reference-missing' ? 'SKIP'
+  test.status = test.error?.startsWith('cancel') || ['reference-missing','not-run'].includes(test.error) ? 'SKIP'
     : test.error || test.mismatch ? 'FAIL' : informational || test.metadataDifferences.length ? 'INFO' : 'PASS';
   return test;
 }
@@ -117,7 +122,7 @@ const FIELD_CODES = { bytes: 'b', psnr: 'P', alpha: 'a', changed: 'n', max: 'm',
 const fieldCode = key => FIELD_CODES[key] ?? key;
 export function diagnosticTestLine(test) {
   const prefix = `${test.status ?? (test.error || test.mismatch ? 'FAIL' : 'PASS')} ${test.id}`;
-  if (test.error) return `${prefix} !${test.error}`;
+  if (test.error) return `${prefix} !${test.error}${test.phase ? ' @' + test.phase : ''}${test.exception && test.exception !== 'Error' ? '/' + test.exception : ''}`;
   // Matching control values are represented by '='; the full control is part of the identified build.
   let values;
   if (test.values) values = Object.entries(test.values).filter(([key, value]) => !/^h[A-Z]/.test(key) && (key !== 'a' || value !== 0)).map(([key, value]) => `${key}=${diagnosticValue(value)}`).join(',');
@@ -169,12 +174,12 @@ export function formatDiagnostics(report) {
   const lines = [`IFL-D${DIAGNOSTIC_VERSION} ${report.release || 'local'} ${build} ${report.state}`, `RESULT ${report.verdict}`, `ENV ${report.environment}`];
   lines.push('LIB ' + report.libraries.join(';'));
   lines.push('CODEC ' + report.codecs.join(';'));
-  if(report.actual?.length)lines.push('ACTUAL '+report.actual.join(';'));
+  lines.push('ACTUAL ' + (report.actual?.length ? report.actual.join(';') : '-'));
   lines.push('SRC ' + report.source.join('/'));
   lines.push('VIEW ' + report.view);
   if(report.batch)lines.push('BATCH '+report.batch);
   for (const cell of report.cells) lines.push(`V${cell.index} ${cell.status} ${cell.config} | ${cell.numbers.map(number).join('/')} | ${cell.paths} | ${cell.hashes.join('/')}`);
-  lines.push('V b/w/h/P/a/ms;T b/P/a/n/m;H f=file,p=pixels,i=input;=control;D=fields;M s=srgb,u=unknown,p=P3;UA=OS hint');
+  lines.push('V b/w/h/P/a/ms;T b/P/a/n/m;H f=file,p=pixels,i=input;=control;D=fields;M s=srgb,u=unknown,p=P3;UA=OS hint;LIB=build,ACTUAL=runtime');
   for (const test of report.tests) lines.push(diagnosticTestLine(test));
   for (const issue of report.issues ?? []) lines.push(`FAIL ${issue.id} ${issue.detail}`);
   lines.push('EVENT ' + report.events.map(value => value.join(':')).join(';'));

@@ -25,6 +25,8 @@ const spatialColor = index => index>=3?COLORS[index+1]:COLORS[index];
 const number = value => value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 const preciseDifference = value => value !== 0 && Math.abs(value) < 0.001 ? value.toExponential(2) : value.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
 
+import { bindRangeNumber } from './range-number.mjs';
+
 export function createAnalysis({ app }, deps) {
   const get = id => document.getElementById(id);
   const panel = get('analysisPanel'), body = get('analysisBody'), collapse = get('analysisCollapse');
@@ -184,6 +186,9 @@ export function createAnalysis({ app }, deps) {
       if(notice)notice.hidden=true;
       get('analysisMethod').textContent='Точные 8-битные каналы C/M/Y/K исходного CMYK TIFF или JPEG, без преобразования через RGB. Гистограмма показывает долю пикселей по уровню каждого канала. Карта отклонений показывает наибольшую абсолютную разницу одного канала с исходником при одинаковых размерах. K-only означает точные C=M=Y=0 при K больше 0; карта показывает сохранение этого условия. Сумма красок C+M+Y+K выражена в процентах от 0 до 400; порог тестового профиля не является пределом конкретной печатной машины. Карты объединяют пиксели при уменьшении, сохраняя максимум группы. Встроенный ICC сохраняется при записи CMYK, но этот анализ не выполняет цветопробу или оценку охвата.';
     }
+    bindRangeNumber(level, { output: get('analysisLevelValue'), label: 'Уровень, индекс 0–255',
+      hideOutput: () => type.value === 'histogram' && !app.variants.some(v => v.pixelBuffer?.bitDepth > 8) });
+    bindRangeNumber(position, { output: get('analysisPositionValue'), label: 'Позиция на линии', scale: 0.1, unit: '%' });
   }
 
   function syncLayout() {

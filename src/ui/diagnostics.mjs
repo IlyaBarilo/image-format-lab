@@ -1,14 +1,44 @@
 import { OPTIONAL_CODECS } from '../core/config.mjs';
 import { diagnosticConfig, diagnosticEnvironment, diagnosticError, diagnosticHash, diagnosticPixelHash,
-  diagnosticByteLength, formatDiagnostics, DIAGNOSTIC_LIMIT, DIAGNOSTIC_FORM, recordDiagnosticEvent, diagnosticLibraries, evaluateDiagnosticTest, diagnosticValue } from '../core/diagnostics.mjs';
-import { DIAGNOSTIC_LABELS, diagnosticFieldLabel, diagnosticErrorDescription } from '../core/diagnostic-labels.mjs';
+  diagnosticByteLength, formatDiagnostics, DIAGNOSTIC_LIMIT, DIAGNOSTIC_FORM, recordDiagnosticEvent, diagnosticLibraries, evaluateDiagnosticTest, diagnosticValue, diagnosticExceptionName } from '../core/diagnostics.mjs';
+import { DIAGNOSTIC_LABELS, diagnosticFieldLabel, diagnosticErrorDescription, diagnosticPhaseLabel } from '../core/diagnostic-labels.mjs';
 import { runDiagnosticTests, DIAGNOSTIC_CASES } from '../services/diagnostic-tests.mjs';
 import reference from '../diagnostic-reference.json';
 import { packDiagnostics } from '../core/diagnostic-transport.mjs';
 
 export function createDiagnostics({ app, els }, deps) {
-  let controller, revision = 0, attached = false, returnFocus;
+  let controller, revision = 0, attached = false, returnFocus, latestResult;
+  const deliveryEvents = new Map();
   const get = id => document.getElementById(id);
+  function emptyReport() {
+    let payload = {};
+    try { payload = JSON.parse(get('embedded-codecs')?.textContent ?? '{}'); } catch {}
+    return { build: payload.buildId ?? '-', release: payload.releaseTag ?? '', environment: diagnosticEnvironment(),
+      libraries: diagnosticLibraries(Array.isArray(payload.components?.components) ? payload.components.components : []),
+      codecs: Object.keys(OPTIONAL_CODECS).map(key => `${key}=${app.codecs?.[key] ? 'r' : app.codecPromises?.[key] ? 'p' : app.codecAttempts?.[key] ? 'e' : 'i'}`),
+      state: 'unavailable', source: ['-','-'], cells: [], tests: [], events: [], issues: [], view: '-', batch: '-', verdict: 'INCOMPLETE' };
+  }
+  function failure(report, phase, error) {
+    const code = diagnosticError(error), exception = diagnosticExceptionName(error);
+    if (!report.issues.some(issue => issue.id === phase && issue.detail === code + '/' + exception))
+      report.issues.push({ id: phase, detail: code + '/' + exception,
+        description: `${diagnosticPhaseLabel(phase)}: ${diagnosticErrorDescription(code)} (${exception}; ${code}).` });
+  }
+  function packageReport(report) {
+    report.events = [...report.events.filter(event => !deliveryEvents.has(event[0])), ...deliveryEvents.entries()].slice(-6);
+    let text, readableText = formatDiagnostics(report);
+    try { text = (deps.packDiagnostics ?? packDiagnostics)(readableText); }
+    catch (error) {
+      failure(report, 'pack', error); report.verdict = 'INCOMPLETE';
+      readableText = formatDiagnostics(report); text = readableText;
+    }
+    const bytes = diagnosticByteLength(text);
+    return { report, text, readableText, bytes, fits: bytes <= DIAGNOSTIC_LIMIT };
+  }
+  function deliveryFailure(kind, error) {
+    deliveryEvents.set(kind, diagnosticError(error));
+    if (latestResult) { latestResult = packageReport(latestResult.report); get('diagnosticText').value = latestResult.text; }
+  }
   async function snapshot() {
     const source = app.source, sourceFile = source?.file ?? app.files?.find(item=>item.id===app.selectedFileId)?.file, sourcePixels = source?.pixelBuffer;
     const cells = app.variants.map(v => ({ index: v.index + 1, status: deps.isVariantReady(v) ? 'ready' : v.error ? diagnosticError(v.error) : v.processing ? 'pending' : 'stale',
@@ -49,35 +79,48 @@ export function createDiagnostics({ app, els }, deps) {
     }
     return report;
   }
-  async function diagnosticReport({ signal, progress } = {}) {
-    const report = await snapshot();
+  async function diagnosticReport({ signal, progress, checkpoint } = {}) {
+    let report = emptyReport(), codecInfo = {};
+    const publish = () => {
+      const tests = DIAGNOSTIC_CASES.map(id => ({ ...(report.tests.find(test => test.id === id) ?? { id, error: signal?.aborted ? 'cancel' : 'not-run' }) }));
+      for (const test of tests) evaluateDiagnosticTest(test, reference.tests[test.id], reference.informational?.includes(test.id));
+      const issues = [...report.issues];
+      const actual = Object.entries(codecInfo).map(([key, value]) => key + '=' + Object.values(value).filter(Boolean).join('/'));
+      const versions = [['heif',codecInfo.heic?.version],['de265',codecInfo.heic?.decoder],['jpeg',codecInfo.utif?.jpegVersion]];
+      const versionErrors = versions.filter(([key, value]) => value && !report.libraries.includes(key + '=' + value));
+      for (const [key, value] of versionErrors) issues.push({ id: 'version-' + key, detail: `${report.libraries.find(item => item.startsWith(key + '='))?.slice(key.length + 1) ?? '-'}>${value}`,
+        description: `Версия ${key}: ожидалось ${report.libraries.find(item => item.startsWith(key + '='))?.slice(key.length + 1) ?? 'значение реестра'}, получено ${value}.` });
+      const incomplete = tests.some(test => test.status === 'SKIP');
+      const problems = tests.filter(test => test.status === 'FAIL').length;
+      const verdict = incomplete ? 'INCOMPLETE' : problems || issues.length ? `DIFFERENCES tests=${problems} current=${issues.length - versionErrors.length}${versionErrors.length ? ' versions=' + versionErrors.length : ''}` : 'OK checked paths';
+      return packageReport({ ...report, tests, actual, issues, verdict });
+    };
+    const notify = () => {
+      const result = publish();
+      try { checkpoint?.(result); } catch (error) { failure(report, 'display', error); }
+      return result;
+    };
+    notify();
+    try { report = { ...await snapshot(), issues: [] }; }
+    catch (error) { failure(report, 'snapshot', error); }
+    if (report.state.includes(':')) report.issues.push({ id: 'source', detail: report.state, description: 'В момент запуска исходник был в состоянии ошибки. ' + diagnosticErrorDescription(report.state) });
+    for (const cell of report.cells) if (cell.status.includes(':')) report.issues.push({ id: 'cell' + cell.index, detail: cell.status, description: `В момент запуска ячейка ${cell.index} была в состоянии ошибки. ` + diagnosticErrorDescription(cell.status) });
+    for (const state of report.codecs) if (state.endsWith('=e')) report.issues.push({ id: 'codec', detail: state, description: `В момент запуска загрузчик ${state.slice(0, -2)} сообщил ошибку.` });
+    for (const event of report.events) if (['error','page','promise'].includes(event[0])) report.issues.push({ id: 'session', detail: event.join(':'), description: 'В текущем сеансе ранее зарегистрирована ошибка. ' + diagnosticErrorDescription(event[1]) });
+    notify();
     let photo = null;
     try {
       const encoded = JSON.parse(get('embedded-samples')?.textContent ?? '{}').photo;
       if (encoded) photo = new Blob([Uint8Array.from(atob(encoded), value => value.charCodeAt(0))], { type: 'image/webp' });
     } catch { /* A missing fixture is an explicit test result. */ }
-    try {report.tests = await (deps.runDiagnosticTests ?? runDiagnosticTests)({ createRuntime: deps.createDiagnosticRuntime, photo, signal, progress });}
-    catch(error){report.tests=DIAGNOSTIC_CASES.map(id=>({id,error:diagnosticError(error)}));}
-    report.actual=Object.entries(report.tests.codecInfo??{}).map(([key,value])=>key+'='+Object.values(value).filter(Boolean).join('/'));
-    const info=report.tests.codecInfo??{};
-    const versions=[['heif',info.heic?.version],['de265',info.heic?.decoder],['jpeg',info.utif?.jpegVersion]];
-    report.issues = [];
-    const versionErrors=versions.filter(([key,value])=>value&&!report.libraries.includes(key+'='+value));
-    for (const [key, value] of versionErrors) report.issues.push({ id: 'version-' + key, detail: `${report.libraries.find(item => item.startsWith(key + '='))?.slice(key.length + 1) ?? '-'}>${value}`,
-      description: `Версия ${key}: ожидалось ${report.libraries.find(item => item.startsWith(key + '='))?.slice(key.length + 1) ?? 'значение реестра'}, получено ${value}.` });
-    for (const test of report.tests) {
-      evaluateDiagnosticTest(test, reference.tests[test.id], reference.informational?.includes(test.id));
-    }
-    const incomplete = report.tests.length!==DIAGNOSTIC_CASES.length||report.tests.some(test => /cancel|reference-missing/.test(test.error ?? ''));
-    const problems = report.tests.filter(test => test.error && !/cancel/.test(test.error) || test.mismatch).length;
-    if (report.state.includes(':')) report.issues.push({ id: 'source', detail: report.state, description: 'В момент запуска исходник был в состоянии ошибки. ' + diagnosticErrorDescription(report.state) });
-    for (const cell of report.cells) if (cell.status.includes(':')) report.issues.push({ id: 'cell' + cell.index, detail: cell.status, description: `В момент запуска ячейка ${cell.index} была в состоянии ошибки. ` + diagnosticErrorDescription(cell.status) });
-    for (const state of report.codecs) if (state.endsWith('=e')) report.issues.push({ id: 'codec', detail: state, description: `В момент запуска загрузчик ${state.slice(0, -2)} сообщил ошибку.` });
-    for (const event of report.events) if (['error','page','promise'].includes(event[0])) report.issues.push({ id: 'session', detail: event.join(':'), description: 'В текущем сеансе ранее зарегистрирована ошибка. ' + diagnosticErrorDescription(event[1]) });
-    const currentErrors = report.issues.length - versionErrors.length;
-    report.verdict = incomplete ? 'INCOMPLETE' : problems || report.issues.length ? `DIFFERENCES tests=${problems} current=${currentErrors}${versionErrors.length?' versions='+versionErrors.length:''}` : 'OK checked paths';
-    const readableText = formatDiagnostics(report), text = packDiagnostics(readableText), bytes = diagnosticByteLength(text);
-    return { report, text, readableText, bytes, fits: bytes <= DIAGNOSTIC_LIMIT };
+    try {
+      const completed = await (deps.runDiagnosticTests ?? runDiagnosticTests)({ createRuntime: deps.createDiagnosticRuntime, photo, signal, progress,
+        checkpoint: (test, info) => { report.tests.push(test); codecInfo = { ...info }; notify(); } });
+      report.tests = completed; codecInfo = { ...completed.codecInfo };
+      if (completed.failure) report.issues.push({ id: completed.failure.phase, detail: completed.failure.error + '/' + completed.failure.exception,
+        description: `${diagnosticPhaseLabel(completed.failure.phase)}: ${diagnosticErrorDescription(completed.failure.error)} (${completed.failure.exception}; ${completed.failure.error}).` });
+    } catch (error) { failure(report, 'initialize', error); }
+    return publish();
   }
   function stop() { controller?.abort(); }
   function showSummary(report) {
@@ -107,7 +150,7 @@ export function createDiagnostics({ app, els }, deps) {
     for (const test of result.report.tests.filter(test => test.status === 'FAIL' || test.status === 'SKIP' || test.note || test.metadataDifferences?.length)) {
       const row = document.createElement('li');
       const entries = [...(test.differences ?? []), ...(test.metadataDifferences ?? [])];
-      const reason = test.error ? diagnosticErrorDescription(test.error) : [entries.length ? entries.map(d => `${diagnosticFieldLabel(test, d.key)}: ожидалось ${diagnosticValue(d.expected)}, получено ${diagnosticValue(d.actual)}`).join('; ') + '.' : '', test.note ?? '',
+      const reason = test.error ? `${diagnosticErrorDescription(test.error)}${test.phase ? ' Этап: ' + diagnosticPhaseLabel(test.phase) + '.' : ''}${test.exception ? ' Тип: ' + test.exception + '.' : ''}` : [entries.length ? entries.map(d => `${diagnosticFieldLabel(test, d.key)}: ожидалось ${diagnosticValue(d.expected)}, получено ${diagnosticValue(d.actual)}`).join('; ') + '.' : '', test.note ?? '',
         test.id === 'sample-alpha' && test.status === 'FAIL' && result.report.tests.find(item => item.id === 'alpha-white')?.changed > 0
           ? 'Проверка alpha-white также обнаружила округление в Canvas до JPEG-кодека; сравните её число и максимум отклонений.' : ''].filter(Boolean).join(' ');
       row.textContent = `${test.status} · ${DIAGNOSTIC_LABELS[test.id] ?? test.id}: ${reason}`;
@@ -118,12 +161,22 @@ export function createDiagnostics({ app, els }, deps) {
     }
     if (!details.children.length) { const row = document.createElement('li'); row.textContent = 'Контрольные проверки завершены без расхождений. INFO — сведения об особенностях браузера, а не ошибка.'; details.appendChild(row); }
   }
+  function present(result, complete = false) {
+    latestResult = result;
+    const textField = get('diagnosticText');
+    if (textField.hidden || document.activeElement !== textField) textField.value = result.text;
+    get('diagnosticCopy').disabled = get('diagnosticDownload').disabled = get('diagnosticSend').disabled = false;
+    renderResults(result);
+    if (complete) showSummary(result.report);
+  }
   async function openDiagnostics(event) {
     const dialog = get('diagnosticDialog');
     if (dialog.open) return;
     const current = ++revision;
     returnFocus = event?.currentTarget ?? document.activeElement;
     controller = new AbortController();
+    latestResult = null;
+    deliveryEvents.clear();
     get('diagnosticText').value = ''; get('diagnosticText').hidden = true;
     get('diagnosticOutput').replaceChildren(); get('diagnosticDetails').replaceChildren();
     get('diagnosticCopy').disabled = get('diagnosticDownload').disabled = get('diagnosticSend').disabled = true;
@@ -135,28 +188,36 @@ export function createDiagnostics({ app, els }, deps) {
     get('diagnosticProgress').textContent = 'Сохраняется состояние программы…';
     dialog.showModal();
     try {
-      const result = await diagnosticReport({ signal: controller.signal, progress: (id, done, total) => {
+      const result = await diagnosticReport({ signal: controller.signal, checkpoint: result => {
+        if (current === revision && dialog.open) present(result);
+      }, progress: (id, done, total) => {
         if (current === revision) {
           get('diagnosticBar').max = total; get('diagnosticBar').value = done;
           get('diagnosticProgress').textContent = `Завершено ${done}/${total}${id ? ' · ' + (DIAGNOSTIC_LABELS[id] ?? id) : ''}`;
         }
       } });
       if (current !== revision || !dialog.open) return;
-      get('diagnosticText').value = result.text;
-      renderResults(result);
-      const completed = result.report.tests.filter(test => !test.error?.startsWith('cancel')).length;
+      present(result, true);
+      const completed = result.report.tests.filter(test => test.status !== 'SKIP').length;
       get('diagnosticBar').value = completed;
       get('diagnosticProgress').textContent = `Завершено ${completed}/${DIAGNOSTIC_CASES.length} · ${result.bytes} байт UTF-8 · предел ${DIAGNOSTIC_LIMIT} байт`;
-      showSummary(result.report);
       get('diagnosticStop').disabled=true;
       if (!result.fits) get('diagnosticProgress').textContent += ' · превышение размера; полный текст сохранён без обрезания';
-      get('diagnosticCopy').disabled = get('diagnosticSend').disabled = !result.fits; get('diagnosticDownload').disabled = false;
     } catch (error) {
       if (current !== revision || !dialog.open) return;
-      get('diagnosticVerdict').textContent = 'Проверка не завершена';
-      get('diagnosticCounts').textContent = diagnosticErrorDescription(diagnosticError(error));
-      get('diagnosticSummary').dataset.state='incomplete';get('diagnosticVerdict').dataset.state='incomplete';get('diagnosticStop').disabled=true;
-      get('diagnosticProgress').textContent = diagnosticError(error);
+      const report = latestResult?.report ?? emptyReport();
+      failure(report, 'report', error); report.verdict = 'INCOMPLETE';
+      const result = packageReport(report);
+      try { present(result, true); }
+      catch {
+        latestResult = result; get('diagnosticText').value = result.text; get('diagnosticText').hidden = false;
+        get('diagnosticSummary').dataset.state = get('diagnosticVerdict').dataset.state = 'different';
+        get('diagnosticVerdict').textContent = 'Есть ошибки · проверка неполная';
+        get('diagnosticCounts').textContent = 'Ошибка вывода; полный текст отчёта доступен ниже.';
+      }
+      get('diagnosticCopy').disabled = get('diagnosticSend').disabled = get('diagnosticDownload').disabled = false;
+      get('diagnosticStop').disabled=true;
+      get('diagnosticProgress').textContent = 'Сбой формирования отчёта. Полученные данные сохранены; их можно скопировать или скачать. ' + diagnosticError(error);
     } finally { if (current === revision) controller = null; }
   }
   function attachDiagnosticEvents() {
@@ -167,9 +228,13 @@ export function createDiagnostics({ app, els }, deps) {
     const dialog = get('diagnosticDialog');
     dialog.addEventListener('close', () => { revision++; stop(); returnFocus?.focus?.(); });
     async function copyReport() {
-      const text = get('diagnosticText').value;
-      try { await navigator.clipboard.writeText(text); get('diagnosticProgress').textContent = 'Отчёт скопирован.'; return true; }
-      catch {
+      const current = revision;
+      const text = latestResult?.text ?? get('diagnosticText').value;
+      get('diagnosticText').value = text;
+      try { await navigator.clipboard.writeText(text); if (current !== revision) return false; get('diagnosticProgress').textContent = 'Отчёт скопирован.'; return true; }
+      catch (error) {
+        if (current !== revision) return false;
+        deliveryFailure('clipboard', error);
         get('diagnosticText').hidden = false;
         get('diagnosticText').focus(); get('diagnosticText').select();
         let copied = false; try { copied = !!document.execCommand?.('copy'); } catch {}
@@ -180,12 +245,19 @@ export function createDiagnostics({ app, els }, deps) {
     }
     get('diagnosticCopy').addEventListener('click', copyReport);
     get('diagnosticSend').addEventListener('click', async () => {
+      const current = revision;
       // Open on the click itself, before awaiting clipboard access, to preserve user activation.
-      globalThis.open(DIAGNOSTIC_FORM, '_blank', 'noopener,noreferrer');
+      try { globalThis.open(DIAGNOSTIC_FORM, '_blank', 'noopener,noreferrer'); }
+      catch (error) { deliveryFailure('form', error); }
       const copied = await copyReport();
+      if (current !== revision) return;
       if (copied) get('diagnosticProgress').textContent = 'Отчёт скопирован. Вставьте его в открывшуюся форму и нажмите отправку. Если форма не открылась, используйте ссылку ниже.';
+      if (latestResult && !latestResult.fits) get('diagnosticProgress').textContent += ` Полный отчёт: ${latestResult.bytes} байт, больше предела формы ${DIAGNOSTIC_LIMIT}. Скачайте TXT; данные не обрезаны.`;
     });
-    get('diagnosticDownload').addEventListener('click', () => deps.downloadBlob(new Blob([get('diagnosticText').value], { type: 'text/plain;charset=utf-8' }), 'image-format-lab-diagnostics.txt'));
+    get('diagnosticDownload').addEventListener('click', () => {
+      try { deps.downloadBlob(new Blob([latestResult?.text ?? get('diagnosticText').value], { type: 'text/plain;charset=utf-8' }), 'image-format-lab-diagnostics.txt'); }
+      catch { get('diagnosticText').value = latestResult?.text ?? get('diagnosticText').value; get('diagnosticText').hidden = false; get('diagnosticText').focus(); get('diagnosticText').select(); get('diagnosticProgress').textContent = 'Скачивание недоступно. Полный текст выделен; скопируйте его через Ctrl+C или ⌘C.'; }
+    });
     globalThis.addEventListener?.('error', event => recordDiagnosticEvent(app.diagnosticEvents ??= [], 'page', event.error ?? event.message));
     globalThis.addEventListener?.('unhandledrejection', event => recordDiagnosticEvent(app.diagnosticEvents ??= [], 'promise', event.reason));
   }

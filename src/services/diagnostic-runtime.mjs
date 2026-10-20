@@ -26,6 +26,7 @@ export function createDiagnosticRuntime(deps) {
   actions.loadOptionalCodec = name => codecs[name] ??= Promise.resolve().then(() => loaders[name] ? loaders[name]() : deps.loadOptionalCodec(name)).then(codec => {
     if(codec.diagnosticInfo)info[name]=codec.diagnosticInfo;
     return Object.fromEntries(Object.entries(codec).map(([key, value]) => [key, typeof value === 'function' ? (...args) => {
+      deps.onOperation?.(key);
       if (disposed) throw new Error('Операция отменена'); return value(...args);
     } : value]));
   });
@@ -34,6 +35,7 @@ export function createDiagnosticRuntime(deps) {
   Object.assign(actions, createEncode(context, actions));
   Object.assign(actions, createCompute(context, actions));
   for (const [name, fn] of Object.entries(actions)) if (typeof fn === 'function' && name !== 'disposeCompute') actions[name] = (...args) => {
+    deps.onOperation?.(name);
     if (disposed) throw new Error('Операция отменена'); return fn(...args);
   };
   function dispose() {

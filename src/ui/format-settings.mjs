@@ -1,4 +1,5 @@
 import { normalizeTiffOptions } from '../core/raster-codecs.mjs';
+import { bindRangeNumber } from './range-number.mjs';
 
 export function createFormatSettings() {
   let change = null, attached = false;
@@ -7,6 +8,7 @@ export function createFormatSettings() {
     get('tiffLevelField').hidden = get('tiffCompression').value !== 'deflate';
     get('tiffPredictorField').hidden = !['deflate','lzw'].includes(get('tiffCompression').value);
     get('tiffLevelValue').textContent = get('tiffLevel').value;
+    bindRangeNumber(get('tiffLevel'), { output: get('tiffLevelValue'), label: 'Уровень Deflate TIFF' });
   }
   function openTiffSettings(config, onChange) {
     const dialog = get('tiffSettingsDialog');
