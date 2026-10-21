@@ -36,7 +36,7 @@ tests.push('jpeg2000');
 tests.push('cmyk');
 tests.push('icc-sdr');
 tests.push('comparison-readiness');
-tests.push('diagnostics', 'diagnostics-ui');
+tests.push('diagnostics', 'diagnostics-ui', 'application-diagnostics');
 tests.push('diagnostics-firefox');
 tests.push('viewer-diagnostics');
 tests.push('range-number', 'viewer-range-number');

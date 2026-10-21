@@ -7,7 +7,8 @@ const { chromium } = require('playwright');
     const page = await context.newPage(); await page.goto(pathToFileURL(require('./support/viewer-path.cjs')()).href);
     await page.waitForFunction(() => document.getElementById('codecStatus').dataset.state === 'ready', null, { timeout: 90000 });
     await page.locator('#sampleImage').click(); await page.waitForFunction(() => app.variants.slice(0,2).every(v => v.blob && !v.processing && !v.dirty), null, { timeout: 90000 });
-    const cell = page.locator('.cell').nth(1), quality = cell.locator('.quality-wrap').first(), number = quality.locator('.range-number');
+    const cell = page.locator('.cell').nth(1), quality = cell.locator('.quality-wrap:has(input.quality)'), number = quality.locator('.range-number');
+    assert.equal(await number.getAttribute('max'), '100');
     const before = await page.evaluate(() => app.variants[1].generation);
     await number.fill('3'); assert.equal(await page.evaluate(() => app.variants[1].config.quality), 85);
     await number.fill('30'); await number.press('Enter');
@@ -45,7 +46,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(() => app.variants[1].config.quality), 85);
     assert.ok(await number.evaluate(el => { const r = el.getBoundingClientRect(), head = el.closest('.cell-head').getBoundingClientRect(); return r.width >= 50 && r.right <= head.right + 1; }));
     await page.reload(); await page.waitForFunction(() => app.variants?.[1]?.controls?.quality);
-    assert.equal(await cell.locator('.quality-wrap .range-number').first().inputValue(), '85');
+    assert.equal(await number.inputValue(), '85');
     assert.equal(await cell.locator('.avif-speed-wrap .range-number').inputValue(), '8');
     console.log('PASS numeric controls commit once, reject invalid drafts, track codec ranges, analysis, display, batch, narrow layout and restored settings');
   } finally { await browser.close(); }

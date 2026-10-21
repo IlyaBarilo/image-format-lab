@@ -329,7 +329,11 @@ export function createApplication() {
     "isVariantReady"
   ])));
   Object.assign(actions, createAnalysisRegion(context, dependencies(["updateAnalysis", "getAnalysisViewport", "isAnalysisResizing", "encodeExactPng", "registerExactPngFile", "addFiles", "showStatus"])));
-  actions.createDiagnosticRuntime = onOperation => createDiagnosticRuntime({ ...dependencies(['loadScript', 'loadOptionalCodec']), onOperation });
+  actions.createDiagnosticRuntime = onOperation => createDiagnosticRuntime({
+    loadScript: actions.loadScript,
+    loadOptionalCodec: actions.loadOptionalCodec,
+    onOperation
+  });
   Object.assign(actions, createDiagnostics(context, dependencies(['createDiagnosticRuntime', 'downloadBlob', 'isVariantReady', 'getAnalysisSnapshot', 'fileKind'])));
   Object.assign(actions, createPixelInspector(context, dependencies(["isVariantReady", "outputFormatLabel", "getDrawScale", "redrawPreviews", "redrawAnalysis"])));
   Object.assign(actions, createFilePassport(context, dependencies(["inspectFile", "workingRasterInfo", "fileBitsPerPixel", "formatBytes", "isVariantReady", "outputFormatLabel"])));
