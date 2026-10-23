@@ -122,6 +122,7 @@ PASS/FAIL сохраняются в тексте; интерфейс показ�
 | `core/pixel-inspector.mjs`, `ui/pixel-inspector.mjs` | Чтение четырёх нативных отсчётов, совместимость и знаковая разница; координаты просмотра, раскрываемая таблица и маркеры без чтения Canvas |
 | `core/file-passport.mjs`, `ui/file-passport.mjs` | Собственный структурный разбор JPEG/PNG по запросу, bpp, отдельное описание рабочего растра; окно исходника/результатов с отменой и кешем Blob |
 | `core/vectorscope.mjs`, `core/line-profile.mjs`, `ui/scope-plots.mjs` | Собственные Cb/Cr-счётчики, точный целочисленный профиль RGBA8/16 для RGB/alpha/Y′ с минимумами/максимумами и Canvas-отрисовка; область и линия редактируются в `ui/analysis-region.mjs`, связи задаёт application |
+| `ui/analysis-readout.mjs` | Числовая сводка текущего анализа: область, счётчики и единицы, среднее K всей области и среднее всей линии; доступная с клавиатуры закрепляемая подсказка |
 | `core/analysis-output.mjs`, `ui/analysis-combined.mjs`, `ui/analysis-output.mjs` | Нормировка наложения, валидация точек размера/метрики, сериализация массивов/Infinity, общий Canvas и PNG/JSON текущего анализа; снимок состояния и проверка его актуальности связаны через application |
 | `workers/heic.worker.mjs` | Запуск собственной WASM-сборки HEIC и выдача RGBA8 |
 | `workers/tiff.worker.mjs`, `core/tiff16.mjs`, `core/cmyk.mjs` | libnsbmp для BMP/ICO, libtiff для TIFF8 и CMYK8, точные целочисленные TIFF16 на pako; отдельный CMYK-растр и численная диагностика без RGB-промежуточного шага; UTIF / libjpeg-turbo для совместимости |

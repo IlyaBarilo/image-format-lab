@@ -174,7 +174,7 @@ export function cmykStatistics(cmyk, reference = null, threshold = 300, region =
     peakDifference=Math.max(peakDifference,pointDifference);
   }
   const pixels=box.width*box.height;
-  return {width:box.width,height:box.height,pixelCount:pixels,histograms,
+  return {width:box.width,height:box.height,bounds:box,pixelCount:pixels,histograms,
     means:sum.map(n=>n/pixels/255*100),tacMaximum:peakTac,tacOverPixels:overLimit,
     tacOverPercent:overLimit/pixels*100,threshold,peakTacPoint,firstOverPoint,
     kOnly:{sourcePixels:kOnlyPixels,retainedPixels:kOnlyRetained,lostPixels:kOnlyPixels-kOnlyRetained},

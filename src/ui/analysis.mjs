@@ -1,3 +1,4 @@
+import { differenceSummary } from './analysis-readout.mjs';
 import { profileMeanSummary } from './profile-summary.mjs';
 // Own image scopes UI, MIT. These are established analysis methods.
 import { differenceColor } from '../core/difference.mjs';
@@ -690,7 +691,9 @@ export function createAnalysis({ app }, deps) {
       card.element.dataset.state='ready';card.info.hidden=true;card.canvas.hidden=false;
       card.canvas.dataset.kind='difference';card.canvas.dataset.gain=String(amplification);card.canvas.dataset.mean=String(data.means[index]);
       const description=`${rasterDescription(data)}. ${index ? 'α без подложки' : `RGB на ${data.matte === 'white' ? 'белом' : 'чёрном'}`} · ${data.bitDepth.source}/${data.bitDepth.result} бит/канал${data.colorComparison==='unknown-code-values'?' · цветовая метка неизвестна':''}`;
-      const summary=`Средняя разность ${preciseDifference(data.means[index])}; максимум ${preciseDifference(data.maxima[index])} из 255 эквивалентных уровней; отличаются ${preciseDifference(data.changed[index]/data.pixelCount*100)}% пикселей.`;
+      const summary=differenceSummary(data,index);
+      card.values.textContent=summary;
+      card.values.title=description;
       const label=`${item.label}. Различия с исходником. ${description}. ${summary} Усиление ×${amplification}.`;
       card.canvas.setAttribute('aria-label',label);card.badge.title=label;lines.push(label);
       plotDifference(card.canvas,data,index,palette);

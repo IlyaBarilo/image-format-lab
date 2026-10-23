@@ -232,6 +232,7 @@ export function createApplication() {
     "updateMetrics"
   ])));
   Object.assign(actions, createSource(context, dependencies([
+    "updateFormatOptions",
     "clearDisplayCache",
     "syncDisplayControls",
     "updateAnalysis",

@@ -1,3 +1,4 @@
+import { createAnalysisReadout } from './analysis-readout.mjs';
 import { profileMeanSummary } from './profile-summary.mjs';
 // Own analysis display/export controls, MIT. Modules are wired by application.
 import {analysisJSON,tradeoffData,analysisMaximum,ANALYSIS_CHANNELS,SIGNAL_NAMES,spatialChannels} from '../core/analysis-output.mjs';
@@ -17,6 +18,8 @@ export function createAnalysisOutput({app},deps){
   const combined=get('analysisCombined'),canvas=get('analysisCombinedChart'),legend=get('analysisCombinedLegend'),note=get('analysisCombinedInfo');
   const png=get('analysisPNG'),json=get('analysisJSON'),notice=get('analysisSaveStatus');
   let saving=false,attached=false,lastDelta=null,pngDetail='compact';
+  const readout=createAnalysisReadout(get('analysisReadout'),get('analysisReadoutButton'),get('analysisReadoutContent'));
+
   const pngChoices=[['analysisPNGCompact','compact'],['analysisPNGDetailed','detailed']];
   function syncPNGDetail(){
     for(const [id,value] of pngChoices)get(id).setAttribute('aria-checked',String(pngDetail===value));
@@ -57,6 +60,7 @@ export function createAnalysisOutput({app},deps){
   function chosen(snapshot){return ['overlay','delta'].includes(snapshot.settings.display)?snapshot.settings.pair.map(cell=>snapshot.items.find(i=>i.cell===cell)).filter(Boolean):snapshot.items;}
   function presentAnalysis(snapshot){
     if (deps.isAnalysisResizing()) return;
+    readout.update(snapshot);
     let render = null;
     syncAnalysisOutput();const items=chosen(snapshot),shared=snapshot.settings.display!=='separate';
     if(snapshot.settings.display!=='delta')lastDelta=null;
@@ -234,6 +238,7 @@ export function createAnalysisOutput({app},deps){
   }
   function attachAnalysisOutputEvents(){
     if(attached)return;attached=true;
+    readout.attach();
     const menu=get('analysisPNGMenu'),toggle=get('analysisPNGToggle'),group=get('analysisPNGSwitch');
     const open=()=>{menu.hidden=false;toggle.setAttribute('aria-expanded','true');get(pngDetail==='detailed'?'analysisPNGDetailed':'analysisPNGCompact').focus();};
     toggle.addEventListener('click',()=>menu.hidden?open():closePNGMenu());
