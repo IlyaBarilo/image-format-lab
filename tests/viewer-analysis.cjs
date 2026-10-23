@@ -136,7 +136,7 @@ async function plots(page) {
       // The first graph must stop showing the source once cell 1 becomes JPEG.
       await page.locator('#analysisChannel').selectOption('alpha');
       const sourceAlpha = await page.locator('.analysis-chart').first().getAttribute('aria-label');
-      
+
       await page.locator('.cell .format-select').nth(0).selectOption('jpeg');
       await ready(page); await plots(page);
       assert.notEqual(await page.locator('.analysis-chart').first().getAttribute('aria-label'), sourceAlpha);
@@ -286,6 +286,31 @@ async function plots(page) {
         await page.keyboard.press('Home'); await page.keyboard.press('Enter');
       }
     }, { deviceScaleFactor: 2 });
+    await check('readout hover/focus stays below controls and never intercepts maximum to compact', async page => {
+      await page.locator('#sampleImage').click(); await ready(page); await plots(page);
+      const button=page.locator('#analysisReadoutButton'),content=page.locator('#analysisReadoutContent');
+      for(const width of [1440,768,390,320]) {
+        await page.setViewportSize({width,height:1000});
+        await page.locator('button[data-analysis-size="max"]').click();
+        assert.equal(await page.locator('.stage').getAttribute('data-analysis-size'),'max');
+        await button.hover(); await expectReadout();
+        const anchor=await button.boundingBox(),popup=await content.boundingBox();
+        assert(popup.y>=anchor.y+anchor.height,'popup must stay below the button and all size controls');
+        const body=await page.locator('#analysisBody').boundingBox();
+        assert(popup.x>=body.x-1&&popup.x+popup.width<=body.x+body.width+1,'popup text must not be clipped at the panel edges');
+        const target=page.locator('button[data-analysis-size="compact"]');
+        await target.scrollIntoViewIfNeeded();
+        assert(await target.evaluate(b=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),'readout must not intercept the compact button');
+        await target.click();
+        assert.equal(await page.locator('.stage').getAttribute('data-analysis-size'),'compact');
+        await page.mouse.move(0,0);
+        await button.focus();await expectReadout();
+        await content.focus();await page.keyboard.press('Escape');
+        assert.equal(await content.isVisible(),false);
+        assert(await button.evaluate(b=>b===document.activeElement));
+      }
+      async function expectReadout(){await content.waitFor({state:'visible'});assert.equal(await button.getAttribute('aria-expanded'),'true');}
+    });
     await check('empty, inline sizes, desktop/narrow layouts, keyboard and focus; screenshots', async page => {
       await page.locator('button[data-analysis-size="compact"]').click();
       assert.ok((await page.locator('.analysis-info').first().textContent()).includes('Добавьте'));

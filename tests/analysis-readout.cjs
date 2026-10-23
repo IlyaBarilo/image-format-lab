@@ -27,20 +27,30 @@ const assert=require('node:assert/strict');
   constructor(){this.handlers={};this.hidden=true;this.disabled=false;this.attrs={};}
   addEventListener(k,f){(this.handlers[k]??=[]).push(f)}
   setAttribute(k,v){this.attrs[k]=v}
-  contains(e){return e===this||e===button||e===content}
+  contains(e){return e===this||(this===root&&(e===button||e===content))}
   focus(){global.document.activeElement=this;root.fire('focusin')}
   fire(k,e={}){for(const f of this.handlers[k]||[])f({preventDefault(){},stopPropagation(){},...e})}
  }
- const root=new Element(),button=new Element(),content=new Element(),doc=new Element();
+ const root=new Element(),button=new Element(),content=new Element(),doc=new Element(),panel=new Element();
+ root.closest=()=>panel;global.window=new Element();
+ let resize;global.ResizeObserver=class{constructor(callback){resize=callback}observe(el){assert.equal(el,panel)}};
  global.document=doc;
  const c=createAnalysisReadout(root,button,content);c.attach();c.attach();
- c.update(snapshot);root.fire('pointerenter');assert(!content.hidden);assert.equal(button.attrs['aria-expanded'],'true');
+ c.update(snapshot);button.fire('pointerenter');assert(!content.hidden);assert.equal(button.attrs['aria-expanded'],'true');
  button.fire('click');root.fire('pointerleave');await new Promise(r=>setTimeout(r,150));assert(!content.hidden,'click pins the readout');
  root.fire('keydown',{key:'Escape'});assert(content.hidden);
  root.fire('focusin');assert(!content.hidden);
  root.fire('focusout',{relatedTarget:null});assert(content.hidden);
  button.fire('click');assert(!content.hidden);
  c.update({source:null});assert(button.disabled&&content.hidden&&content.textContent==='');
- assert.equal(root.handlers.pointerenter.length,1);
+ assert.equal(button.handlers.pointerenter.length,1);
+ c.update(snapshot);button.fire('pointerenter');resize();assert(content.hidden,'panel resizing closes stale hover content');
+ root.fire('focusin');window.fire('resize');assert(content.hidden);
+ button.fire('click');doc.fire('scroll',{target:content});assert(!content.hidden,'readout itself stays scrollable');
+ doc.fire('scroll',{target:panel});assert(!content.hidden,'a pinned popup stays readable while scrolling');
+ doc.fire('pointerdown',{target:panel});assert(content.hidden);
+ document.activeElement=panel;button.fire('pointerenter');doc.fire('scroll',{target:panel});assert(content.hidden,'external scroll closes an unpinned hover popup');
+ root.fire('focusin');document.activeElement=content;window.fire('resize');assert(content.hidden&&document.activeElement===button,'closing focused content restores a visible focus');
+ delete global.window;delete global.ResizeObserver;
  console.log('PASS ROI-aware readout, pixel counts/percent/levels, no stale values, hover/focus/click/Escape');
 })().catch(e=>{console.error(e);process.exitCode=1});

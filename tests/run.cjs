@@ -1,58 +1,41 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const {performance} = require('node:perf_hooks');
 const artifacts = require('./support/artifacts.cjs');
+const {suites, validateRegistry, selectSuites} = require('./suites.cjs');
+const {runSuite, summary} = require('./support/test-runner.cjs');
+const {prepareSharedViewer, sharedViewer} = require('./support/shared-viewer.cjs');
 const root = path.resolve(__dirname, '..');
-const tests = ['publication-policy', 'knowledge', 'knowledge-ui', 'build-regressions', 'build-version', 'release-workflow', 'release-publishing', 'preferences', 'theme', 'source-packages', 'codec-compression', 'core-regressions', 'canvas-layout', 'analysis-layout', 'analysis-visibility', 'analysis-viewport', 'analysis-overlay', 'analysis-delta', 'file-import', 'jpeg-regressions', 'jpeg-encode', 'raster-codecs', 'raster-settings', 'tiff-regressions', 'viewer-files', 'viewer-batch', 'viewer-batch-dialog', 'viewer-batch-preview', 'viewer-enhancements', 'viewer-analysis', 'viewer-waveform', 'viewer-difference', 'viewer-vectorscope-profile', 'viewer-analysis-output', 'browser-regressions', 'heic-regressions', 'heic-encode-regressions', 'modern-regressions', 'standalone-release'];
-tests.push('raster-worker', 'analysis-report', 'pixel-buffer', 'pixel-metrics', 'histogram-precision', 'float-source-histogram', 'error-histogram', 'viewer-error-histogram', 'reference-samples', 'experiment-protocol', 'viewer-experiment-protocol', 'quality-series', 'quality-series-controller', 'viewer-quality-series', 'png-precision', 'pixel-inspector', 'viewer-pixel-inspector', 'file-passport', 'viewer-file-passport', 'processing-timing');
-tests.push('wipe-view', 'viewer-wipe-view');
-tests.push('heif-blocks');
-tests.push('print-check');
-tests.push('jxl-blocks');
-tests.push('analysis-guides');
-tests.push('crop-source');
-tests.push('comparison-summary');
-tests.push('signal-scopes');
-tests.push('precise-vector-difference');
-tests.push('boundary-map');
-tests.push('waveform-worker');
-tests.push('error-profile');
-tests.push('ssim');
-tests.push('png-indexed');
-tests.push('icc-extended');
-tests.push('color-sdr');
-tests.push('tiff-icc-worker');
-tests.push('modern-options');
-tests.push('modern-native-options');
-tests.push('jpeg-jxl-reconstruction');
-tests.push('avif-speed');
-tests.push('avif-native-speed');
-tests.push('tiff16');
-tests.push('tiff-float');
-tests.push('jxl16');
-tests.push('jxl-icc');
-tests.push('display-sdr');
-tests.push('jpeg2000');
-tests.push('cmyk');
-tests.push('icc-sdr');
-tests.push('comparison-readiness');
-tests.push('diagnostics', 'diagnostics-ui', 'application-diagnostics');
-tests.push('diagnostics-firefox');
-tests.push('viewer-diagnostics');
-tests.push('range-number', 'viewer-range-number');
-tests.push('application-source', 'analysis-readout');
-const requested = process.argv.slice(2);
-if (requested.some(name => !tests.includes(name))) throw new Error('Unknown test suite');
-let failures = 0;
-for (const name of requested.length ? requested : tests) {
-  const result = spawnSync(process.execPath, [path.join(__dirname, name + '.cjs')], { cwd: root, env: process.env, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
-  const output = (result.stdout || '') + (result.stderr || '') + (result.error ? '\n' + result.error.stack : '');
-  if (process.env.IMAGE_TEST_LOGS) {
-    const folder = artifacts.folder(process.env.IMAGE_TEST_LOGS);
-    fs.mkdirSync(folder, { recursive: true });
-    fs.writeFileSync(path.join(folder, artifacts.runId + '-modular-' + name + '.txt'), output);
+async function main() {
+  validateRegistry();
+  const {group, list, selected} = selectSuites(process.argv.slice(2));
+  if (list) { console.log(JSON.stringify({group, total:selected.length, suites:selected.map(s => ({name:s.name, label:s.label, group:s.group, timeoutMs:s.timeoutMs}))}, null, 2)); return; }
+  const logs = process.env.IMAGE_TEST_LOGS ? artifacts.folder(process.env.IMAGE_TEST_LOGS) : null;
+  if (logs) fs.mkdirSync(logs, {recursive:true});
+  const start = performance.now(), records = [];
+  let prepared, setupError;
+  try {
+    let env = {...process.env};
+    if (selected.some(s => s.group !== 'core' && s.name !== 'standalone-release')) {
+      if (!sharedViewer(env)) {
+        console.log('START shared instrumented HTML build');
+        prepared = prepareSharedViewer();
+        env = {...env, ...prepared.env};
+        console.log('PASS shared instrumented HTML build (' + ((performance.now()-start)/1000).toFixed(2) + 's)');
+      }
+    }
+    for (const entry of selected) {
+      const record = await runSuite({...entry, file:path.join(__dirname, entry.name + '.cjs')}, {cwd:root, env:{...env, ...(entry.engine?{IMAGE_TEST_ENGINE:entry.engine}:{})}, logs, runId:artifacts.runId});
+      records.push(record);
+    }
+  } catch (error) { setupError = error.message; throw error; } finally {
+    prepared?.cleanup();
+    const result = {group, registered:suites.length, selected:selected.length, completed:records.length, durationMs:Math.round(performance.now()-start), setupError:setupError || null, records};
+    if (logs) fs.writeFileSync(path.join(logs, artifacts.runId + '-summary.json'), JSON.stringify(result,null,2)+'\n');
+    const text = summary(records, selected.length);
+    process.stdout.write(text);
+    if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Tests: ' + (group || 'selected/full') + '\n\n\x60\x60\x60text\n' + text + '\x60\x60\x60\n');
+    if (records.length !== selected.length || records.some(r => r.status !== 'PASS')) process.exitCode = 1;
   }
-  if (result.status !== 0) { failures++; process.stderr.write(output); }
-  console.log(`${result.status === 0 ? 'PASS' : 'FAIL'} ${name}`);
 }
-process.exitCode = failures ? 1 : 0;
+main().catch(error => { console.error('FAIL test runner: ' + error.stack); process.exitCode = 1; });

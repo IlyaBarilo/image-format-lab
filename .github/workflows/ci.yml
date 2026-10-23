@@ -7,32 +7,48 @@ concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  test:
+  groups:
+    name: Tests · ${{ matrix.group }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - group: core
+            browsers: ''
+            extra: ''
+          - group: viewer
+            browsers: chromium
+            extra: ''
+          - group: analysis
+            browsers: chromium
+            extra: ''
+          - group: codecs
+            browsers: chromium firefox
+            extra: --firefox
     env:
       IMAGE_TEST_PYTHON: python
       IMAGE_TEST_HEIC_NATIVE: '1'
       IMAGE_TEST_LOGS: test-results
-      IMAGE_TEST_RUN_ID: ci
+      IMAGE_TEST_RUN_ID: ci-${{ matrix.group }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-tests
         with:
-          browsers: chromium firefox
+          browsers: ${{ matrix.browsers }}
       - name: Check tracked inputs and build the application
+        id: build
         run: |
           node scripts/check-repository.mjs
           npm --prefix scripts run build
-      - name: Run all registered tests
-        run: npm --prefix scripts test
-      - name: Check diagnostics in Firefox
-        run: node tests/viewer-diagnostics.cjs
-        env:
-          IMAGE_TEST_ENGINE: firefox
+      - name: Run the registered group
+        run: npm --prefix scripts test -- --group ${{ matrix.group }} ${{ matrix.extra }}
       - name: Confirm tests preserved the build and tracked inputs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           npm --prefix scripts run build -- --check
           node scripts/check-repository.mjs
@@ -40,7 +56,23 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: checks-${{ github.run_id }}-${{ github.run_attempt }}
+          name: checks-${{ matrix.group }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: test-results/
           if-no-files-found: warn
           retention-days: 14
+  test:
+    name: test
+    needs: groups
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require all test groups to pass
+        env:
+          GROUPS_RESULT: ${{ needs.groups.result }}
+        run: |
+          if [ "$GROUPS_RESULT" != "success" ]; then
+            echo "::error::Test groups finished with $GROUPS_RESULT"
+            exit 1
+          fi
+          echo "All registered test groups passed."

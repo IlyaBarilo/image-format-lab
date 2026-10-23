@@ -32,6 +32,12 @@ const { folder } = require('./support/artifacts.cjs');
     assert.ok(text.indexOf(build) < text.indexOf('run: npm --prefix scripts test'), 'build before tests in a checkout without HTML');
     assert.ok(text.indexOf(' --check') > text.indexOf('run: npm --prefix scripts test'), 'verify generated HTML after tests');
   }
+  const {groups} = require('./suites.cjs');
+  assert.deepEqual([...ci.matchAll(/- group: ([a-z]+)/g)].map(m=>m[1]), groups, 'every registered group runs in Checks');
+  assert.match(ci, /fail-fast: false/);assert.match(ci, /max-parallel: 4/);
+  assert.match(ci, /needs: groups/);assert.match(ci, /needs\.groups\.result/);
+  assert.match(ci, /if:.*always\(\)/);assert(!ci.includes('continue-on-error'));
+  assert.match(ci, /extra: --firefox/);assert.match(ci, /--group \$\{\{ matrix\.group \}\}/);
   for (const name of ['local/test-results', 'local/test-results/run', 'test-results/ci']) {
     assert.equal(folder(name), path.resolve(root, name));
   }

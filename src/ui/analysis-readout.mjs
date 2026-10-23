@@ -50,7 +50,7 @@ export function analysisReadout(snapshot) {
 export function createAnalysisReadout(root, button, content) {
   if (!root || !button || !content) return {update() {}, attach() {}};
   let pinned = false, attached = false, timer;
-  const close = () => { clearTimeout(timer); pinned = false; content.hidden = true; button.setAttribute('aria-expanded','false'); };
+  const close = () => { clearTimeout(timer); pinned = false; if (content.contains(document.activeElement) && !button.disabled) button.focus(); content.hidden = true; button.setAttribute('aria-expanded','false'); };
   const open = () => { clearTimeout(timer); if (button.disabled) return; content.hidden = false; button.setAttribute('aria-expanded','true'); };
   return {
     update(snapshot) {
@@ -60,13 +60,18 @@ export function createAnalysisReadout(root, button, content) {
     },
     attach() {
       if (attached) return; attached = true;
-      root.addEventListener('pointerenter', open);
+      button.addEventListener('pointerenter', open);
       root.addEventListener('pointerleave', () => { timer = setTimeout(() => { if (!pinned && !root.contains(document.activeElement)) close(); }, 120); });
       root.addEventListener('focusin', open);
       root.addEventListener('focusout', e => { if (!root.contains(e.relatedTarget)) close(); });
       button.addEventListener('click', () => { if (pinned) close(); else { pinned = true; open(); } });
       root.addEventListener('keydown', e => { if (e.key === 'Escape' && !content.hidden) { e.preventDefault(); e.stopPropagation(); button.focus(); close(); } });
       document.addEventListener('pointerdown', e => { if (!root.contains(e.target)) close(); });
+      // Layout changes must not leave a hover panel under the next control.
+      document.addEventListener('scroll', e => { if (!pinned && !root.contains(document.activeElement) && !content.contains(e.target)) close(); }, true);
+      if (typeof window !== 'undefined') window.addEventListener('resize', close);
+      const panel = root.closest?.('.analysis-panel');
+      if (panel && typeof ResizeObserver !== 'undefined') new ResizeObserver(close).observe(panel);
     }
   };
 }
