@@ -17,6 +17,71 @@ async function ready(page) {
 async function plots(page) {
   await page.waitForFunction(() => [...document.querySelectorAll('.analysis-card')].filter(e => !e.hidden).every(e => e.dataset.state === 'ready'));
 }
+function installReadoutDiagnostics() {
+  const trace = [];
+  const box = element => {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    return [rect.x, rect.y, rect.width, rect.height].map(value => Math.round(value * 1000) / 1000);
+  };
+  const snapshot = () => {
+    const button = document.getElementById('analysisReadoutButton');
+    const content = document.getElementById('analysisReadoutContent');
+    const panel = document.getElementById('analysisPanel');
+    const stage = document.querySelector('.stage');
+    return {
+      viewport: [innerWidth, innerHeight], size: stage?.dataset.analysisSize,
+      collapsed: document.getElementById('analysisBody')?.hidden,
+      hidden: content?.hidden, disabled: button?.disabled,
+      expanded: button?.getAttribute('aria-expanded'), active: document.activeElement?.id,
+      anchor: box(button), panel: box(panel), popup: box(content),
+      scroll: [scrollX, scrollY, stage?.scrollTop, panel?.scrollTop, content?.scrollTop]
+    };
+  };
+  window.__analysisReadoutDiagnostics = { trace, snapshot };
+  const record = (kind, event) => {
+    trace.push({ time: Math.round(performance.now()), kind,
+      event: event?.type, target: event?.target?.id || event?.target?.nodeName,
+      trusted: event?.isTrusted, ...snapshot() });
+    if (trace.length > 120) trace.shift();
+  };
+  const inside = element => document.getElementById('analysisReadout')?.contains(element);
+  for (const kind of ['pointerenter', 'pointerleave', 'focusin', 'focusout', 'keydown']) {
+    document.addEventListener(kind, event => { if (inside(event.target)) record(kind, event); }, true);
+  }
+  document.addEventListener('pointerdown', event => record('pointerdown', event), true);
+  document.addEventListener('scroll', event => record('scroll', event), true);
+  window.addEventListener('resize', event => record('resize', event));
+  const attach = () => {
+    const root = document.getElementById('analysisReadout'), panel = document.getElementById('analysisPanel');
+    if (root) new MutationObserver(entries => {
+      for (const entry of entries) record('attribute:' + entry.attributeName, { target: entry.target });
+    }).observe(root, { subtree: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'aria-expanded'] });
+    if (panel && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => record('panel-resize')).observe(panel);
+    record('attached');
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach, { once: true });
+  else attach();
+}
+
+async function saveReadoutFailure(page, name, error, index) {
+  try {
+    const diagnostic = await page.evaluate(() => {
+      const data = window.__analysisReadoutDiagnostics;
+      return data ? { state: data.snapshot(), trace: data.trace.slice() } : { unavailable: 'Diagnostic initialization did not complete' };
+    });
+    console.error('ANALYSIS DIAGNOSTICS ' + JSON.stringify(diagnostic));
+    if (folder) {
+      fs.mkdirSync(folder, { recursive: true });
+      const prefix = path.join(folder, artifacts.runId + '-viewer-analysis-failure-' + index);
+      fs.writeFileSync(prefix + '.json', JSON.stringify({ name, error: error.message, ...diagnostic }, null, 2));
+      await page.screenshot({ path: prefix + '.png' });
+    }
+  } catch (diagnosticError) {
+    console.error('Could not save analysis diagnostics: ' + diagnosticError.message);
+  }
+}
+
 (async () => {
   const { computeHistogram } = await import('../src/core/histogram.mjs');
   const original = fixture.data.slice(), white = computeHistogram(fixture), black = computeHistogram(fixture, 'black');
@@ -44,12 +109,14 @@ async function plots(page) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
     try {
+      await page.addInitScript(installReadoutDiagnostics);
       await context.setOffline(true); await page.goto(url); await page.locator('#analysisDisplaySeparate').click(); await page.locator('#analysisCollapse').click();
       await fn(page, context);
       assert.deepEqual(errors, []); assert.deepEqual(requests, []);
       checks.push({ name, passed: true }); console.log('PASS ' + name);
     } catch (error) {
       failures++; checks.push({ name, passed: false, error: error.message }); console.error('FAIL ' + name + ': ' + error.stack);
+      await saveReadoutFailure(page, name, error, failures);
     } finally { await context.close(); }
   }
   try {
@@ -312,6 +379,31 @@ async function plots(page) {
         assert(await button.evaluate(b=>b===document.activeElement));
       }
       async function expectReadout(){await content.waitFor({state:'visible'});assert.equal(await button.getAttribute('aria-expanded'),'true');}
+    });
+    await check('readout hover after scrolling survives queued notifications and closes on real resize', async page => {
+      await page.locator('#sampleImage').click(); await ready(page);
+      const button=page.locator('#analysisReadoutButton'),content=page.locator('#analysisReadoutContent');
+      for(const width of [1440,768,390,320]) {
+        await page.setViewportSize({width,height:1000});
+        await page.locator('button[data-analysis-size="max"]').click();await plots(page);
+        await page.mouse.move(0,0);
+        await button.scrollIntoViewIfNeeded();await button.hover();
+        await content.waitFor({state:'visible'});
+        await page.evaluate(() => {
+          document.getElementById('analysisPanel').dispatchEvent(new Event('scroll'));
+          document.dispatchEvent(new Event('scroll'));
+          window.dispatchEvent(new Event('resize'));
+        });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await content.isVisible(),true,'late scroll and resize notifications must preserve hover');
+        assert.equal(await button.getAttribute('aria-expanded'),'true');
+        await page.setViewportSize({width,height:1040});
+        await content.waitFor({state:'hidden'});
+        assert.equal(await button.getAttribute('aria-expanded'),'false','real viewport resizing still closes hover');
+        await page.mouse.move(0,0);await button.hover();await content.waitFor({state:'visible'});
+        await page.locator('button[data-analysis-size="compact"]').click();
+        assert.equal(await page.locator('.stage').getAttribute('data-analysis-size'),'compact');
+      }
     });
     await check('empty, inline sizes, desktop/narrow layouts, keyboard and focus; screenshots', async page => {
       await page.locator('button[data-analysis-size="compact"]').click();

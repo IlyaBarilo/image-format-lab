@@ -49,9 +49,19 @@ export function analysisReadout(snapshot) {
 
 export function createAnalysisReadout(root, button, content) {
   if (!root || !button || !content) return {update() {}, attach() {}};
-  let pinned = false, attached = false, timer;
-  const close = () => { clearTimeout(timer); pinned = false; if (content.contains(document.activeElement) && !button.disabled) button.focus(); content.hidden = true; button.setAttribute('aria-expanded','false'); };
-  const open = () => { clearTimeout(timer); if (button.disabled) return; content.hidden = false; button.setAttribute('aria-expanded','true'); };
+  let pinned = false, attached = false, timer, anchor = null;
+  const panel = root.closest?.('.analysis-panel');
+  const geometry = () => {
+    const buttonBox = button.getBoundingClientRect(), panelBox = panel?.getBoundingClientRect();
+    return [buttonBox.left, buttonBox.top, buttonBox.width, buttonBox.height,
+      panelBox?.width, panelBox?.height, window.innerWidth, window.innerHeight];
+  };
+  const close = () => { clearTimeout(timer); pinned = false; if (content.contains(document.activeElement) && !button.disabled) button.focus(); content.hidden = true; anchor = null; button.setAttribute('aria-expanded','false'); };
+  const open = () => { clearTimeout(timer); if (button.disabled) return; anchor = geometry(); content.hidden = false; button.setAttribute('aria-expanded','true'); };
+  // Scroll/resize notifications queued before opening must not dismiss a new popup.
+  const closeIfMoved = () => {
+    if (!content.hidden && anchor && geometry().some((value, index) => value !== anchor[index])) close();
+  };
   return {
     update(snapshot) {
       const text = analysisReadout(snapshot);
@@ -68,10 +78,9 @@ export function createAnalysisReadout(root, button, content) {
       root.addEventListener('keydown', e => { if (e.key === 'Escape' && !content.hidden) { e.preventDefault(); e.stopPropagation(); button.focus(); close(); } });
       document.addEventListener('pointerdown', e => { if (!root.contains(e.target)) close(); });
       // Layout changes must not leave a hover panel under the next control.
-      document.addEventListener('scroll', e => { if (!pinned && !root.contains(document.activeElement) && !content.contains(e.target)) close(); }, true);
-      if (typeof window !== 'undefined') window.addEventListener('resize', close);
-      const panel = root.closest?.('.analysis-panel');
-      if (panel && typeof ResizeObserver !== 'undefined') new ResizeObserver(close).observe(panel);
+      document.addEventListener('scroll', e => { if (!pinned && !root.contains(document.activeElement) && !content.contains(e.target)) closeIfMoved(); }, true);
+      if (typeof window !== 'undefined') window.addEventListener('resize', closeIfMoved);
+      if (panel && typeof ResizeObserver !== 'undefined') new ResizeObserver(closeIfMoved).observe(panel);
     }
   };
 }
