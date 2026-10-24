@@ -287,12 +287,14 @@ async function plots(page) {
       }
     }, { deviceScaleFactor: 2 });
     await check('readout hover/focus stays below controls and never intercepts maximum to compact', async page => {
-      await page.locator('#sampleImage').click(); await ready(page); await plots(page);
+      assert.equal(await page.locator('#analysisBody').isVisible(),false);
+      await page.locator('#sampleImage').click(); await ready(page);
       const button=page.locator('#analysisReadoutButton'),content=page.locator('#analysisReadoutContent');
       for(const width of [1440,768,390,320]) {
         await page.setViewportSize({width,height:1000});
         await page.locator('button[data-analysis-size="max"]').click();
         assert.equal(await page.locator('.stage').getAttribute('data-analysis-size'),'max');
+        await plots(page);
         await button.hover(); await expectReadout();
         const anchor=await button.boundingBox(),popup=await content.boundingBox();
         assert(popup.y>=anchor.y+anchor.height,'popup must stay below the button and all size controls');
