@@ -2,15 +2,21 @@
 
 **Изучение и сравнение форматов изображений.**
 
+<p align="center">
+  <a href="https://ilyabarilo.github.io/image-format-lab/"><img src="https://img.shields.io/badge/Открыть_в_браузере-238636?style=for-the-badge" alt="Открыть в браузере"></a>
+  <a href="https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html"><img src="https://img.shields.io/badge/Скачать_HTML_для_офлайна-0969da?style=for-the-badge" alt="Скачать HTML для офлайна"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/IlyaBarilo/image-format-lab/releases/latest"><img src="https://img.shields.io/github/v/release/IlyaBarilo/image-format-lab?display_name=tag&amp;label=Версия" alt="Последняя версия"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Лицензия-MIT-blue" alt="Лицензия собственного кода и документации: MIT"></a>
+  <a href="https://github.com/IlyaBarilo/image-format-lab/actions/workflows/release.yml"><img src="https://github.com/IlyaBarilo/image-format-lab/actions/workflows/release.yml/badge.svg?event=release" alt="Состояние сборки релиза"></a>
+</p>
+
 Локальный инструмент для сравнения качества и размера изображений и пакетной
 конвертации. Подходит для занятий по веб-графике, экспериментов со сжатием
 и подготовки файлов для сайта.
 
 **Один HTML-файл · Работа без интернета · Сравнение 2/4 · Пакетная обработка**
-
-**[Скачать HTML из последнего релиза](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html)**
-
-Скачайте `image-format-lab.html` из Releases и откройте файл в браузере.
 
 Исходники библиотек размещаются рядом с HTML в том же
 [релизе](https://github.com/IlyaBarilo/image-format-lab/releases/latest):
@@ -27,12 +33,11 @@
 
 ## Быстрый запуск
 
-1. Скачайте [image-format-lab.html из последнего релиза](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html)
-   на компьютер.
-2. Откройте сохранённый HTML в современном браузере.
-3. Нажмите **Образец** для первого знакомства, стрелку рядом — для выбора других
+1. [Откройте приложение в браузере](https://ilyabarilo.github.io/image-format-lab/).
+   Для работы без интернета [скачайте HTML](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html) и откройте сохранённый файл.
+2. Нажмите **Образец** для первого знакомства, стрелку рядом — для выбора других
    встроенных примеров, или **Добавить** для своих изображений.
-4. Выберите вид **2/4**, форматы и параметры вариантов. Сравните изображение,
+3. Выберите вид **2/4**, форматы и параметры вариантов. Сравните изображение,
    размер файла и метрики, затем скачайте нужный результат.
 
 Первый результат: исходник и его перекодированные варианты видны рядом,

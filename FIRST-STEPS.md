@@ -2,7 +2,9 @@
 
 ## Открыть приложение
 
-Скачайте [image-format-lab.html из последнего релиза](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html).
+Для первого эксперимента [откройте Image Format Lab в браузере](https://ilyabarilo.github.io/image-format-lab/).
+
+Для работы без интернета скачайте [image-format-lab.html из последнего релиза](https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html).
 Откройте сохранённый HTML двойным щелчком
 в современном браузере. Для работы достаточно одного файла, интернет не нужен.
 Если браузер показывает текст исходника, откройте сохранённый файл через
