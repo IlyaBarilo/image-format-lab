@@ -76,7 +76,7 @@ PASS/FAIL сохраняются в тексте; интерфейс показ�
 `scripts/build-version.mjs` проверяет формат тега и checkout. Сборочный API
 `buildViewer({release: true, tag, sourceConfig})` формирует HTML в памяти для
 тестов без Git; для выпуска используется CLI с проверкой checkout.
-[Полная инструкция](../docs/PUBLISHING.md) и [GitHub Actions](../docs/CI.md).
+Проверки тега и готового HTML описаны в [документации GitHub Actions](../docs/CI.md).
 
 Три крупных исполняемых модуля — HEIC/AVIF, JPEG и JPEG XL/WebP — хранятся в
 `scripts` как `{encoding: "gzip-base64", bytes, data}`. Остальные четыре скрипта

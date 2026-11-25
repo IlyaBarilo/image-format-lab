@@ -260,7 +260,7 @@ docs/                           Руководства и лицензионны
 - [Первые шаги](FIRST-STEPS.md) и [подробное руководство](docs/USAGE.md).
 - [Работа без интернета](docs/OFFLINE.md) и [устройство исходников](src/README.md).
 - [Для разработчика](docs/DEVELOPMENT.md) и [проверки](tests/README.md).
-- [Подготовка публикации](docs/PUBLISHING.md) и [GitHub Actions](docs/CI.md).
+- [Автоматические проверки изменений и релизов](docs/CI.md).
 
 ## Обратная связь
 
