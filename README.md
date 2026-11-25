@@ -7,7 +7,7 @@
   <a href="https://github.com/IlyaBarilo/image-format-lab/releases/latest/download/image-format-lab.html"><img src="https://img.shields.io/badge/Скачать_HTML_для_офлайна-0969da?style=for-the-badge" alt="Скачать HTML для офлайна"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/IlyaBarilo/image-format-lab/releases/latest"><img src="https://img.shields.io/github/v/release/IlyaBarilo/image-format-lab?display_name=tag&amp;label=Версия" alt="Последняя версия"></a>
+  <a href="https://github.com/IlyaBarilo/image-format-lab/releases/latest"><img src="https://img.shields.io/github/v/release/IlyaBarilo/image-format-lab?display_name=tag&amp;label=%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F" alt="Последняя версия"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Лицензия-MIT-blue" alt="Лицензия собственного кода и документации: MIT"></a>
   <a href="https://github.com/IlyaBarilo/image-format-lab/actions/workflows/release.yml"><img src="https://github.com/IlyaBarilo/image-format-lab/actions/workflows/release.yml/badge.svg?event=release" alt="Состояние сборки релиза"></a>
 </p>
